@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perceptrón Simple y billetes falsos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,700;1,6..96,500&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Un billete visto a la luz del día: papel de seguridad verdoso, tinta azul noche y grabado verde.
+     En tema oscuro, el mismo billete bajo una lámpara UV.
+     Disposición: láminas de 1280 × 720 que se escalan a la pantalla, con una barra de mando abajo.
+     En modo lectura las mismas láminas se apilan en una sola página. */
+  --papel:#eef1ea; --lamina:#f9faf6; --hundido:#e2e8dc;
+  --tinta:#16233b; --tinta-2:#4c5870; --linea:#c3ccbf;
+  --grabado:#0c6a57; --sobre-grabado:#ffffff;
+  --autentico:#2a78d6; --falso:#eb6834;
+  --f-titulo:"Bodoni Moda","Didot","Bodoni MT",Georgia,serif;
+  --f-texto:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-codigo:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --papel:#0e1126; --lamina:#171b36; --hundido:#0a0c1d;
+    --tinta:#eceeff; --tinta-2:#aab1d6; --linea:#313866;
+    --grabado:#5fd9c4; --sobre-grabado:#0e1126;
+    --autentico:#3987e5; --falso:#d95926;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --papel:#0e1126; --lamina:#171b36; --hundido:#0a0c1d;
+  --tinta:#eceeff; --tinta-2:#aab1d6; --linea:#313866;
+  --grabado:#5fd9c4; --sobre-grabado:#0e1126;
+  --autentico:#3987e5; --falso:#d95926;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--f-texto);font-size:18px;line-height:1.5}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+h1,h2,h3,p,ul,ol,figure,table,dl{margin:0}
+h1,h2{font-family:var(--f-titulo);font-weight:700;line-height:1.08;text-wrap:balance;letter-spacing:-.01em}
+h3{font-size:1.08em;font-weight:700;line-height:1.3;text-wrap:balance}
+a{color:var(--grabado)}
+strong{font-weight:700}
+code,pre{font-family:var(--f-codigo);font-size:.82em}
+:focus-visible{outline:3px solid var(--grabado);outline-offset:2px;border-radius:3px}
+
+.cabeza{display:flex;flex-direction:column;gap:6px}
+.cabeza .num{font-family:var(--f-titulo);font-style:italic;font-size:1.15em;color:var(--grabado)}
+.entrada{font-size:1.16em}
+.nota{font-size:.84em;color:var(--tinta-2)}
+.dos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px;align-items:start}
+.pila{display:flex;flex-direction:column;gap:12px}
+.fila{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.panel{background:var(--lamina);border:1px solid var(--linea);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.btn{font:600 .9rem var(--f-texto);padding:8px 14px;border-radius:4px;border:1.5px solid var(--grabado);background:var(--grabado);color:var(--sobre-grabado);cursor:pointer}
+.btn.sec{background:transparent;color:var(--grabado)}
+.btn:hover{filter:brightness(1.1)}
+.btn[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--papel)}
+.btn:disabled{opacity:.45;cursor:default}
+input[type=range]{accent-color:var(--grabado);width:100%;margin:2px 0}
+input[type=number]{font:600 1rem var(--f-texto);font-variant-numeric:tabular-nums;width:5.2em;padding:6px 8px;border:1px solid var(--linea);border-radius:4px;background:var(--papel);color:var(--tinta)}
+label{font-size:.88em;font-weight:600}
+.dato{font-variant-numeric:tabular-nums;font-weight:700}
+.cifra{font-family:var(--f-titulo);font-weight:700;font-size:2.1rem;line-height:1;font-variant-numeric:tabular-nums}
+.pastilla{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:.9em;padding:2px 10px;border-radius:99px;border:1.5px solid currentColor;white-space:nowrap}
+.c-aut{color:var(--autentico)} .c-fal{color:var(--falso)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8em;color:var(--tinta-2)}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda svg{width:14px;height:14px}
+table{border-collapse:collapse;width:100%;font-size:.86em}
+th,td{text-align:left;padding:7px 11px;border-bottom:1px solid var(--linea);vertical-align:top}
+th{font-weight:700;color:var(--tinta-2);font-size:.9em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.desborde{overflow-x:auto}
+pre{background:var(--hundido);border-radius:4px;padding:12px 14px;overflow-x:auto;line-height:1.45;margin:0;color:var(--tinta)}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--f-texto);fill:var(--tinta-2);font-size:12px}
+.m-aut{fill:var(--autentico)} .m-fal{fill:var(--falso)}
+.aro{stroke:var(--lamina);stroke-width:1.5}
+.z-aut{fill:var(--autentico);opacity:.11} .z-fal{fill:var(--falso);opacity:.11}
+.frontera{stroke:var(--tinta);stroke-width:2.5;fill:none;stroke-linecap:round}
+.eje{stroke:var(--linea);stroke-width:1;fill:none}
+.resalte{fill:none;stroke:var(--tinta);stroke-width:2}
+.tinta-f{fill:var(--tinta)} .grab-s{stroke:var(--grabado);fill:none} .grab-f{fill:var(--grabado)}
+#tip{position:fixed;z-index:40;pointer-events:none;background:var(--tinta);color:var(--papel);font-size:.8rem;line-height:1.35;padding:6px 9px;border-radius:4px;max-width:260px;opacity:0;transition:opacity .1s}
+
+/* Portada */
+.portada .cuerpo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:44px;align-items:center}
+.equipo{font-size:.86em;color:var(--tinta-2)}
+.billete{position:relative;background:var(--lamina);border:1.5px solid var(--grabado);outline:1px solid var(--grabado);outline-offset:4px;border-radius:4px;padding:18px 20px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:center;margin:6px}
+.billete .banco{grid-column:1/-1;display:flex;justify-content:space-between;gap:12px;font-family:var(--f-titulo);font-style:italic;font-size:.95rem;color:var(--grabado)}
+.billete .lecturas{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:.95rem;margin:0}
+.billete .lecturas dt{color:var(--tinta-2)} .billete .lecturas dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.billete .veredicto{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;border-top:1px dashed var(--linea);padding-top:12px;font-size:.95rem}
+.estampa{font-family:var(--f-titulo);font-weight:700;font-size:1.5rem;letter-spacing:.06em;padding:2px 12px;border:3px double currentColor;border-radius:3px;transform:rotate(-4deg)}
+
+.camino{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.camino .et{display:flex;flex-direction:column;gap:8px;font-size:.84em;line-height:1.35}
+.camino .et svg{background:var(--lamina);border:1px solid var(--linea);border-radius:4px}
+.camino .et b{font-size:1.08em}
+
+.aporte{display:grid;grid-template-columns:8.5em minmax(0,1fr) 4.6em;gap:10px;align-items:center;font-size:.86em}
+.pista{position:relative;height:15px;background:var(--hundido);border-radius:3px}
+.pista::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1.5px;background:var(--tinta-2)}
+.pista i{position:absolute;top:0;bottom:0;border-radius:3px}
+.regla{position:relative;height:30px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--autentico) 26%,transparent) 0 50%,color-mix(in srgb,var(--falso) 26%,transparent) 50% 100%)}
+.regla i{position:absolute;top:-5px;bottom:-5px;width:4px;margin-left:-2px;background:var(--tinta);border-radius:2px}
+.regla::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:var(--tinta-2)}
+
+.matriz{display:grid;grid-template-columns:auto repeat(2,minmax(0,1fr));gap:6px;font-size:.84em}
+.matriz .rot{color:var(--tinta-2);align-self:center;font-weight:600}
+.celda{border:1.5px solid var(--linea);border-radius:4px;background:var(--lamina);color:var(--tinta);padding:14px 12px;text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px}
+.celda .cifra{font-size:2.6rem}
+.celda[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1.5px var(--tinta)}
+.celda.acierto{background:color-mix(in srgb,var(--grabado) 12%,var(--lamina))}
+.celda.fallo{background:color-mix(in srgb,var(--falso) 14%,var(--lamina))}
+.metricas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.metrica{border-top:3px solid var(--grabado);padding-top:12px;display:flex;flex-direction:column;gap:6px;font-size:.88em;color:var(--tinta-2)}
+.metrica b{color:var(--tinta);font-size:1.1em}
+.metrica .cifra{font-size:2.7rem;color:var(--tinta)}
+.barra{height:10px;background:var(--hundido);border-radius:3px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--grabado);border-radius:3px}
+
+.resp{display:flex;flex-direction:column;gap:14px}
+.resp dt{font-weight:700;color:var(--grabado);font-size:.9em}
+.resp dd{margin:2px 0 0}
+.tarjetas{columns:2;column-gap:20px}
+.tarjeta{border:1px solid var(--linea);border-radius:6px;background:var(--lamina);break-inside:avoid;margin-bottom:8px}
+.tarjeta summary{cursor:pointer;padding:9px 14px 9px 4px;font-weight:700;font-size:.9em;margin-left:22px}
+.tarjeta p{padding:0 14px 12px;font-size:.88em}
+.linea-t{display:grid;grid-template-columns:5.2em minmax(0,1fr);gap:0 18px}
+.linea-t dt{font-family:var(--f-titulo);font-weight:700;font-size:1.5em;color:var(--grabado);line-height:1.25}
+.linea-t dd{margin:0 0 14px}
+.linea-t .f{display:contents}
+.vl ul,.lista{padding-left:1.1em;display:flex;flex-direction:column;gap:9px;margin:0}
+.paso{padding:12px 0;border-top:1px solid var(--linea);grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+.paso p{font-size:.9em}
+.paso .n0{font-family:var(--f-titulo);font-style:italic;color:var(--grabado);margin-right:8px}
+
+.receta{display:grid;grid-template-columns:4.2em minmax(0,1fr) 9.6em;gap:10px;align-items:center;font-size:.9em}
+.olla{position:relative;height:20px;background:var(--hundido);border-radius:3px}
+.olla i{position:absolute;left:0;top:0;bottom:0;background:var(--grabado);border-radius:3px;transition:width .08s linear}
+.olla b{position:absolute;top:-4px;bottom:-4px;border:2px solid var(--tinta);border-radius:3px}
+.robot-ojo{fill:var(--grabado)}
+.robot-caja{flex-wrap:nowrap;align-items:center;gap:18px}
+.robot{width:112px;flex:none}
+/* ---------- Barra de mando ---------- */
+.mando{position:fixed;left:0;right:0;bottom:0;height:46px;overflow:hidden;z-index:30;background:var(--lamina);border-top:1px solid var(--linea);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:.84rem}
+.bb{font:600 .8rem var(--f-texto);padding:6px 10px;border-radius:4px;border:1px solid var(--linea);background:transparent;color:var(--tinta);cursor:pointer;white-space:nowrap}
+.bb:hover{background:var(--hundido)}
+.bb.fuerte{background:var(--grabado);border-color:var(--grabado);color:var(--sobre-grabado)}
+.bb:disabled{opacity:.4;cursor:default}
+#b-rotulo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tinta-2);min-width:0}
+.avance{flex:1;height:4px;background:var(--hundido);border-radius:2px;min-width:30px}
+.avance i{display:block;height:100%;width:0;background:var(--grabado);border-radius:2px;transition:width .25s}
+#menu{position:fixed;left:12px;bottom:54px;z-index:31;background:var(--lamina);border:1px solid var(--linea);border-radius:6px;padding:8px;box-shadow:0 8px 28px rgba(10,20,40,.22);max-height:70vh;overflow:auto}
+#menu ol{list-style:none;margin:0;padding:0;counter-reset:p}
+#menu li{counter-increment:p}
+#menu button{display:flex;gap:10px;width:100%;text-align:left;font:500 .9rem var(--f-texto);padding:7px 12px;border:0;border-radius:4px;background:transparent;color:var(--tinta);cursor:pointer}
+#menu button::before{content:counter(p,decimal-leading-zero);color:var(--tinta-2);font-variant-numeric:tabular-nums}
+#menu button:hover,#menu button.aqui{background:var(--hundido)}
+#menu button.aqui{font-weight:700}
+
+/* ---------- Modo exposición: una lámina a la vez ---------- */
+body.expo{overflow:hidden}
+body.expo .escenario{position:fixed;left:50%;top:calc(50% - 23px);width:1280px;height:720px;margin:-360px 0 0 -640px;transform:scale(var(--k,1));transform-origin:50% 50%;font-size:20px}
+body.expo .lamina{position:absolute;inset:0;padding:38px 56px 28px;display:none;flex-direction:column;gap:14px;overflow:hidden}
+body.expo .lamina.activa{display:flex;animation:entra .3s ease both}
+@keyframes entra{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+body.expo .cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px}
+body.expo .cuerpo.centro{justify-content:center}
+body.expo .cuerpo.rueda{overflow-y:auto}
+body.expo h1{font-size:54px}
+body.expo h2{font-size:40px}
+body.expo .cuerpo.a1{font-size:1.1em}
+body.expo .cuerpo.a2{font-size:1.2em}
+body.expo .cuerpo.a3{font-size:1.32em}
+body.expo .portada .cuerpo{display:grid}
+body.expo .metrica .cifra{font-size:3.3rem}
+body.expo .robot{width:140px}
+body.expo .f{opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease,visibility 0s .3s}
+body.expo .f.visto{opacity:1;visibility:visible;transform:none;transition:opacity .3s ease,transform .3s ease}
+body.expo tr.f:not(.visto) td,body.expo thead.f:not(.visto) th{border-color:transparent}
+body.expo .plano{max-height:372px;width:auto;margin:0 auto}
+body.expo #tira{max-height:210px;width:auto;margin:0 auto}
+body.expo #anatomia{max-height:330px;width:auto;margin:0 auto}
+body.expo .lect{display:none}
+
+/* ---------- Modo lectura: todo en una página ---------- */
+body:not(.expo){padding-bottom:60px}
+body:not(.expo) .escenario{max-width:1080px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+body:not(.expo) .lamina{padding:44px 0 22px;border-top:1px solid var(--linea);display:flex;flex-direction:column;gap:18px}
+body:not(.expo) .lamina:first-child{border-top:0}
+body:not(.expo) .cuerpo{display:flex;flex-direction:column;gap:18px}
+body:not(.expo) .portada .cuerpo{display:grid}
+body:not(.expo) h1{font-size:clamp(2.2rem,6vw,3.6rem)}
+body:not(.expo) h2{font-size:clamp(1.6rem,3.4vw,2.3rem)}
+body:not(.expo) p,body:not(.expo) li{max-width:70ch}
+body:not(.expo) .solo-expo,body:not(.expo) #b-ant,body:not(.expo) #b-sig,body:not(.expo) #b-cuenta,body:not(.expo) #b-full,body:not(.expo) .avance{display:none}
+body:not(.expo) #b-rotulo{flex:1}
+@media (max-width:900px){
+  body:not(.expo) .dos,body:not(.expo) .portada .cuerpo{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .camino,body:not(.expo) .metricas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body:not(.expo) .tarjetas{columns:1}
+  body:not(.expo) .billete{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .billete svg{max-width:150px}
+  body:not(.expo) #tira{min-width:640px}
+  .mando #uv{display:none}
+  body:not(.expo) .robot-caja{flex-wrap:wrap}
+  body:not(.expo) .receta{grid-template-columns:3.6em minmax(0,1fr)}
+  body:not(.expo) .receta>span:last-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body class="expo">
+<div id="tip" role="tooltip"></div>
+
+<main class="escenario" id="escenario">
+
+<!-- ============ INICIO ============ -->
+<section class="lamina portada" data-parte="inicio">
+  <div class="cuerpo">
+    <div class="pila" style="gap:14px">
+      <p class="nota">Inteligencia de Negocios, examen final 2026. Grupo 4. Sustentación: miércoles 18 de noviembre.</p>
+      <h1>Una sola neurona decide si un billete es auténtico</h1>
+      <p class="entrada">Entrenamos un Perceptrón Simple con 1.372 billetes fotografiados. Mira cuatro números de cada foto, los pondera, los suma y responde: auténtico o falsificado. En la prueba acertó <strong id="p-aciertos"></strong>.</p>
+      <p class="equipo">Yeison Andrés Lamadrid Calderón, Jakson Alejandro Buitrago Molina, Miguel Alejandro Yela Vega y Jhoan Sebastián Ordóñez Campo. Docente: Julio Ricardo Martínez Montezuma.</p>
+      <p class="nota solo-expo">Avanza con las flechas del teclado, la barra espaciadora o el botón Siguiente.</p>
+    </div>
+    <div class="pila">
+      <div class="billete" aria-live="polite">
+        <div class="banco"><span>Banco del Perceptrón</span><span id="h-serie"></span></div>
+        <svg id="h-roseta" viewBox="-80 -80 160 160" role="img" aria-label="Textura generada con las cuatro medidas de este billete"></svg>
+        <dl class="lecturas" id="h-lecturas"></dl>
+        <div class="veredicto">
+          <span>Puntaje del modelo: <span class="dato" id="h-z"></span></span>
+          <span class="estampa" id="h-estampa"></span>
+          <span id="h-real"></span>
+        </div>
+      </div>
+      <div class="fila">
+        <button class="btn" id="h-otro" type="button">Sacar otro billete</button>
+        <button class="btn sec" id="h-error" type="button">Mostrar uno donde el modelo falla</button>
+      </div>
+      <p class="nota">Billetes reales del conjunto de prueba sobre un espécimen inventado: la textura se dibuja con las cuatro medidas de cada uno.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARTE 1 ============ -->
+<section class="lamina" data-parte="problema">
+  <header class="cabeza"><span class="num">Parte 1, el problema</span><h2>Separar billetes buenos de falsos</h2></header>
+  <div class="cuerpo centro a1">
+    <p class="entrada">Una entidad financiera recibe miles de billetes al día. Revisarlos a mano es lento y depende del ojo de cada cajero, así que estudia un sistema que tome una foto del billete y decida solo.</p>
+    <div class="dos" style="align-items:center">
+      <div class="pila">
+        <div class="pila f" style="gap:6px"><h3>Lo que revisa una persona</h3>
+        <p>Un cajero mira, toca y gira el billete. Busca la marca de agua, el hilo de seguridad, el relieve de la tinta y el color que cambia al inclinarlo. Cada señal le sube o le baja la sospecha.</p></div>
+        <div class="pila f" style="gap:6px"><h3>Lo que revisa el modelo</h3>
+        <p>No ve marcas de agua. Recibe cuatro medidas de la textura de la foto y con eso decide. La idea es la misma: juntar varias señales y sacar un veredicto.</p></div>
+      </div>
+      <figure class="panel">
+        <svg viewBox="0 0 440 230" role="img" aria-label="Espécimen de billete con cuatro señales de seguridad señaladas">
+          <rect x="20" y="30" width="400" height="150" rx="5" fill="none" class="grab-s" stroke-width="2"/>
+          <rect x="27" y="37" width="386" height="136" rx="3" fill="none" class="grab-s" stroke-width=".7"/>
+          <circle cx="95" cy="105" r="38" fill="none" class="grab-s" stroke-width="1" stroke-dasharray="2 3"/>
+          <circle cx="95" cy="105" r="26" fill="none" class="grab-s" stroke-width=".7"/>
+          <line x1="205" y1="37" x2="205" y2="173" class="grab-s" stroke-width="3" stroke-dasharray="9 5"/>
+          <path d="M250 80h130M250 97h130M250 114h90" class="grab-s" stroke-width="5" stroke-linecap="round"/>
+          <rect x="345" y="130" width="50" height="30" rx="3" class="grab-f" opacity=".55"/>
+          <text x="220" y="62" style="font-family:var(--f-titulo);font-style:italic;font-size:15px" class="grab-f">Espécimen sin valor</text>
+          <g class="eje"><path d="M95 143V200M205 173V200M300 119V200M370 160V200"/></g>
+          <text x="95" y="215" text-anchor="middle">Marca de agua</text>
+          <text x="205" y="215" text-anchor="middle">Hilo de seguridad</text>
+          <text x="296" y="215" text-anchor="middle">Relieve</text>
+          <text x="382" y="215" text-anchor="middle">Tinta que cambia</text>
+          <text x="20" y="20">Señales que mira un cajero</text>
+        </svg>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="problema">
+  <header class="cabeza"><span class="num">Parte 1, el problema</span><h2>De la foto a la decisión</h2></header>
+  <div class="cuerpo centro a2">
+    <div class="camino" id="camino"></div>
+    <p class="f">Los datos vienen del UCI Machine Learning Repository (Banknote Authentication, Volker Lohweg, 2012): <strong>1.372 billetes, 4 medidas y 1 clase, sin valores faltantes</strong>. Las fotos son de 400 × 400 píxeles en grises, tomadas con una cámara industrial de inspección de impresión.</p>
+    <p class="nota f">La transformada wavelet resalta los detalles finos de la imagen, que es donde una copia se diferencia del original. Nosotros no la calculamos: el dataset ya trae el resultado.</p>
+  </div>
+</section>
+
+<section class="lamina" data-parte="problema">
+  <header class="cabeza"><span class="num">Parte 1, el problema</span><h2>Diccionario de datos</h2></header>
+  <div class="cuerpo centro a1">
+    <div class="desborde">
+    <table style="font-size:.92em">
+      <thead><tr><th>Variable</th><th>Tipo</th><th>Qué mide, en palabras simples</th><th>Función</th><th class="n">Mínimo</th><th class="n">Máximo</th></tr></thead>
+      <tbody id="diccionario"></tbody>
+    </table>
+    </div>
+    <p class="nota f">Las cuatro predictoras no tienen unidades y manejan escalas distintas (la asimetría va de −14 a 13 y la entropía de −9 a 2). Por eso las escalamos antes de entrenar. No hay identificadores ni datos del futuro: todo sale de la foto del billete.</p>
+  </div>
+</section>
+
+<section class="lamina" data-parte="problema">
+  <header class="cabeza"><span class="num">Parte 1, el problema</span><h2>Las dos clases y sus etiquetas</h2></header>
+  <div class="cuerpo centro a2">
+    <div class="dos">
+      <div class="pila">
+        <h3>Cuántos billetes hay de cada clase</h3>
+        <div id="clases" class="pila"></div>
+        <p class="nota">Las clases están casi parejas, así que el porcentaje de aciertos no queda inflado por una clase dominante.</p>
+      </div>
+      <div class="pila f">
+        <h3>Quién es 0 y quién es 1</h3>
+        <p>La página oficial de UCI no aclara cuál número es el billete auténtico. Seguimos la convención de la guía, que coincide con la literatura del dataset:</p>
+        <p><span class="pastilla c-aut">0 = auténtico</span> <span class="pastilla c-fal">1 = falsificado</span></p>
+        <p>Falsificado es la <strong>clase positiva</strong> porque es lo que el banco quiere detectar. Algunas copias no oficiales traen la etiqueta al revés; por eso quedó documentado en el Colab.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARTE 2 ============ -->
+<section class="lamina" data-parte="neurona">
+  <header class="cabeza"><span class="num">Parte 2, la idea</span><h2>Qué es un Perceptrón Simple</h2></header>
+  <div class="cuerpo">
+    <p class="entrada">Es la neurona artificial más sencilla que aprende de ejemplos (Frank Rosenblatt, 1958). Contesta preguntas de sí o no trazando una línea recta que separa dos grupos.</p>
+    <div class="dos" style="align-items:center">
+      <figure class="panel">
+        <svg id="anatomia" viewBox="0 0 460 290" role="img" aria-label="Esquema del perceptrón: cuatro entradas, sus pesos, una suma con sesgo, un escalón y la salida"></svg>
+        <p class="nota">Pasa el cursor por cada fila de la tabla para ubicarla en el esquema.</p>
+      </figure>
+      <div class="desborde">
+      <table id="partes">
+        <thead><tr><th>Pieza</th><th>Qué es</th><th>En los billetes</th></tr></thead>
+        <tbody>
+          <tr data-pieza="entradas" tabindex="0"><td><strong>Entradas</strong> x</td><td>Los datos de cada caso.</td><td>Varianza, asimetría, curtosis y entropía de la foto.</td></tr>
+          <tr data-pieza="pesos" tabindex="0"><td><strong>Pesos</strong> w</td><td>Cuánto importa cada entrada y hacia dónde empuja.</td><td>Positivo sube la sospecha; negativo la baja.</td></tr>
+          <tr data-pieza="sesgo" tabindex="0"><td><strong>Sesgo</strong> b</td><td>Un ajuste fijo que mueve el límite.</td><td>La sospecha de base antes de mirar el billete.</td></tr>
+          <tr data-pieza="suma" tabindex="0"><td><strong>Puntaje</strong> z</td><td>La suma ponderada más el sesgo.</td><td>Qué tan lejos está el billete de la frontera.</td></tr>
+          <tr data-pieza="salida" tabindex="0"><td><strong>Salida</strong> ŷ</td><td>La decisión: 0 o 1.</td><td>0 auténtico, 1 falsificado.</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="neurona">
+  <header class="cabeza"><span class="num">Parte 2, la idea</span><h2>Un perceptrón de la vida diaria: ¿voy al estadio?</h2></header>
+  <div class="cuerpo centro a1">
+    <div class="dos">
+      <div class="panel" id="estadio">
+        <p class="nota">Marca lo que se cumple hoy y mueve la importancia de cada cosa.</p>
+        <div id="estadio-filas" class="pila" style="gap:8px"></div>
+        <div>
+          <label for="est-b">Qué tan exigente soy para salir (sesgo): <span class="dato" id="est-bv"></span></label>
+          <input type="range" id="est-b" min="-10" max="0" step="1" value="-6">
+        </div>
+        <p><span class="dato" id="est-cuenta"></span></p>
+        <p id="est-res" style="font-weight:700"></p>
+      </div>
+      <div class="pila">
+        <p><strong>Entradas:</strong> lo que pasa hoy (1 si se cumple, 0 si no). <strong>Pesos:</strong> cuánto te importa cada cosa. <strong>Sesgo:</strong> tus ganas de base.</p>
+        <p class="f">La misma cuenta aparece en muchos lados:</p>
+        <ul class="lista">
+          <li class="f"><strong>Filtro de correo:</strong> «gratis» o «premio» suman sospecha; un remitente conocido resta.</li>
+          <li class="f"><strong>Solicitud de crédito:</strong> los ingresos suman, las deudas restan.</li>
+          <li class="f"><strong>Control de calidad:</strong> peso, tamaño y color deciden si una pieza pasa.</li>
+          <li class="f"><strong>Triaje:</strong> fiebre, pulso y saturación deciden quién pasa primero.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARTE 3 ============ -->
+<section class="lamina" data-parte="decide">
+  <header class="cabeza"><span class="num">Parte 3, cómo decide</span><h2>Ponderar, sumar y comparar con cero</h2></header>
+  <div class="cuerpo" style="gap:8px">
+    <pre aria-label="Fórmula del perceptrón">z = w₁·x₁ + w₂·x₂ + w₃·x₃ + w₄·x₄ + b      si z ≥ 0 → 1 (falsificado)      si z &lt; 0 → 0 (auténtico)</pre>
+    <div class="dos">
+      <div class="panel">
+        <h3>Medidas del billete (modelo real)</h3>
+        <div id="calc-entradas" class="pila" style="gap:2px"></div>
+        <div class="fila">
+          <button class="btn sec" type="button" data-preset="0">Auténtico típico</button>
+          <button class="btn sec" type="button" data-preset="1">Falsificado típico</button>
+          <button class="btn sec" type="button" data-preset="duda">Caso dudoso</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Lo que aporta cada medida al puntaje</h3>
+        <div id="calc-aportes" class="pila" style="gap:5px"></div>
+        <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-aut"/></svg>empuja hacia auténtico</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-fal"/></svg>empuja hacia falsificado</span></div>
+        <div class="regla" aria-hidden="true"><i id="calc-aguja"></i></div>
+        <p>Puntaje z = <span class="dato" id="calc-z"></span> <span id="calc-veredicto"></span></p>
+        <p class="nota" id="calc-nota"></p>
+      </div>
+    </div>
+    <p class="nota f">Los cuatro pesos salieron negativos: si una medida sube, el billete se inclina hacia auténtico. El puntaje no es una probabilidad: solo dice de qué lado de la frontera cae y qué tan lejos.</p>
+  </div>
+</section>
+
+<!-- ============ PARTE 4 ============ -->
+<section class="lamina" data-parte="aprende">
+  <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>El robot que aprendió una sopa probando 100 platos</h2></header>
+  <div class="cuerpo">
+    <p>Un robot no sabe la receta de una sopa. Le dan a probar 100 sopas hechas con la receta original: tras cada una la compara con la suya y ajusta un poquito los ingredientes, hasta que le sale idéntica. Al final lo evalúa el chef.</p>
+    <div class="dos">
+      <div class="panel" style="gap:10px">
+        <div class="fila robot-caja">
+          <svg class="robot" viewBox="0 0 120 150" role="img" aria-label="Robot con una cuchara frente a una olla">
+            <path d="M60 18V34" class="grab-s" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="60" cy="13" r="5" class="grab-f"/>
+            <rect x="32" y="36" width="56" height="46" rx="8" class="grab-s" stroke-width="2.5"/>
+            <circle cx="50" cy="55" r="6" class="robot-ojo"/><circle cx="70" cy="55" r="6" class="robot-ojo"/>
+            <path id="robot-boca" d="M48 70H72" class="frontera"/>
+            <rect x="40" y="88" width="40" height="36" rx="5" class="grab-s" stroke-width="2.5"/>
+            <path d="M40 98H26V118M80 98H96V84" class="grab-s" stroke-width="2.5" stroke-linecap="round"/>
+            <ellipse cx="97" cy="76" rx="6" ry="9" class="grab-f"/>
+            <path d="M12 122H40V140a8 8 0 0 1-8 8H20a8 8 0 0 1-8-8z" class="grab-s" stroke-width="2.5"/>
+            <path d="M20 114c-4-5 4-7 0-12M30 114c-4-5 4-7 0-12" class="eje" stroke-width="1.5"/>
+          </svg>
+          <div class="pila" style="flex:1;gap:9px">
+            <div id="robot-filas" class="pila" style="gap:9px"></div>
+            <div class="receta"><span class="nota">Parecido</span><div class="barra" style="height:12px"><i id="robot-par" style="width:0"></i></div><span class="dato" id="robot-parv"></span></div>
+          </div>
+        </div>
+        <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="var(--tinta)" stroke-width="2"/></svg>la receta original (el robot no la ve, solo la prueba)</span></div>
+        <div class="fila">
+          <button class="btn" id="robot-1" type="button">Probar 1 sopa</button>
+          <button class="btn sec" id="robot-10" type="button">Probar 10</button>
+          <button class="btn sec" id="robot-auto" type="button">Probar las 100</button>
+          <button class="btn sec" id="robot-reset" type="button">Empezar de cero</button>
+        </div>
+        <p style="font-size:.95em">Sopas probadas: <span class="dato" id="robot-n">0</span> de 100. <span id="robot-msg" aria-live="polite"></span></p>
+        <div class="fila" style="flex-wrap:nowrap;align-items:flex-start;border-top:1px dashed var(--linea);padding-top:10px">
+          <button class="btn" id="robot-chef" type="button" style="flex:none">Que lo evalúe el chef</button>
+          <p id="robot-nota" aria-live="polite" style="font-size:.92em;min-height:3.9em"></p>
+        </div>
+      </div>
+      <div class="pila" style="gap:8px">
+        <div class="desborde">
+        <table style="font-size:.82em">
+          <thead><tr><th>En la cocina</th><th>En el perceptrón</th></tr></thead>
+          <tbody>
+            <tr class="f"><td>Las 100 sopas de muestra</td><td>Los billetes de <strong>entrenamiento</strong></td></tr>
+            <tr class="f"><td>La cantidad de cada ingrediente</td><td>Los <strong>pesos</strong> y el sesgo</td></tr>
+            <tr class="f"><td>Probar una y compararla con la suya</td><td><strong>Predecir</strong> y comparar con lo real</td></tr>
+            <tr class="f"><td>«Le falta» o «me pasé»</td><td>El <strong>error</strong>: real − predicho</td></tr>
+            <tr class="f"><td>Ajustar un poquito</td><td>La <strong>regla de aprendizaje</strong></td></tr>
+            <tr class="f"><td>Le sabe igual: no cambia nada</td><td>Si <strong>acierta</strong>, no toca los pesos</td></tr>
+            <tr class="f"><td>El chef que califica al final</td><td>Los billetes de <strong>prueba</strong> y las métricas</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="nota f">El chef no enseña la receta, solo califica: igual que los billetes de prueba, que el modelo nunca ve mientras aprende. Si no queda conforme, el robot vuelve a probar sopas y a ajustar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="aprende">
+  <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Solo corrige cuando se equivoca</h2></header>
+  <div class="cuerpo centro a2">
+    <p class="entrada">Arranca con todos los pesos en cero y revisa los billetes uno por uno. Si acierta, no toca nada. Si falla, mueve los pesos en la dirección que habría evitado el error.</p>
+    <pre class="f" aria-label="Regla de aprendizaje">w ← w + η · (real − predicho) · x        b ← b + η · (real − predicho)        η = tasa de aprendizaje</pre>
+    <div class="desborde">
+    <table style="font-size:.95em">
+      <thead class="f"><tr><th>Qué pasó</th><th class="n">real − predicho</th><th>Qué hace</th><th>Efecto</th></tr></thead>
+      <tbody>
+        <tr class="f"><td>Acertó</td><td class="n">0</td><td>Nada</td><td>Los pesos quedan igual.</td></tr>
+        <tr class="f"><td>Dijo auténtico y era falsificado</td><td class="n">+1</td><td>Suma las entradas a los pesos</td><td>Ese billete tendrá un puntaje más alto.</td></tr>
+        <tr class="f"><td>Dijo falsificado y era auténtico</td><td class="n">−1</td><td>Resta las entradas a los pesos</td><td>Ese billete tendrá un puntaje más bajo.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="nota f">Cada pasada completa por todos los billetes es una <strong>época</strong>. Si existe una recta que separa las dos clases, el algoritmo la encuentra en un número finito de correcciones (teorema de convergencia, 1962).</p>
+  </div>
+</section>
+
+<section class="lamina" data-parte="aprende">
+  <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Ejemplo a mano con 6 billetes reales</h2></header>
+  <div class="cuerpo">
+    <div class="dos">
+      <div class="panel">
+        <svg class="plano" id="mini-plano" viewBox="0 0 420 340" role="img" aria-label="Plano con los seis billetes y la frontera de decisión actual"></svg>
+        <div class="leyenda" id="ley-mini"></div>
+      </div>
+      <div class="panel">
+        <div class="fila">
+          <button class="btn" id="mini-paso" type="button">Revisar el siguiente billete</button>
+          <button class="btn sec" id="mini-auto" type="button">Reproducir solo</button>
+          <button class="btn sec" id="mini-reset" type="button">Reiniciar</button>
+        </div>
+        <p>Época <span class="dato" id="mini-epoca"></span>. Pesos w = <span class="dato" id="mini-w"></span>, sesgo b = <span class="dato" id="mini-b"></span>. Correcciones: <span class="dato" id="mini-corr"></span>.</p>
+        <p id="mini-msg" aria-live="polite" style="min-height:5.6em"></p>
+        <div class="desborde" style="max-height:190px;overflow-y:auto">
+        <table>
+          <thead><tr><th class="n">Época</th><th class="n">Billete</th><th class="n">z</th><th>Dijo</th><th>Era</th><th>Acción</th></tr></thead>
+          <tbody id="mini-log"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="aprende">
+  <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Con los 1.097 billetes de entrenamiento</h2></header>
+  <div class="cuerpo">
+    <div class="dos">
+      <div class="panel">
+        <svg class="plano" id="vivo-plano" viewBox="0 0 420 340" role="img" aria-label="Billetes de entrenamiento según varianza y asimetría escaladas; los aros marcan los que el modelo actual clasifica mal"></svg>
+        <div class="leyenda" id="ley-vivo"></div>
+      </div>
+      <div class="panel">
+        <div class="fila" role="group" aria-label="Medidas que usa el perceptrón">
+          <button class="btn sec" type="button" data-modo="4" aria-pressed="true">Con las 4 medidas</button>
+          <button class="btn sec" type="button" data-modo="2" aria-pressed="false">Solo con 2 medidas</button>
+        </div>
+        <div class="fila">
+          <button class="btn" id="vivo-1" type="button">Entrenar 1 época</button>
+          <button class="btn sec" id="vivo-10" type="button">Entrenar 10 épocas</button>
+          <button class="btn sec" id="vivo-reset" type="button">Reiniciar</button>
+        </div>
+        <p style="font-size:.92em">Épocas: <span class="dato" id="vivo-ep">0</span>. Correcciones en la última: <span class="dato" id="vivo-err"></span>. Mal clasificados en entrenamiento: <span class="dato" id="vivo-mal"></span>. Aciertos en prueba: <span class="dato" id="vivo-acc"></span>.</p>
+        <svg id="vivo-curva" viewBox="0 0 420 150" role="img" aria-label="Correcciones por época"></svg>
+        <p class="nota" id="vivo-nota"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARTE 5 ============ -->
+<section class="lamina" data-parte="limites">
+  <header class="cabeza"><span class="num">Parte 5, ventajas y límites</span><h2>Solo sabe trazar una recta</h2></header>
+  <div class="cuerpo">
+    <div class="dos">
+      <div class="panel">
+        <svg class="plano" id="xor-plano" viewBox="0 0 420 320" role="img" aria-label="Cuatro puntos de una compuerta lógica y una recta que puedes mover"></svg>
+        <div class="leyenda" id="ley-xor"></div>
+      </div>
+      <div class="panel">
+        <div class="fila" role="group" aria-label="Problema a resolver">
+          <button class="btn sec" type="button" data-puerta="and" aria-pressed="false">Y (AND)</button>
+          <button class="btn sec" type="button" data-puerta="or" aria-pressed="false">O (OR)</button>
+          <button class="btn sec" type="button" data-puerta="xor" aria-pressed="true">Uno u otro (XOR)</button>
+        </div>
+        <p class="nota" id="xor-desc"></p>
+        <div><label for="xor-ang">Girar la recta</label><input type="range" id="xor-ang" min="0" max="360" step="1" value="45"></div>
+        <div><label for="xor-pos">Desplazar la recta</label><input type="range" id="xor-pos" min="-1" max="1" step="0.01" value="0"></div>
+        <p id="xor-res" style="font-weight:700" aria-live="polite"></p>
+        <button class="btn" id="xor-auto" type="button">Que lo intente el perceptrón</button>
+        <p class="nota" id="xor-hist" style="min-height:2.8em"></p>
+        <p class="nota f">Con «uno u otro» las clases quedan en esquinas opuestas y ninguna recta las separa. Minsky y Papert lo demostraron en 1969.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="limites">
+  <header class="cabeza"><span class="num">Parte 5, ventajas y límites</span><h2>Ventajas y limitaciones</h2></header>
+  <div class="cuerpo centro a2">
+    <div class="dos vl">
+      <div class="pila">
+        <h3>Ventajas</h3>
+        <ul>
+          <li class="f"><strong>Simple y transparente.</strong> Cada peso se puede leer y explicar a la gerencia.</li>
+          <li class="f"><strong>Rápido y liviano.</strong> Aprende con sumas y restas.</li>
+          <li class="f"><strong>Con garantía.</strong> Si los datos se separan con una recta, la encuentra.</li>
+          <li class="f"><strong>Aprende en línea.</strong> Se actualiza billete a billete sin empezar de cero.</li>
+          <li class="f"><strong>Base de las redes neuronales.</strong> Una red profunda es muchas neuronas como esta.</li>
+        </ul>
+      </div>
+      <div class="pila">
+        <h3 class="f">Limitaciones</h3>
+        <ul>
+          <li class="f"><strong>Solo fronteras rectas.</strong> Si las clases no se separan con una línea, siempre falla en algo.</li>
+          <li class="f"><strong>No da probabilidades.</strong> Responde 0 o 1 y un puntaje, no un «qué tan seguro».</li>
+          <li class="f"><strong>No converge si no hay separación.</strong> El resultado depende de cuándo se detenga.</li>
+          <li class="f"><strong>Sensible a la escala y al orden.</strong> Por eso escalamos y fijamos la semilla.</li>
+          <li class="f"><strong>No busca la mejor frontera.</strong> Se queda con la primera que funciona.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="limites">
+  <header class="cabeza"><span class="num">Parte 5, ventajas y límites</span><h2>De dónde viene</h2></header>
+  <div class="cuerpo centro a3">
+    <dl class="linea-t">
+      <div class="f"><dt>1943</dt><dd>McCulloch y Pitts describen una neurona artificial que suma señales y dispara si pasan un umbral. Todavía no aprende.</dd></div>
+      <div class="f"><dt>1958</dt><dd>Frank Rosenblatt presenta el perceptrón: la misma neurona, pero con una regla para ajustar sus pesos con ejemplos.</dd></div>
+      <div class="f"><dt>1962</dt><dd>Se demuestra el teorema de convergencia: si existe una recta que separa las clases, el algoritmo la encuentra.</dd></div>
+      <div class="f"><dt>1969</dt><dd>Minsky y Papert publican <em>Perceptrons</em> y muestran que una sola neurona no resuelve XOR. La investigación se frena por años.</dd></div>
+      <div class="f"><dt>1986</dt><dd>Rumelhart, Hinton y Williams popularizan la retropropagación, que permite entrenar redes de varias capas.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ PARTE 6 ============ -->
+<section class="lamina" data-parte="colab">
+  <header class="cabeza"><span class="num">Parte 6, el Colab paso a paso</span><h2>Los datos y las variables</h2></header>
+  <div class="cuerpo centro a2"><div id="pasos-a"></div></div>
+</section>
+<section class="lamina" data-parte="colab">
+  <header class="cabeza"><span class="num">Parte 6, el Colab paso a paso</span><h2>Partición, escalado y modelo</h2></header>
+  <div class="cuerpo centro a1"><div id="pasos-b"></div></div>
+</section>
+<section class="lamina" data-parte="colab">
+  <header class="cabeza"><span class="num">Parte 6, el Colab paso a paso</span><h2>Evaluación e interpretación</h2></header>
+  <div class="cuerpo centro a2"><div id="pasos-c"></div></div>
+</section>
+
+<!-- ============ PARTE 7 ============ -->
+<section class="lamina" data-parte="resultados">
+  <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>275 billetes que el modelo nunca vio</h2></header>
+  <div class="cuerpo centro a1">
+    <p class="entrada" id="res-entrada"></p>
+    <div class="dos">
+      <div class="pila">
+        <div class="matriz">
+          <span></span><span class="rot">El modelo dijo auténtico</span><span class="rot">El modelo dijo falsificado</span>
+          <span class="rot">Era auténtico</span>
+          <button class="celda acierto" type="button" data-celda="VN" aria-pressed="false"><span class="cifra"></span><span>VN, auténtico reconocido</span></button>
+          <button class="celda fallo" type="button" data-celda="FP" aria-pressed="false"><span class="cifra"></span><span>FP, falsa alarma</span></button>
+          <span class="rot">Era falsificado</span>
+          <button class="celda fallo" type="button" data-celda="FN" aria-pressed="true"><span class="cifra"></span><span>FN, falso que pasó</span></button>
+          <button class="celda acierto" type="button" data-celda="VP" aria-pressed="false"><span class="cifra"></span><span>VP, falso detectado</span></button>
+        </div>
+        <p class="nota">Toca cada casilla para ver qué significa.</p>
+      </div>
+      <div class="panel" id="celda-detalle" aria-live="polite" style="min-height:250px"></div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="resultados">
+  <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Las cuatro métricas</h2></header>
+  <div class="cuerpo centro a2">
+    <div class="metricas" id="metricas"></div>
+    <p class="f">Las cuatro son altas y parejas: el modelo detecta casi todos los falsificados sin llenar al banco de falsas alarmas.</p>
+  </div>
+</section>
+
+<section class="lamina" data-parte="resultados">
+  <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Los errores quedaron pegados a la frontera</h2></header>
+  <div class="cuerpo">
+    <p style="font-size:.92em">Cada marca es un billete de prueba según su puntaje z. A la izquierda de cero el modelo dice auténtico; a la derecha, falsificado. Los errores llevan un aro.</p>
+    <div class="panel">
+      <div class="desborde"><svg id="tira" viewBox="0 0 860 250" role="img" aria-label="Distribución de los puntajes de los billetes de prueba cerca de la frontera"></svg></div>
+      <div class="leyenda" id="ley-tira"></div>
+      <div>
+        <label for="duda">Zona de duda: enviar a revisión manual los billetes con puntaje entre −<span id="duda-v"></span> y +<span id="duda-v2"></span></label>
+        <input type="range" id="duda" min="0" max="6" step="0.01">
+      </div>
+      <p id="duda-res" aria-live="polite"></p>
+      <p class="nota">El ancho inicial se fijó solo con datos de entrenamiento (el 5 % más cercano a la frontera). Es una prueba pequeña que habría que confirmar con más billetes.</p>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="resultados">
+  <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Por qué el accuracy solo no alcanza</h2></header>
+  <div class="cuerpo centro a2">
+    <p>Cambia las cuatro casillas, o prueba los dos modelos extremos, y mira cómo se mueven las métricas.</p>
+    <div class="dos">
+      <div class="panel">
+        <div class="fila">
+          <div><label for="lab-VP">VP</label><br><input type="number" id="lab-VP" min="0" max="999"></div>
+          <div><label for="lab-FN">FN</label><br><input type="number" id="lab-FN" min="0" max="999"></div>
+          <div><label for="lab-FP">FP</label><br><input type="number" id="lab-FP" min="0" max="999"></div>
+          <div><label for="lab-VN">VN</label><br><input type="number" id="lab-VN" min="0" max="999"></div>
+        </div>
+        <div class="fila">
+          <button class="btn sec" type="button" data-lab="real">Nuestro modelo</button>
+          <button class="btn sec" type="button" data-lab="miedoso">Alerta todo</button>
+          <button class="btn sec" type="button" data-lab="confiado">Nunca alerta</button>
+        </div>
+        <p id="lab-nota" style="min-height:4.5em"></p>
+      </div>
+      <div class="panel" id="lab-res"></div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="resultados">
+  <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>¿Fue suerte?</h2></header>
+  <div class="cuerpo centro a3" id="suerte"></div>
+</section>
+
+<!-- ============ PARTE 8 (se genera) ============ -->
+<div id="preguntas"></div>
+
+<section class="lamina" data-parte="cierre">
+  <header class="cabeza"><span class="num">Cierre</span><h2>Conclusiones</h2></header>
+  <div class="cuerpo centro a3"><ol class="lista" id="conclusiones" style="gap:14px"></ol></div>
+</section>
+
+<!-- ============ PARTE 9 ============ -->
+<section class="lamina" data-parte="repaso">
+  <header class="cabeza"><span class="num">Parte 9, repaso</span><h2>Preguntas que nos pueden hacer</h2></header>
+  <div class="cuerpo rueda"><div id="tarjetas" class="tarjetas"></div></div>
+</section>
+
+<section class="lamina" data-parte="repaso">
+  <header class="cabeza"><span class="num">Parte 9, repaso</span><h2>Referencias</h2></header>
+  <div class="cuerpo centro a2">
+    <ul class="lista" style="font-size:.86em">
+      <li>Lohweg, V. (2012). Banknote Authentication [Dataset]. UCI Machine Learning Repository. <a href="https://doi.org/10.24432/C55P57">doi.org/10.24432/C55P57</a></li>
+      <li>Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. Psychological Review, 65(6), 386–408.</li>
+      <li>Novikoff, A. B. J. (1962). On convergence proofs on perceptrons. Symposium on the Mathematical Theory of Automata, 12, 615–622.</li>
+      <li>Minsky, M., y Papert, S. (1969). Perceptrons: An introduction to computational geometry. MIT Press.</li>
+      <li>Rumelhart, D. E., Hinton, G. E., y Williams, R. J. (1986). Learning representations by back-propagating errors. Nature, 323, 533–536.</li>
+      <li>Documentación de scikit-learn: <a href="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Perceptron.html">sklearn.linear_model.Perceptron</a>.</li>
+    </ul>
+    <p class="nota">Ejercicio académico. Los resultados no acreditan un sistema de verificación monetaria para uso real.</p>
+  </div>
+</section>
+
+</main>
+
+<div id="menu" hidden><ol id="menu-lista"></ol></div>
+<div class="mando" role="toolbar" aria-label="Controles de la exposición">
+  <button class="bb" id="b-partes" type="button" aria-expanded="false" aria-controls="menu">Partes</button>
+  <span id="b-rotulo"></span>
+  <div class="avance" aria-hidden="true"><i id="b-avance"></i></div>
+  <span id="b-cuenta" class="dato"></span>
+  <button class="bb" id="b-ant" type="button">Anterior</button>
+  <button class="bb fuerte" id="b-sig" type="button">Siguiente</button>
+  <button class="bb" id="b-full" type="button">Pantalla completa</button>
+  <button class="bb" id="uv" type="button">Luz UV</button>
+  <button class="bb" id="b-modo" type="button">Ver todo en una página</button>
+</div>
+
+<script>
+
+const D = {"n_total":1372,"n_train":1097,"n_test":275,"train_c0":609,"train_c1":488,"test_c0":153,"test_c1":122,"mean":[0.4635,1.8728,1.4092,-1.2137],"scale":[2.8395,5.9046,4.3553,2.1105],"w":[-13.05,-14.211,-13.727,-1.6],"b":-6.0,"epochs":9,"cm":{"VN":150,"FP":3,"FN":1,"VP":121},"cv":{"accuracy":{"mean":0.9847,"min":0.9745,"max":0.9927},"precision":{"mean":0.9826,"min":0.9531,"max":1.0},"recall":{"mean":0.9836,"min":0.9426,"max":1.0},"f1":{"mean":0.9828,"min":0.9705,"max":0.9917}},"duda_p5":1.892,"abs_train_sorted":[0.03,0.08,0.12,0.14,0.18,0.25,0.25,0.25,0.27,0.27,0.27,0.28,0.29,0.29,0.36,0.36,0.39,0.44,0.44,0.53,0.63,0.63,0.63,0.63,0.73,0.8,0.83,0.83,0.87,0.97,1.06,1.06,1.07,1.24,1.34,1.34,1.34,1.34,1.37,1.37,1.42,1.44,1.44,1.47,1.47,1.54,1.55,1.61,1.63,1.77,1.84,1.85,1.86,1.89,1.89,1.89,1.89,2.06,2.12,2.14,2.25,2.29,2.32,2.37,2.37,2.44,2.46,2.48,2.48,2.48,2.48,2.54,2.54,2.55,2.63,2.81,2.88,2.89,3.01,3.03,3.08,3.08,3.08,3.08,3.21,3.28,3.31,3.39,3.43,3.49,3.54,3.62,3.64,3.65,3.66,3.69,3.74,3.76,3.81,3.82,3.86,3.91,3.91,4.07,4.07,4.19,4.2,4.21,4.26,4.39,4.39,4.41,4.41,4.44,4.46,4.5,4.5,4.54,4.56,4.65,4.69,4.73,4.73,4.75,4.77,4.84,4.86,4.87,4.9,4.9,4.94,4.94,4.95,5.21,5.26,5.36,5.38,5.38,5.38,5.39,5.41,5.45,5.49,5.54,5.54,5.56,5.57,5.59,5.61,5.64,5.67,5.7,5.71,5.72,5.75,5.78,5.8,5.81,5.86,5.86,5.89,5.9,5.94,5.94,5.95,5.99,6.04,6.05,6.07,6.12,6.13,6.17,6.18,6.2,6.24,6.29,6.29,6.32,6.33,6.39,6.39,6.39,6.42,6.43,6.47,6.49,6.5,6.56,6.57,6.58,6.61,6.62,6.68,6.69,6.69,6.73,6.75,6.77,6.77,6.78,6.79,6.82,6.83,6.87,6.88,6.92,6.95,6.99,6.99,7.0,7.01,7.02,7.08,7.11,7.23,7.27,7.33,7.35,7.36,7.39,7.4,7.42,7.43,7.43,7.45,7.46,7.52,7.53,7.59,7.6,7.62,7.63,7.65,7.67,7.72,7.73,7.78,7.78,7.78,7.82,7.84,7.86,7.89,7.94,7.95,7.97,8.02,8.03,8.06,8.08,8.09,8.1,8.11,8.19,8.21,8.23,8.24,8.27,8.3,8.3,8.31,8.32,8.33,8.37,8.39,8.41,8.42,8.43,8.45,8.48,8.49,8.51,8.55,8.56,8.58,8.62,8.71,8.74,8.76,8.76,8.77,8.79,8.8,8.82,8.83,8.84,8.84,8.86,8.87,8.9,8.92,8.95,9.0,9.0,9.0,9.03,9.08,9.09,9.11,9.11,9.11,9.14,9.16,9.17,9.19,9.21,9.3,9.3,9.31,9.34,9.37,9.41,9.43,9.44,9.57,9.58,9.61,9.64,9.64,9.65,9.68,9.72,9.73,9.75,9.78,9.79,9.82,9.83,9.85,9.88,9.95,9.95,9.95,9.97,9.97,10.0,10.01,10.02,10.07,10.13,10.14,10.18,10.21,10.23,10.24,10.25,10.29,10.31,10.32,10.34,10.35,10.36,10.36,10.4,10.41,10.47,10.48,10.49,10.49,10.53,10.54,10.57,10.61,10.63,10.64,10.67,10.76,10.78,10.83,10.84,10.84,10.86,10.87,10.9,10.91,10.93,10.96,11.0,11.07,11.07,11.08,11.08,11.08,11.09,11.16,11.16,11.21,11.22,11.22,11.26,11.32,11.33,11.34,11.34,11.38,11.39,11.4,11.41,11.43,11.46,11.49,11.5,11.51,11.52,11.55,11.56,11.59,11.63,11.67,11.7,11.71,11.72,11.76,11.78,11.78,11.78,11.79,11.81,11.81,11.82,11.83,11.89,11.9,11.91,11.93,11.94,11.95,11.96,12.0,12.01,12.03,12.05,12.09,12.1,12.12,12.15,12.19,12.22,12.23,12.26,12.27,12.3,12.32,12.33,12.35,12.42,12.46,12.46,12.48,12.5,12.51,12.53,12.59,12.62,12.66,12.68,12.69,12.7,12.73,12.77,12.8,12.8,12.8,12.87,12.92,12.95,12.96,12.97,12.98,12.99,13.02,13.03,13.05,13.06,13.07,13.08,13.12,13.13,13.21,13.22,13.23,13.24,13.27,13.3,13.3,13.32,13.33,13.34,13.35,13.38,13.4,13.4,13.44,13.44,13.52,13.53,13.55,13.55,13.57,13.58,13.58,13.61,13.61,13.62,13.62,13.64,13.69,13.73,13.76,13.83,13.85,13.85,13.88,13.89,13.9,13.91,13.94,13.96,13.98,13.99,13.99,14.0,14.0,14.01,14.07,14.09,14.21,14.22,14.24,14.28,14.35,14.36,14.37,14.4,14.45,14.47,14.47,14.48,14.48,14.51,14.53,14.54,14.55,14.55,14.58,14.62,14.66,14.68,14.72,14.72,14.72,14.72,14.73,14.75,14.78,14.8,14.84,14.84,14.85,14.87,14.89,14.9,14.92,14.92,14.96,14.96,14.96,14.96,14.98,15.01,15.03,15.08,15.09,15.11,15.14,15.18,15.18,15.21,15.22,15.25,15.27,15.29,15.3,15.31,15.33,15.36,15.39,15.39,15.39,15.41,15.42,15.42,15.45,15.46,15.47,15.5,15.5,15.52,15.55,15.56,15.56,15.56,15.61,15.63,15.67,15.72,15.75,15.82,15.82,15.84,15.87,15.87,15.88,15.88,15.91,15.92,15.92,15.93,15.95,15.97,15.97,16.01,16.06,16.07,16.08,16.09,16.11,16.12,16.12,16.13,16.13,16.13,16.21,16.23,16.23,16.24,16.25,16.25,16.25,16.27,16.28,16.28,16.29,16.3,16.45,16.46,16.51,16.52,16.53,16.53,16.56,16.56,16.6,16.6,16.63,16.64,16.66,16.67,16.68,16.73,16.74,16.74,16.75,16.76,16.76,16.79,16.8,16.82,16.82,16.84,16.86,16.93,16.93,16.93,16.98,17.01,17.04,17.05,17.05,17.07,17.09,17.09,17.09,17.11,17.11,17.11,17.11,17.14,17.14,17.17,17.18,17.19,17.22,17.25,17.26,17.27,17.27,17.28,17.29,17.3,17.31,17.31,17.34,17.4,17.43,17.44,17.47,17.49,17.49,17.51,17.52,17.53,17.54,17.57,17.59,17.62,17.63,17.63,17.67,17.68,17.73,17.76,17.76,17.77,17.8,17.81,17.82,17.83,17.83,17.85,17.9,17.9,18.0,18.03,18.04,18.08,18.08,18.08,18.11,18.12,18.13,18.13,18.13,18.17,18.17,18.23,18.25,18.41,18.42,18.44,18.48,18.49,18.49,18.49,18.5,18.53,18.55,18.57,18.59,18.59,18.6,18.64,18.71,18.71,18.74,18.75,18.76,18.76,18.83,18.89,18.92,18.95,18.98,18.99,19.01,19.02,19.03,19.03,19.05,19.07,19.09,19.12,19.13,19.15,19.16,19.16,19.17,19.19,19.22,19.23,19.24,19.26,19.27,19.27,19.28,19.31,19.33,19.34,19.34,19.45,19.46,19.47,19.48,19.49,19.6,19.61,19.65,19.65,19.7,19.73,19.74,19.74,19.75,19.76,19.77,19.79,19.86,19.86,19.88,19.89,19.93,19.96,19.99,20.01,20.01,20.02,20.03,20.04,20.05,20.06,20.06,20.07,20.1,20.1,20.12,20.14,20.16,20.17,20.18,20.2,20.21,20.21,20.23,20.23,20.25,20.26,20.29,20.3,20.31,20.34,20.37,20.39,20.43,20.46,20.46,20.5,20.5,20.51,20.51,20.52,20.53,20.53,20.59,20.59,20.6,20.63,20.64,20.64,20.64,20.67,20.67,20.69,20.69,20.7,20.73,20.74,20.74,20.75,20.75,20.76,20.77,20.81,20.84,20.85,20.86,20.86,20.87,20.88,20.9,20.92,20.95,20.97,20.98,21.0,21.04,21.06,21.14,21.14,21.18,21.21,21.21,21.23,21.25,21.29,21.29,21.35,21.35,21.36,21.37,21.39,21.4,21.51,21.57,21.58,21.59,21.61,21.64,21.65,21.67,21.69,21.7,21.72,21.73,21.74,21.74,21.75,21.76,21.77,21.84,21.85,21.9,21.93,21.93,21.95,21.97,21.99,22.0,22.01,22.02,22.08,22.12,22.15,22.17,22.2,22.21,22.22,22.23,22.23,22.27,22.27,22.28,22.28,22.29,22.31,22.32,22.32,22.34,22.35,22.36,22.4,22.4,22.42,22.43,22.43,22.48,22.54,22.54,22.56,22.57,22.6,22.61,22.62,22.69,22.71,22.73,22.83,22.91,22.94,22.94,23.0,23.01,23.01,23.04,23.04,23.04,23.05,23.19,23.21,23.21,23.22,23.29,23.35,23.38,23.4,23.45,23.48,23.49,23.52,23.63,23.63,23.67,23.72,23.72,23.78,23.79,23.89,23.89,23.96,23.98,24.04,24.06,24.1,24.16,24.24,24.32,24.32,24.34,24.36,24.41,24.42,24.47,24.51,24.54,24.55,24.56,24.86,24.87,24.91,25.01,25.02,25.02,25.03,25.07,25.07,25.18,25.26,25.29,25.37,25.47,25.47,25.48,25.49,25.53,25.54,25.59,25.64,25.67,25.94,25.96,25.99,25.99,26.02,26.02,26.19,26.26,26.31,26.41,26.46,26.94,27.05,27.21,27.44,27.48,27.7,27.71,27.84,27.86,27.9,27.93,27.98,28.01,28.06,28.09,28.11,28.14,28.18,28.19,28.21,28.24,28.38,28.4,28.8,29.13,29.18,29.37,29.49,29.53,29.56,29.62,29.65,29.65,29.76,30.03,30.12,31.55,32.17,33.29],"test":[[2.372,7.491,0.016,-1.741,0,0,-23.501],[-1.445,2.144,-0.472,-1.668,1,1,8.392],[-0.787,9.566,-3.787,-7.503,0,1,2.374],[-0.408,0.542,-0.527,0.659,1,1,5.892],[-2.096,-7.106,6.619,-0.337,1,1,10.29],[1.257,4.873,-5.286,-5.874,1,1,7.766],[2.923,6.046,-0.112,-0.587,0,0,-23.032],[4.297,7.617,-2.387,-0.962,0,0,-25.669],[-2.09,10.826,2.36,-3.42,0,0,-17.141],[-3.269,-12.741,15.557,-0.142,1,1,0.923],[1.162,10.293,-1.282,-4.039,0,0,-18.851],[-0.743,-0.329,-0.428,0.233,1,1,9.539],[3.145,5.825,-0.514,-1.494,0,0,-21.562],[4.003,-3.594,3.557,0.268,0,0,-17.001],[3.33,0.913,1.581,0.394,0,0,-18.621],[3.78,-3.311,2.649,0.066,0,0,-13.644],[-2.198,-2.125,1.715,0.452,1,1,13.628],[-1.074,-6.311,5.355,0.805,1,1,6.799],[-2.28,-0.306,1.335,1.376,1,1,10.127],[-1.04,9.399,0.86,-5.334,0,0,-12.349],[1.451,8.79,-2.232,-0.653,0,0,-16.134],[-4.676,-5.664,10.969,-0.334,1,1,4.965],[-0.873,-0.033,-0.202,0.558,1,1,8.466],[2.127,5.194,-1.797,-1.176,0,0,-11.563],[1.831,6.367,-0.036,0.05,0,0,-19.506],[-1.759,-6.462,8.477,0.32,1,1,0.836],[-1.167,-1.424,2.924,0.661,1,1,3.231],[-0.778,3.402,-3.486,-3.557,1,1,13.232],[1.551,3.801,-4.914,-3.748,1,1,6.21],[3.544,1.24,1.997,2.155,0,0,-23.039],[0.488,3.567,-4.388,-3.812,1,1,10.05],[0.063,2.93,-3.547,-2.674,1,1,10.025],[-1.577,10.843,2.546,-2.936,0,0,-20.49],[-2.979,2.345,0.527,-0.402,1,1,10.851],[-1.102,-5.84,4.564,0.687,1,1,8.373],[-4.367,6.069,0.572,-5.467,1,1,11.962],[5.787,7.89,-2.62,-0.487,0,0,-32.801],[-1.668,-7.154,7.893,0.968,1,1,3.431],[1.061,2.454,2.519,-0.17,0,0,-14.432],[3.896,-4.79,3.395,-0.538,0,0,-12.513],[-5.119,6.649,-0.05,-6.521,1,1,16.785],[0.679,4.12,-4.569,-4.141,1,1,8.663],[-3.605,-5.974,10.092,-0.828,1,1,3.929],[3.821,0.232,2.013,2.056,0,0,-21.866],[-6.368,8.01,0.425,-3.221,1,1,15.25],[-3.358,-7.24,11.442,-0.571,1,1,1.39],[1.602,6.125,0.529,0.479,0,0,-19.977],[3.798,10.423,-4.16,-4.973,0,0,-21.502],[4.644,-3.373,2.598,0.553,0,0,-17.672],[-1.699,-7.116,5.79,0.167,1,1,10.718],[0.143,-1.089,1.004,0.488,1,1,2.586],[-1.841,10.831,2.769,-3.09,0,0,-19.831],[-2.883,3.896,-0.189,-1.167,1,1,9.511],[2.824,2.86,0.197,0.572,0,0,-16.755],[-6.508,8.77,0.232,-3.937,1,1,15.219],[5.402,3.104,-1.154,1.565,0,0,-25.69],[0.956,2.473,4.458,0.216,0,0,-20.401],[-0.092,0.393,-0.328,-0.138,1,1,4.776],[0.04,8.523,1.446,-3.931,0,0,-18.119],[3.404,8.726,-2.991,-0.572,0,0,-22.625],[0.573,9.194,-0.909,-1.872,0,0,-16.319],[4.636,-2.661,2.836,1.199,0,0,-20.591],[-3.623,3.996,-0.358,-3.905,1,1,15.282],[-1.639,3.358,-1.73,-3.565,1,1,11.762],[3.519,6.332,-1.779,-0.02,0,0,-21.631],[2.852,9.01,-3.761,-3.337,0,0,-16.251],[4.934,2.411,-0.176,1.625,0,0,-24.997],[4.196,0.745,0.833,0.753,0,0,-20.114],[2.289,3.733,0.631,-0.398,0,0,-17.035],[4.616,10.179,-4.218,-4.425,0,0,-24.905],[0.38,0.71,0.757,-0.444,0,0,-1.344],[3.917,10.249,-4.093,-4.466,0,0,-22.225],[-2.575,-5.657,6.103,0.652,1,1,9.882],[2.423,-4.575,5.947,0.215,0,0,-14.87],[0.243,0.573,-1.94,0.44,1,1,7.446],[-0.337,-0.65,7.666,0.723,0,0,-17.436],[-3.93,-6.082,10.096,-1.015,1,1,5.807],[1.821,6.756,0.01,0.395,0,0,-20.799],[1.326,1.033,5.657,-0.413,0,0,-21.937],[-1.242,-1.718,-0.526,-0.21,1,1,15.819],[-1.341,-2.078,2.809,0.607,1,1,6.01],[5.045,3.896,-1.43,0.863,0,0,-24.552],[-2.991,-6.626,8.652,1.82,1,1,5.206],[-1.445,-8.438,8.848,0.969,1,1,2.489],[4.259,11.296,-4.094,-4.346,0,0,-26.403],[-3.993,2.622,0.629,-1.159,1,1,15.1],[2.212,-5.84,7.769,-0.853,0,0,-15.793],[-1.805,-6.814,6.702,1.168,1,1,6.845],[-6.336,9.285,0.014,-6.784,1,1,16.032],[0.01,3.561,-4.407,-4.41,1,1,12.777],[2.146,6.08,-0.578,-2.23,0,0,-16.826],[-4.5,3.429,0.563,-1.167,1,1,15.698],[2.83,6.348,-0.735,-0.587,0,0,-21.363],[2.316,-2.628,3.153,-0.086,0,0,-10.034],[3.779,2.576,1.31,0.566,0,0,-23.967],[3.19,5.753,-0.185,-0.301,0,0,-23.533],[-0.894,3.199,-1.822,-2.945,1,1,8.544],[-1.839,-9.088,9.242,-0.104,1,1,5.437],[1.733,3.954,-4.741,-2.502,1,1,3.516],[2.668,10.216,-3.441,-4.007,0,0,-18.808],[4.12,10.926,-3.893,-4.18,0,0,-25.632],[3.477,-0.153,2.53,2.45,0,0,-21.283],[4.546,8.167,-2.459,-1.462,0,0,-27.534],[1.156,6.4,1.551,0.696,0,0,-21.972],[2.852,9.171,-3.646,-1.205,0,0,-18.617],[3.482,-4.163,3.501,-0.078,0,0,-12.798],[-1.393,1.566,7.538,0.784,0,0,-17.561],[0.966,8.393,-1.361,-1.466,0,0,-15.079],[-2.553,-7.362,6.926,-0.668,1,1,12.29],[-1.603,-0.389,1.62,1.91,1,1,5.909],[-3.895,4.039,-0.302,-2.184,1,1,14.947],[-1.08,2.2,-2.586,-1.276,1,1,12.948],[3.702,6.994,-1.851,-0.129,0,0,-23.758],[4.071,10.402,-4.172,-4.758,0,0,-22.832],[0.329,-4.455,4.572,-0.989,0,0,-0.291],[1.57,7.913,0.29,-2.195,0,0,-21.352],[0.396,6.887,1.059,-0.676,0,0,-17.058],[1.019,2.33,4.933,0.829,0,0,-22.31],[-3.392,3.356,-0.72,-3.523,1,1,16.613],[-0.025,-0.174,-0.113,1.22,1,1,4.127],[2.736,-5.032,6.661,-0.579,0,0,-16.86],[0.571,-0.025,1.242,-0.562,0,0,-1.892],[0.017,8.693,1.399,-3.967,0,0,-18.245],[-0.645,-4.606,8.347,-2.71,0,0,-6.045],[-2.542,-0.658,2.684,1.195,1,1,8.06],[0.571,-0.025,1.242,-0.562,0,0,-1.892],[-1.139,1.813,6.914,0.701,0,0,-17.293],[2.582,9.755,-3.175,-2.996,0,0,-18.906],[2.439,6.442,-0.807,-0.691,0,0,-19.486],[-2.121,-0.056,1.949,1.353,1,1,6.873],[5.242,10.539,-4.117,-4.28,0,0,-29.076],[4.669,1.31,0.055,1.909,0,0,-22.073],[-1.616,0.809,8.163,0.608,0,0,-16.548],[-2.668,-10.452,9.114,-1.732,1,1,14.167],[-1.391,-1.378,2.305,-0.022,1,1,6.618],[2.642,7.586,-0.286,-1.668,0,0,-24.075],[4.277,2.495,0.486,0.361,0,0,-23.309],[-2.482,-7.305,6.839,-0.591,1,1,12.041],[-0.554,-7.923,6.716,0.744,1,1,4.043],[-2.124,-6.897,5.599,-0.472,1,1,13.231],[-1.858,7.886,-1.664,-1.838,0,1,0.36],[-2.015,3.687,-1.938,-3.892,1,1,13.605],[4.171,8.722,-3.022,-0.597,0,0,-26.025],[-5.294,-5.146,10.333,-1.118,1,1,9.157],[3.063,-3.332,5.13,0.827,0,0,-18.698],[-1.423,-0.989,2.359,0.395,1,1,5.348],[-0.54,7.327,0.466,-1.454,0,0,-11.362],[-0.28,3.073,-3.386,-2.916,1,1,10.932],[3.966,10.168,-4.113,-4.606,0,0,-22.089],[0.575,10.111,-1.692,-4.392,0,0,-14.154],[0.406,1.349,-1.45,-0.559,1,1,4.04],[4.711,2.075,-0.27,1.238,0,0,-22.577],[-1.478,0.143,-1.162,-0.486,1,1,14.64],[-1.728,-6.841,8.949,0.681,1,0,-0.157],[4.052,-0.166,0.454,0.512,0,0,-15.884],[3.067,-4.412,3.824,-0.817,0,0,-10.752],[-1.71,-8.79,7.973,-0.455,1,1,8.389],[4.743,2.109,0.137,1.654,0,0,-24.401],[-3.993,5.833,0.547,-4.938,1,1,10.492],[1.837,6.129,0.84,0.553,0,0,-22.104],[-2.772,3.278,-0.935,-3.146,1,1,14.344],[1.168,9.157,-2.087,-0.806,0,0,-16.057],[0.519,-3.263,3.09,-0.985,0,1,0.635],[1.22,2.098,-3.195,0.128,1,1,3.477],[4.042,-4.391,4.747,1.137,0,0,-19.673],[2.019,0.824,4.637,1.42,0,0,-22.795],[0.913,3.338,-4.056,-1.674,1,1,5.981],[-2.591,-0.106,1.28,1.041,1,1,11.499],[-0.382,8.391,2.162,-3.74,0,0,-18.26],[2.803,9.086,-3.367,-1.022,0,0,-19.207],[-2.915,4.054,-0.457,-4.033,1,1,12.295],[-1.726,-6.024,5.242,0.295,1,1,9.846],[-1.258,1.589,7.008,0.425,0,0,-16.295],[5.306,5.268,-2.89,-0.527,0,0,-23.399],[-0.954,1.982,-2.316,-1.196,1,1,11.98],[0.295,4.886,-5.149,-6.232,1,1,11.996],[-4.293,3.342,0.773,-0.998,1,1,14.169],[-0.398,5.978,1.391,-1.162,0,0,-11.903],[-1.3,10.268,-2.953,-5.864,0,0,-0.826],[-3.536,0.304,0.657,-0.296,1,1,17.832],[4.808,2.233,-0.263,1.553,0,0,-23.658],[2.314,10.665,-3.529,-4.767,0,0,-17.407],[1.726,-4.47,8.222,-1.807,0,0,-17.558],[3.842,10.021,-4.27,-4.916,0,0,-20.433],[-0.12,6.874,0.92,-0.669,0,0,-14.226],[-1.257,-1.473,2.872,0.447,1,1,4.092],[-1.339,1.552,7.081,1.031,0,0,-16.521],[-2.641,-4.416,5.983,-0.139,1,1,8.172],[-2.791,-5.713,5.953,0.459,1,1,11.626],[-2.456,-4.557,6.453,-0.056,1,1,6.117],[4.385,-3.073,3.042,1.274,0,0,-19.152],[-1.758,2.74,-2.532,-2.234,1,1,15.321],[3.492,8.571,-3.033,-0.592,0,0,-22.51],[-6.753,8.817,-0.062,-3.725,1,1,16.992],[1.357,4.236,2.134,0.321,0,0,-19.24],[2.005,-6.864,8.132,-0.24,0,0,-13.985],[-2.066,1.051,-0.463,-1.097,1,1,13.415],[-1.239,-6.541,4.815,-0.033,1,1,10.445],[-3.073,-0.532,2.388,0.776,1,1,11.449],[-4.945,3.3,1.063,-1.444,1,1,16.686],[3.138,-4.11,4.57,0.99,0,0,-15.525],[-2.46,12.73,0.917,-7.642,0,0,-12.271],[-4.233,4.917,-0.492,-5.321,1,1,17.366],[-1.397,-9.67,9.465,-0.349,1,1,4.284],[-1.443,3.292,-1.97,-3.439,1,1,11.683],[0.508,0.478,-1.98,0.577,1,1,6.478],[-0.556,3.214,-3.308,-2.796,1,1,11.53],[3.27,6.932,-1.046,0.234,0,0,-24.438],[-3.568,-8.213,10.083,0.968,1,1,7.812],[-3.08,0.608,2.704,-0.238,1,1,8.508],[-5.166,8.043,0.044,-4.498,1,1,11.814],[3.586,-3.096,2.809,0.245,0,0,-13.912],[-4.397,4.96,-0.649,-5.472,1,1,18.622],[-1.706,3.309,-2.283,-2.198,1,1,12.899],[1.231,3.892,-4.828,-4.007,1,1,7.387],[2.509,6.841,-0.029,0.449,0,0,-24.084],[-2.292,-7.257,7.96,0.921,1,1,6.373],[-1.955,-6.976,5.538,-0.129,1,1,12.576],[3.977,0.335,2.257,2.163,0,0,-23.678],[-2.564,-1.705,1.503,0.328,1,1,15.063],[1.641,3.549,1.396,-0.364,0,0,-16.047],[0.329,-4.455,4.572,-0.989,0,0,-0.291],[-3.026,-0.062,0.686,-0.055,1,1,16.098],[0.329,-4.455,4.572,-0.989,0,0,-0.291],[1.147,3.599,1.939,-0.434,0,0,-15.556],[4.063,3.584,0.725,0.395,0,0,-25.727],[-2.703,1.633,0.836,-0.091,1,1,10.086],[1.012,0.902,-2.351,0.427,1,1,4.423],[0.331,4.573,2.057,-0.19,0,0,-14.709],[2.243,-4.143,5.233,-0.402,0,0,-12.368],[2.565,8.633,-2.994,-1.308,0,0,-17.979],[5.062,-0.358,0.447,0.999,0,0,-20.409],[0.876,6.814,0.842,-0.172,0,0,-18.791],[-4.244,-13.063,17.112,-2.802,1,1,3.297],[4.137,0.492,1.093,1.828,0,0,-20.872],[4.03,2.676,0.807,0.717,0,0,-23.887],[0.762,5.821,1.196,-0.646,0,0,-16.63],[-2.063,-1.515,1.219,0.445,1,1,13.107],[3.577,2.4,1.891,0.732,0,0,-24.573],[4.045,11.174,-4.358,-4.74,0,0,-23.995],[-1.702,-0.01,-0.993,-0.531,1,1,15.538],[-2.262,-4.743,6.349,0.112,1,1,5.874],[1.117,8.65,-0.963,-1.811,0,0,-17.384],[3.55,8.617,-3.279,-1.201,0,0,-21.648],[1.323,3.296,0.236,-0.12,0,0,-10.511],[0.774,9.055,-2.409,-1.388,0,0,-12.549],[3.82,10.928,-4.011,-5.028,0,0,-23.245],[0.441,2.949,4.322,0.716,0,0,-19.132],[-2.455,-9.041,8.862,-0.87,1,1,9.931],[-1.942,0.377,-1.29,-0.825,1,1,16.87],[1.055,1.186,-2.641,0.11,1,1,4.696],[-5.903,6.568,0.677,-6.68,1,1,18.414],[3.095,8.732,-2.901,-0.967,0,0,-21.206],[5.113,-0.499,0.629,1.119,0,0,-20.969],[2.695,6.798,-0.403,0.449,0,0,-23.656],[3.27,-4.341,3.688,-0.298,0,0,-11.819],[-4.388,-7.727,11.966,-1.454,1,1,6.311],[-2.588,3.865,-0.334,-1.28,1,1,8.772],[2.774,6.858,-1.067,0.075,0,0,-21.791],[0.148,7.946,1.074,-3.341,0,0,-16.498],[-2.742,11.404,2.539,-5.579,0,0,-14.46],[1.567,7.927,-0.057,-2.169,0,0,-20.3],[-1.897,-6.789,5.276,-0.325,1,1,12.835],[-1.77,3.433,-1.214,-2.379,1,1,9.661],[2.127,6.878,0.448,-2.222,0,0,-21.896],[0.867,5.564,1.677,-0.168,0,0,-18.376],[-3.696,-13.678,17.579,-2.618,1,1,0.644],[0.743,11.17,-1.382,-4.073,0,0,-18.696],[1.49,3.429,-4.031,-1.426,1,1,2.846],[-0.873,1.653,-2.196,-0.781,1,1,11.708],[3.926,6.03,-2.016,-0.066,0,0,-21.996],[0.66,10.388,-1.403,-3.915,0,0,-16.487],[3.513,2.907,1.058,0.408,0,0,-22.626],[1.214,8.799,-2.167,-0.742,0,0,-15.203],[4.985,8.352,-2.542,-1.282,0,0,-29.868]],"train":[[0.4,0.06,-1.04,0.52,1],[-0.38,-0.22,-0.41,0.26,1],[1.26,-0.28,-0.12,1.14,0],[-0.11,-0.3,-0.71,0.86,1],[-1.18,-0.42,0.27,1.23,1],[-1.91,0.29,-0.13,-0.13,1],[0.06,0.21,0.66,0.88,0],[-1.07,-1.48,1.41,0.91,1],[0.01,1.41,-0.58,-1.33,0],[1.34,-0.77,0.17,1.02,0],[-2.48,0.83,-0.13,-2.99,1],[-0.5,-0.3,1.1,-0.13,0],[-1.83,-1.36,2.29,0.07,1],[0.17,1.15,-0.7,-0.04,0],[-2.54,0.87,-0.17,-3.02,1],[0.88,1.17,-1.16,-0.08,0],[-1.58,-2.49,3.26,0.12,1],[0.02,-0.27,-0.52,1.03,1],[0.59,-1.36,1.53,0.41,0],[0.83,1.6,-1.09,-1.52,0],[-1.07,-0.48,0.3,0.5,1],[-0.66,1.66,-0.34,-2.79,0],[-1.06,-1.5,1.7,1.3,1],[1.44,-0.73,0.28,1.34,0],[-1.01,0.32,-0.42,-0.04,1],[-2.64,1.26,-0.29,-1.58,1],[-0.09,-0.43,-0.12,0.72,1],[0.31,-0.28,-0.75,1.2,1],[1.07,0.84,-0.48,0.35,0],[0.76,1.04,-0.38,-0.26,0],[0.56,0.03,0.18,0.54,0],[-0.5,0.14,-1.04,-0.05,1],[-1.03,-0.39,0.02,1.11,1],[0.98,0.81,-0.47,0.99,0],[-1.21,-2.57,2.77,-0.67,1],[-0.01,0.62,0.14,0.38,0],[-0.81,-1.78,1.44,0.26,1],[-0.72,-1.54,1.18,0.51,1],[-0.39,-0.79,0.53,1.05,1],[1.09,1.27,-1.25,-1.3,0],[0.04,-0.32,-0.04,0.31,0],[0.09,-0.33,0.98,-0.07,0],[0.5,-0.74,0.32,0.2,0],[-0.52,-0.3,-0.38,0.79,1],[-1.51,-2.53,3.57,-0.52,1],[1.28,-0.24,0.06,1.01,0],[-1.0,-0.56,-0.06,0.65,1],[0.21,1.1,-0.65,-0.21,0],[1.23,0.11,0.03,1.0,0],[-0.35,-0.33,-0.37,1.07,1],[0.98,-1.07,0.55,0.5,0],[-0.81,-1.38,0.97,0.67,1],[0.78,0.21,-0.25,0.85,0],[0.9,0.07,0.16,0.74,0],[-0.29,1.09,-0.76,-1.0,0],[-0.78,-1.39,1.08,0.64,1],[1.23,0.35,-0.16,0.73,0],[0.78,0.2,-0.24,0.85,0],[0.1,-0.26,0.18,0.8,0],[0.94,-0.85,0.12,0.4,0],[-0.08,-1.08,0.16,1.26,1],[-1.88,0.88,-0.36,-2.72,1],[-0.49,-1.18,0.72,1.23,1],[-1.25,-2.09,1.74,-0.53,1],[-0.2,-0.01,-0.83,0.31,1],[-0.8,0.15,-0.49,-0.54,1],[-0.39,-1.19,0.72,1.28,1],[-0.35,-1.19,0.47,0.6,1],[-1.43,-1.42,2.09,0.34,1],[0.15,1.47,-0.65,-1.34,0],[1.81,1.43,-1.43,-1.49,0],[1.22,-0.81,0.18,0.72,0],[-0.92,-0.35,-0.02,0.48,1],[-0.42,-1.46,1.02,0.87,1],[0.61,0.95,-0.63,-0.99,0],[1.21,0.71,-0.89,0.25,0],[1.61,1.05,-1.02,-0.24,0],[-1.78,0.27,-0.17,0.13,1],[0.88,0.84,-0.39,0.91,0],[-1.87,-1.16,2.07,0.32,1],[0.24,1.02,-0.07,-0.77,0],[0.95,0.17,-0.19,0.95,0],[-0.45,0.18,-0.62,-0.12,1],[-0.16,-1.0,0.09,1.01,1],[-0.59,-0.02,-0.66,-0.1,1],[1.22,-0.87,0.4,1.09,0],[1.77,-0.06,-0.31,1.49,0],[-0.98,-0.43,0.13,0.36,1],[-1.41,0.0,-0.28,-0.58,1],[-1.27,-2.53,3.28,0.26,1],[-0.08,1.26,-1.17,-2.39,0],[0.47,-0.51,0.03,0.45,0],[1.18,-0.84,0.24,0.82,0],[0.02,0.3,-1.26,-0.37,1],[-0.29,0.38,0.39,0.4,0],[0.18,0.33,-1.46,-1.38,1],[-0.48,0.16,-1.05,0.0,1],[0.51,0.98,-0.29,-0.9,0],[-0.26,1.07,-1.04,-0.62,0],[-0.51,0.16,-0.61,-0.17,1],[0.68,1.29,-1.05,-0.85,0],[1.08,0.82,-0.51,0.8,0],[-1.03,-0.36,-0.0,0.36,1],[1.59,0.9,-1.08,0.03,0],[1.75,1.29,-1.46,-1.28,0],[0.17,-0.41,1.33,0.25,0],[-1.19,-1.61,2.39,0.18,1],[-0.83,0.28,-0.73,-1.25,1],[-0.99,1.78,-0.16,-3.02,0],[0.07,1.32,-0.39,-0.21,0],[-0.08,-0.41,-0.42,1.14,1],[0.03,-0.37,-0.28,0.79,1],[1.06,-0.98,0.59,0.75,0],[-1.5,-2.47,2.61,-0.76,1],[0.06,0.32,-1.35,-1.34,1],[-0.29,-1.07,0.16,1.02,1],[0.55,-0.24,0.73,0.43,0],[-1.74,-2.52,3.6,-0.86,1],[2.15,1.35,-1.34,-0.95,0],[0.63,-1.19,0.66,-0.02,0],[1.29,0.72,-0.88,0.48,0],[-0.66,-0.7,0.02,0.87,1],[-1.57,-2.6,3.74,-1.0,1],[0.3,0.52,0.14,0.68,0],[0.88,0.06,-0.01,0.56,0],[-2.35,1.15,-0.32,-1.18,1],[0.18,0.9,-0.03,-0.59,0],[2.24,0.57,-0.91,0.83,0],[-1.42,-0.24,0.22,0.36,1],[0.73,0.18,-0.51,0.52,0],[-0.31,0.18,-0.73,-0.47,1],[-0.45,0.26,-1.17,-1.06,1],[1.11,-0.95,0.33,0.24,0],[0.22,-0.21,1.05,0.3,0],[1.26,-0.73,0.2,1.06,0],[-0.95,-1.51,1.4,0.87,1],[-2.3,1.26,-0.42,-2.44,1],[1.86,1.41,-1.42,-1.48,0],[0.29,0.12,0.14,0.49,0],[1.21,0.94,-0.74,0.64,0],[-1.53,-1.64,1.93,0.8,1],[0.74,0.83,-0.47,0.76,0],[-2.38,0.81,-0.2,-2.75,1],[-0.96,1.64,0.27,-0.98,0],[0.05,0.28,-1.24,-0.27,1],[-0.07,-0.19,-0.48,0.59,1],[0.85,-0.24,0.73,0.46,0],[1.14,-0.99,0.67,1.22,0],[0.32,-1.13,1.61,-0.32,0],[-0.34,-0.36,-0.32,0.94,1],[1.47,1.47,-1.38,-1.42,0],[0.15,0.8,-0.2,0.37,0],[-0.65,0.07,-0.43,-0.13,1],[-0.78,-0.33,-0.5,0.4,1],[1.08,-0.2,0.07,0.88,0],[0.78,0.64,-0.16,-0.13,0],[0.68,0.45,-1.47,-0.8,1],[-0.74,-1.39,0.75,0.66,1],[0.73,0.12,0.16,0.67,0],[1.04,0.6,-0.9,0.15,0],[0.24,0.35,0.46,0.97,0],[0.87,0.94,-0.55,0.16,0],[-0.34,0.17,-0.74,-0.5,1],[1.19,0.73,-0.79,0.56,0],[-0.56,1.5,0.16,-2.1,0],[-0.04,-0.3,-0.39,0.64,1],[0.78,1.51,-1.08,-1.46,0],[1.02,1.34,-1.2,-1.18,0],[1.29,-0.79,0.15,0.89,0],[0.41,0.24,0.34,0.62,0],[-0.62,0.14,-0.52,-0.39,1],[0.73,-1.16,1.14,0.38,0],[0.93,-0.81,0.19,0.68,0],[0.08,0.08,0.8,0.84,0],[0.4,0.07,0.42,0.66,0],[-0.62,-0.27,-0.15,1.42,1],[0.04,0.94,-0.04,-0.83,0],[-0.58,1.63,-0.29,-2.66,0],[-1.09,-0.29,0.09,1.04,1],[0.02,-0.87,0.39,0.11,0],[1.14,-0.99,0.66,1.12,0],[0.48,0.71,-0.2,0.82,0],[-1.26,-1.48,2.14,0.09,1],[-0.86,1.68,-0.42,-3.15,0],[-2.08,0.91,-0.3,-3.01,1],[0.71,-0.49,0.9,0.5,0],[-1.36,0.51,-0.5,-1.73,1],[-1.43,-2.63,3.72,-0.61,1],[0.93,0.21,-0.14,0.78,0],[-1.08,-1.9,1.93,0.44,1],[-0.44,1.3,-1.19,-2.98,0],[-0.26,0.22,-1.14,-0.94,1],[-1.35,-0.44,0.26,0.92,1],[-0.65,1.8,-0.16,-3.0,0],[-0.05,1.39,-0.6,-1.38,0],[0.46,-0.45,0.96,1.19,0],[-0.94,-1.86,1.74,0.44,1],[-0.41,-0.4,-0.4,0.8,1],[-1.02,0.29,-0.65,-0.8,1],[-0.09,1.28,-0.35,-0.31,0],[0.43,0.4,-1.37,-0.56,1],[-0.07,0.51,-1.45,-2.18,1],[0.35,0.29,-1.25,-0.18,1],[-1.1,-2.49,2.59,-0.33,1],[-1.0,-0.45,0.37,0.94,1],[0.79,1.22,-1.08,0.12,0],[-1.23,-0.43,0.3,0.98,1],[-0.9,-0.12,-0.45,0.18,1],[-0.89,1.52,0.28,-1.72,0],[-0.17,1.33,-0.29,-0.19,0],[-1.29,-0.34,-0.1,0.6,1],[-0.25,-0.62,0.17,1.16,1],[1.06,1.18,-1.06,0.14,0],[-2.01,0.8,-0.37,-2.68,1],[-1.53,0.51,-0.54,-1.83,1],[1.25,-0.69,0.24,1.12,0],[-0.15,-0.5,-0.0,0.94,1],[0.3,0.45,0.2,0.68,0],[0.32,1.19,-0.76,0.32,0],[-0.67,1.69,-0.23,-2.74,0],[-1.3,0.16,-0.25,0.17,1],[-0.82,-0.46,0.26,0.62,1],[-0.86,1.66,0.29,-1.89,0],[-0.25,0.01,-0.89,0.19,1],[-0.78,1.71,0.39,-1.75,0],[0.06,0.89,-0.24,0.38,0],[-0.2,-0.21,-0.41,0.55,1],[-1.39,-2.38,2.98,0.28,1],[-1.15,0.02,-0.42,-0.43,1],[-1.62,0.32,-0.47,-1.41,1],[-0.24,1.24,-1.17,-2.65,0],[-0.71,-2.04,1.88,-0.01,1],[1.15,-0.97,0.45,0.57,0],[0.75,0.28,-0.15,0.96,0],[-0.91,-0.05,-0.34,-0.25,1],[1.17,-0.81,0.19,0.5,0],[-0.5,-1.45,0.82,0.73,1],[1.37,0.25,-0.13,0.88,0],[0.1,0.5,-1.43,-2.11,1],[-0.09,-0.4,1.45,1.01,0],[-1.29,-1.6,2.4,0.3,1],[0.18,0.63,0.18,0.52,0],[-0.78,1.7,0.29,-1.0,0],[0.26,0.37,-1.42,-0.66,1],[-0.31,0.21,-1.0,-0.7,1],[1.69,0.36,-0.68,1.05,0],[-0.31,-0.34,-0.31,0.53,1],[-0.66,0.24,-0.64,-0.37,1],[1.21,-0.68,0.28,1.1,0],[1.61,-0.41,-0.21,1.1,0],[1.57,0.61,-0.89,0.34,0],[1.1,-0.07,-0.09,1.24,0],[1.25,1.4,-1.23,-1.35,0],[0.52,-0.24,0.74,1.09,0],[1.12,0.92,-0.84,0.03,0],[0.85,-1.0,0.51,0.42,0],[1.61,-1.16,0.48,0.46,0],[0.28,0.43,-0.63,-0.25,0],[0.48,-1.41,1.53,0.38,0],[-1.5,0.09,-0.17,0.06,1],[-0.73,-0.13,-0.41,0.29,1],[0.73,0.06,0.3,0.95,0],[0.53,0.86,-0.19,0.89,0],[1.15,1.31,-1.22,-1.01,0],[0.31,-0.14,-0.86,0.76,1],[1.07,0.82,-0.6,0.39,0],[0.4,-1.13,1.63,-0.43,0],[1.93,0.73,-0.92,0.4,0],[1.57,-0.27,-0.28,0.73,0],[-1.65,0.74,-0.29,-2.05,1],[0.3,0.0,-1.08,0.61,1],[1.21,-0.02,0.04,1.03,0],[1.25,-0.24,-0.01,1.34,0],[0.34,1.1,-0.81,-0.36,0],[0.62,0.38,-1.43,-0.43,1],[1.32,-0.13,-0.16,1.03,0],[0.03,0.7,0.06,0.36,0],[-1.04,0.28,-0.64,-0.77,1],[-0.78,-1.3,1.02,1.15,1],[-0.41,-0.89,0.62,1.29,1],[-0.17,1.26,-0.42,-0.36,0],[-0.99,1.88,0.44,-2.24,0],[0.0,-0.42,1.37,0.75,0],[0.65,0.28,-0.19,0.77,0],[-0.99,1.71,0.38,-2.0,0],[-1.22,-0.26,-0.22,0.61,1],[-0.76,-0.14,1.7,1.02,0],[-1.05,-0.36,0.02,1.15,1],[-0.37,0.1,-0.98,0.15,1],[0.6,-0.44,0.93,0.23,0],[-0.96,0.24,-0.53,-0.8,1],[1.03,-0.12,0.17,1.56,0],[-0.7,1.52,0.32,-1.37,0],[-0.8,-1.81,1.68,0.47,1],[-0.51,-1.45,1.01,0.83,1],[1.32,-0.79,0.14,0.89,0],[0.42,1.01,-0.52,-1.11,0],[0.14,0.14,0.66,0.83,0],[1.24,-0.14,-0.15,1.05,0],[-1.26,-1.52,2.29,0.54,1],[1.3,0.92,-0.89,0.0,0],[-1.83,0.21,-0.08,-0.04,1],[1.63,0.24,-0.62,1.11,0],[-0.7,-1.18,1.21,0.66,1],[-0.36,-0.08,-0.65,0.04,1],[0.46,0.42,0.17,0.93,0],[0.73,0.72,-0.59,-0.01,0],[0.84,0.85,-0.51,0.8,0],[-0.69,-0.31,1.25,0.34,0],[1.07,1.41,-1.31,-1.78,0],[0.52,0.71,-0.26,-0.4,0],[-1.36,-1.71,2.05,1.04,1],[-0.87,-1.9,1.82,0.53,1],[-0.75,-0.67,0.04,0.91,1],[0.49,0.23,-0.36,0.45,0],[0.29,1.18,-0.68,-0.28,0],[-0.03,-0.2,-0.15,0.36,0],[-1.1,1.4,-0.63,-2.02,0],[-0.18,-0.59,1.62,0.93,0],[1.05,0.74,-0.77,0.4,0],[-0.12,0.32,-1.34,-1.5,1],[-0.93,-0.3,-0.56,0.17,1],[0.05,-0.15,-0.83,0.62,1],[-1.36,-2.52,2.67,-0.71,1],[1.02,1.44,-1.18,-1.18,0],[-1.7,-1.25,2.19,0.38,1],[-1.33,-0.32,0.36,0.36,1],[0.04,-0.32,-0.04,0.31,0],[-0.29,-0.38,-0.43,0.87,1],[0.88,-0.13,-0.18,1.0,0],[0.82,1.54,-1.14,-1.51,0],[-1.55,-2.5,2.68,-0.99,1],[-0.44,1.61,-0.41,-2.77,0],[0.56,-0.49,0.87,0.44,0],[-1.13,-0.24,0.24,0.68,1],[-1.43,-1.43,2.09,0.5,1],[1.56,-0.05,-0.32,1.35,0],[1.31,-0.87,0.27,0.68,0],[-0.95,-0.36,-0.19,0.6,1],[0.78,1.5,-1.1,-1.4,0],[-0.27,0.13,-0.96,0.26,1],[1.2,1.38,-1.23,-1.36,0],[0.14,1.42,-0.67,-1.32,0],[-0.07,1.24,-1.08,-1.72,0],[-1.97,-1.22,2.06,0.07,1],[0.27,1.17,-0.83,0.19,0],[0.8,0.88,-0.46,0.77,0],[-0.27,0.1,-1.0,0.26,1],[-0.26,1.07,-1.04,-0.62,0],[0.57,-1.47,1.62,0.29,0],[-0.06,0.89,-0.4,0.01,0],[1.46,0.64,-0.81,0.67,0],[1.05,1.3,-1.24,-1.13,0],[-1.04,-1.58,1.26,0.27,1],[1.88,0.53,-0.84,0.78,0],[-0.87,-1.93,1.9,0.51,1],[-0.27,1.22,-0.44,-0.41,0],[0.55,-0.01,-1.0,0.67,1],[1.3,-0.98,0.33,0.57,0],[-0.98,-2.0,1.62,-0.31,1],[1.85,0.67,-0.88,0.46,0],[-0.05,-0.47,1.53,0.9,0],[-1.33,-0.3,-0.2,0.43,1],[1.44,1.08,-0.88,-0.18,0],[0.11,0.81,-0.59,0.07,0],[0.67,-1.48,1.61,0.36,0],[-1.38,0.14,-0.29,0.09,1],[0.68,-0.04,0.37,0.91,0],[-0.98,-1.9,1.8,0.2,1],[-0.35,-0.36,-0.43,0.77,1],[1.47,-1.14,0.47,0.46,0],[1.54,-0.18,0.05,1.14,0],[1.1,1.34,-1.24,-1.07,0],[0.12,0.17,0.67,0.86,0],[-1.94,-1.3,2.26,0.39,1],[-1.03,1.82,-0.15,-3.05,0],[0.97,0.99,-0.41,-0.63,0],[-0.64,1.49,0.07,-0.8,0],[0.2,0.85,-0.78,-0.71,0],[-2.33,1.16,-0.37,-1.15,1],[0.12,0.5,-1.53,-2.31,1],[1.16,-0.94,0.59,1.19,0],[1.18,1.4,-1.25,-1.59,0],[0.51,1.19,-0.86,0.22,0],[-0.96,-1.9,1.83,0.17,1],[1.26,-0.23,-0.09,1.1,0],[0.18,0.26,-1.23,-0.24,1],[0.98,-0.95,0.89,0.77,0],[-0.86,0.17,-0.85,-0.55,1],[0.27,-0.17,1.0,0.52,0],[0.61,-0.08,-0.06,0.98,0],[-0.93,-1.41,1.06,0.48,1],[1.38,-1.14,0.45,0.56,0],[1.05,-0.21,0.16,1.47,0],[1.4,-0.72,0.07,1.01,0],[-1.06,-0.45,0.45,0.58,1],[-0.98,-0.07,-0.51,-0.03,1],[0.89,0.91,-0.42,-0.49,0],[-1.18,-0.02,-0.17,0.36,1],[1.91,0.68,-0.97,0.43,0],[1.08,-0.1,0.12,1.43,0],[-0.81,-1.43,0.97,0.84,1],[-0.72,-0.68,0.07,1.0,1],[-0.8,-1.85,1.75,0.52,1],[-0.84,1.66,0.26,-0.98,0],[1.58,0.97,-0.86,0.17,0],[-2.43,1.3,-0.32,-2.67,1],[0.62,1.31,-1.04,-0.71,0],[-1.2,-1.72,2.03,1.13,1],[0.17,1.19,-0.71,-0.21,0],[1.19,1.4,-1.21,-1.43,0],[-2.0,0.91,-0.31,-2.88,1],[0.31,0.72,-0.22,0.81,0],[0.61,0.7,-0.2,0.98,0],[-0.7,-1.44,1.0,0.52,1],[-0.55,0.07,-0.9,-0.11,1],[-0.69,-1.56,1.49,1.16,1],[0.16,0.25,-1.36,-1.18,1],[1.2,0.77,-0.88,0.11,0],[1.68,1.55,-1.32,-1.37,0],[0.05,0.01,-1.08,0.42,1],[-0.75,-0.37,0.0,0.59,1],[1.86,0.58,-0.84,0.61,0],[0.13,0.96,-0.17,0.14,0],[-1.6,0.18,-0.12,0.27,1],[1.24,-1.07,0.53,0.52,0],[1.57,-0.2,-0.15,1.15,0],[-1.62,0.27,-0.43,-1.27,1],[-1.42,-2.43,3.09,0.35,1],[0.82,0.04,0.1,0.76,0],[1.74,1.38,-1.2,-1.02,0],[-0.67,-0.63,0.6,0.84,1],[1.25,-0.16,-0.06,1.38,0],[0.18,0.67,0.21,0.61,0],[-1.26,-1.78,2.07,1.04,1],[0.61,0.45,-1.47,-0.72,1],[0.45,-1.13,1.56,-0.4,0],[-0.33,0.08,-1.01,0.08,1],[-0.03,-0.2,-0.15,0.36,0],[-0.26,0.24,-1.14,-0.89,1],[0.38,1.24,-0.7,-0.25,0],[1.02,-1.05,1.06,0.66,0],[0.15,0.49,-1.44,-2.07,1],[-0.98,0.22,-0.55,-0.71,1],[0.56,-0.11,0.64,1.0,0],[-0.3,-0.32,-0.34,0.36,1],[-1.3,-1.54,2.35,0.13,1],[1.18,1.21,-1.33,-1.34,0],[-1.12,-1.47,1.41,0.85,1],[-0.12,0.02,-1.1,0.27,1],[-0.22,0.97,-0.05,-1.14,0],[0.91,-0.76,0.21,0.72,0],[-0.29,0.22,-1.11,-0.93,1],[0.6,-1.48,1.55,0.54,0],[0.03,-0.15,-0.85,0.57,1],[0.09,-0.29,-0.73,0.75,1],[0.16,-0.96,0.74,0.43,0],[1.54,1.0,-0.89,-0.0,0],[1.3,-0.94,0.56,1.35,0],[-0.75,-0.55,0.13,0.82,1],[-0.69,0.01,1.32,1.0,0],[-0.16,1.1,-0.21,-1.23,0],[-1.04,1.74,0.32,-1.2,0],[1.03,0.24,-0.11,0.69,0],[0.8,0.17,-0.21,0.82,0],[-0.17,0.9,-0.14,0.22,0],[0.41,0.4,-1.45,-0.69,1],[-0.29,-1.26,0.77,1.31,1],[-0.96,-0.33,0.32,0.81,1],[-0.07,0.09,-0.98,0.29,1],[-0.22,0.68,-0.21,0.24,0],[-0.12,0.23,-1.11,-0.77,1],[0.03,-0.9,0.07,1.1,1],[-2.61,1.21,-0.27,-1.59,1],[1.14,1.36,-1.26,-1.49,0],[0.5,0.1,0.25,0.75,0],[-0.82,1.02,-0.71,-0.3,0],[0.04,-0.32,-0.04,0.31,0],[0.52,1.0,-0.36,-0.88,0],[1.11,-0.15,-0.17,0.88,0],[0.74,-1.06,1.05,0.61,0],[-1.54,0.33,-0.4,-1.23,1],[-0.79,-1.39,0.97,0.78,1],[-0.69,-0.69,0.05,1.0,1],[-0.18,-0.06,-0.65,0.21,1],[1.37,-0.84,0.22,0.95,0],[-1.25,-1.44,2.1,0.15,1],[-0.25,0.23,-1.03,-0.74,1],[-0.01,-0.48,-0.57,0.73,1],[-0.56,0.25,-0.63,-0.35,1],[1.59,1.01,-0.86,0.23,0],[0.52,-1.13,1.63,-0.31,0],[0.76,0.66,-0.31,-0.17,0],[-1.34,-0.26,0.28,0.4,1],[0.96,0.91,-0.57,-0.65,0],[1.9,0.6,-0.88,0.55,0],[-2.06,1.23,-0.42,-2.23,1],[-2.42,0.77,-0.07,-2.56,1],[-1.4,0.17,-0.29,0.0,1],[1.66,0.35,-0.78,0.77,0],[0.95,-1.19,1.19,0.85,0],[0.63,1.37,-1.05,-0.84,0],[0.86,-0.2,0.2,1.46,0],[-0.17,-0.49,-0.54,0.88,1],[-0.4,-0.86,0.55,1.14,1],[0.01,0.62,0.08,0.35,0],[1.32,0.84,-0.62,0.94,0],[-0.44,-1.58,1.17,0.75,1],[0.69,0.78,-0.5,0.68,0],[0.52,-0.32,0.78,0.41,0],[-0.67,-0.56,0.16,0.77,1],[1.22,-0.16,-0.14,0.9,0],[1.17,1.34,-1.22,-1.1,0],[1.48,-0.89,0.48,1.27,0],[0.2,-0.13,-0.85,0.86,1],[-0.96,1.74,-0.26,-3.1,0],[1.37,-1.22,0.57,0.24,0],[-1.42,0.35,-0.34,-0.43,1],[1.1,0.19,-0.16,0.84,0],[-0.43,0.11,-1.02,-0.02,1],[-0.08,-0.07,-0.65,0.3,1],[0.82,-0.22,-0.02,1.15,0],[-0.24,-0.69,-0.35,0.84,1],[1.11,0.84,-0.59,0.71,0],[0.88,1.2,-0.99,0.08,0],[0.28,1.04,-0.37,-0.46,0],[-0.1,-0.2,-0.44,0.58,1],[-1.21,-2.07,1.69,-0.43,1],[-2.15,1.06,-0.29,-1.8,1],[0.01,-0.21,-0.59,0.76,1],[-0.91,-0.12,-0.45,0.19,1],[-1.62,0.89,-0.34,-2.47,1],[-0.12,1.2,-0.54,-0.58,0],[-0.61,0.04,-0.43,-0.09,1],[0.24,-0.95,0.96,0.27,0],[1.81,1.46,-1.33,-1.48,0],[-1.43,0.25,-0.44,-1.12,1],[0.85,1.38,-1.06,-0.9,0],[1.3,0.91,-0.76,0.17,0],[1.37,-0.24,0.0,1.53,0],[-1.56,0.37,-0.41,-1.27,1],[-0.52,-0.35,-0.53,0.58,1],[1.33,-0.07,-0.43,1.03,0],[-1.07,-1.3,1.06,0.6,1],[-0.99,-1.14,1.2,0.55,1],[0.77,1.5,-1.08,-1.36,0],[-0.03,-0.2,-0.15,0.36,0],[-1.42,-1.74,2.52,-0.03,1],[-0.66,-0.68,-0.35,0.48,1],[1.23,-0.72,0.22,0.8,0],[1.67,0.28,-0.61,1.05,0],[0.21,0.31,-1.28,-0.34,1],[0.6,-0.45,0.85,0.25,0],[0.04,1.51,-0.64,-1.48,0],[1.2,-0.83,0.26,0.67,0],[1.0,0.88,-0.63,0.68,0],[1.22,1.48,-1.18,-1.47,0],[0.05,0.34,-1.41,-1.51,1],[0.27,0.37,-1.39,-1.28,1],[0.83,1.52,-1.05,-1.31,0],[-0.61,-0.73,0.73,0.8,1],[0.86,1.52,-1.09,-1.38,0],[-0.51,-1.4,0.96,1.06,1],[0.55,-0.0,0.4,0.78,0],[-2.11,0.75,-0.12,-2.56,1],[-0.89,-2.16,1.86,-0.09,1],[-1.67,-1.65,2.39,-0.32,1],[1.37,1.56,-1.26,-1.44,0],[0.2,1.23,-0.47,-0.24,0],[-1.47,0.01,-0.33,-0.61,1],[0.57,-0.16,0.72,1.16,0],[-1.62,0.15,-0.17,0.23,1],[1.54,0.2,-0.17,0.96,0],[1.09,-0.1,-0.03,1.36,0],[-0.34,-0.02,-0.84,0.25,1],[-0.34,-0.17,-0.7,0.31,1],[-0.29,0.2,-1.12,-0.74,1],[0.96,-0.9,0.31,0.48,0],[1.67,-0.26,-0.28,1.13,0],[-0.95,0.21,-0.87,-0.69,1],[-0.75,0.24,-0.84,-0.48,1],[-0.3,-0.49,1.53,0.81,0],[-1.06,0.21,-0.51,-0.86,1],[-0.85,-0.28,-0.04,0.4,1],[-1.87,0.81,-0.38,-2.54,1],[0.77,-1.13,1.14,0.58,0],[-0.81,-0.26,-0.15,1.25,1],[0.11,0.7,-0.05,0.41,0],[0.53,-1.18,1.65,-0.1,0],[-0.24,1.04,0.11,-1.27,0],[1.21,0.19,-0.11,0.86,0],[-0.8,1.7,0.15,-1.92,0],[-2.1,1.22,-0.41,-2.26,1],[-1.74,-2.57,3.65,-0.95,1],[1.2,-0.18,-0.07,1.38,0],[0.92,-0.75,0.19,0.72,0],[1.56,-0.89,0.46,1.09,0],[0.46,0.85,-0.62,-0.17,0],[0.15,-0.21,1.06,0.37,0],[1.3,-0.9,0.51,1.09,0],[1.3,-0.39,-0.27,0.71,0],[-0.98,0.04,-0.43,-0.22,1],[-0.12,0.75,-0.68,-0.6,0],[-1.93,0.95,-0.35,-2.98,1],[0.07,0.56,-0.08,0.38,0],[-0.41,1.16,0.19,-1.6,0],[-1.5,-1.69,2.01,0.88,1],[-0.71,-1.99,1.54,0.06,1],[1.2,0.31,-0.16,0.74,0],[1.28,-0.82,0.22,0.93,0],[-0.76,-1.47,1.32,1.21,1],[-0.2,-0.58,1.52,0.56,0],[0.74,1.25,-1.15,-0.07,0],[0.29,0.41,-1.44,-0.8,1],[-2.51,0.83,-0.17,-3.02,1],[-0.16,-0.21,-0.47,0.93,1],[0.02,-0.87,0.39,0.11,0],[0.58,0.1,0.12,0.56,0],[0.74,0.13,0.1,0.77,0],[-0.52,0.19,-0.59,-0.19,1],[-1.12,0.35,-0.44,-1.15,1],[1.4,1.36,-1.4,-1.2,0],[1.5,1.38,-1.23,-1.25,0],[-0.77,0.02,1.46,1.02,0],[0.36,0.3,0.44,0.81,0],[0.89,0.67,-0.84,0.26,0],[0.2,-1.49,1.58,-0.04,0],[1.69,-0.29,-0.3,1.12,0],[0.71,-0.08,0.07,0.77,0],[-0.26,-0.43,-0.42,1.0,1],[1.22,1.4,-1.2,-1.33,0],[1.13,0.65,-0.72,0.46,0],[0.08,0.5,-1.52,-2.32,1],[-0.47,0.01,-0.87,0.06,1],[-0.38,-0.99,0.1,0.86,1],[0.3,-0.34,1.17,0.22,0],[-0.38,-0.33,-0.4,0.81,1],[-0.03,-0.46,-0.14,0.93,1],[-0.88,0.33,-0.47,0.02,1],[-0.55,-1.55,1.06,0.75,1],[-0.19,0.32,-1.37,-1.44,1],[-0.74,-1.76,1.77,1.16,1],[1.86,-0.39,-0.24,1.23,0],[0.57,1.09,-0.32,-0.98,0],[0.64,1.21,-1.07,-0.04,0],[-0.25,-0.35,0.8,0.65,0],[-0.1,1.02,-0.26,-1.22,0],[0.99,0.26,-0.28,0.54,0],[-0.84,-1.36,0.96,0.81,1],[1.31,1.42,-1.21,-1.46,0],[-0.6,1.53,0.12,-1.47,0],[-0.03,-0.34,-0.33,0.74,1],[-1.1,-0.59,-0.01,0.65,1],[-1.58,-1.72,2.56,-0.14,1],[-0.93,0.19,-0.88,-0.57,1],[1.54,1.38,-1.32,-1.48,0],[-1.56,0.31,-0.46,-1.33,1],[1.84,1.0,-0.94,0.14,0],[-0.42,-1.07,0.19,0.81,1],[-0.81,-1.46,0.84,0.31,1],[-0.56,-0.0,-0.64,-0.08,1],[1.39,1.53,-1.37,-1.52,0],[0.63,0.29,-0.24,0.71,0],[-0.58,-0.53,0.2,0.94,1],[0.09,-1.25,1.59,-0.79,0],[-0.54,-0.37,-0.03,0.77,1],[0.55,-0.36,0.86,1.09,0],[1.52,-0.03,-0.34,1.28,0],[1.48,0.98,-0.88,-0.01,0],[-0.48,-0.66,-0.37,0.61,1],[-0.79,-0.17,1.31,0.59,0],[0.38,1.24,-0.85,0.23,0],[0.52,1.07,-0.33,-0.5,0],[1.54,1.06,-1.0,-0.12,0],[-0.6,1.41,0.18,-2.08,0],[1.2,-0.76,0.12,0.63,0],[1.17,1.04,-0.91,-0.31,0],[-0.48,0.03,-0.87,-0.03,1],[1.64,1.13,-1.1,-0.16,0],[1.61,1.07,-0.93,0.09,0],[-0.8,-1.46,1.21,1.0,1],[0.4,0.48,-0.01,0.61,0],[-1.71,-2.51,3.27,-0.22,1],[0.43,1.16,-0.61,-0.08,0],[1.17,0.9,-0.71,0.13,0],[-0.97,-1.24,1.01,0.99,1],[-0.31,-0.26,-0.4,0.4,1],[-1.58,-1.72,2.54,-0.11,1],[0.25,0.33,-1.46,-1.36,1],[1.53,0.87,-0.78,0.41,0],[-1.16,-1.44,2.08,0.38,1],[0.98,1.32,-1.06,-0.65,0],[0.05,0.35,-1.42,-1.55,1],[-1.14,-2.1,1.75,-0.35,1],[-0.68,-0.58,0.24,0.81,1],[1.19,1.34,-1.28,-1.54,0],[0.1,0.3,-1.33,-1.39,1],[-0.32,-0.55,1.3,0.38,0],[0.02,-0.87,0.39,0.11,0],[-1.6,0.11,-0.14,0.05,1],[1.6,1.14,-1.0,-0.03,0],[1.08,-0.2,0.12,1.49,0],[0.59,-0.66,0.26,0.55,0],[1.23,0.84,-0.68,0.31,0],[-0.77,-1.89,1.45,-0.24,1],[-0.47,0.23,-1.17,-0.99,1],[0.47,0.97,-0.55,-0.59,0],[1.06,0.85,-0.57,0.23,0],[0.1,0.92,-0.06,0.32,0],[-1.12,1.62,0.16,-1.3,0],[-0.86,0.23,-0.64,-0.65,1],[0.98,0.74,-0.3,-0.11,0],[-0.62,1.42,-1.0,-2.2,0],[-1.15,-0.02,1.23,0.39,0],[0.51,-0.15,0.65,0.96,0],[-0.5,1.28,0.07,-1.73,0],[-1.08,-0.38,-0.11,0.78,1],[-0.79,-2.14,2.02,0.1,1],[-0.87,-1.44,0.78,0.38,1],[0.8,0.94,-0.31,-0.62,0],[0.69,1.27,-1.07,-0.11,0],[1.1,-0.96,0.47,0.52,0],[0.1,-0.27,-0.7,0.97,1],[-0.38,-0.03,-0.82,0.21,1],[1.45,0.9,-1.08,-0.13,0],[1.17,1.39,-1.22,-1.2,0],[-0.9,-0.4,0.07,1.4,1],[-0.05,-1.07,0.73,0.11,0],[-0.41,-0.62,-0.4,0.52,1],[-0.79,-1.69,1.3,0.0,1],[1.41,0.11,-0.09,1.03,0],[1.36,-0.92,0.52,0.93,0],[1.06,-1.07,0.49,0.65,0],[-0.45,-0.21,-0.44,0.33,1],[-0.72,-1.43,0.77,0.13,1],[-1.43,-0.28,-0.16,0.42,1],[0.93,1.3,-1.3,-1.32,0],[1.22,-0.87,0.47,0.97,0],[0.06,0.56,-1.52,-2.33,1],[1.17,0.9,-0.67,0.77,0],[1.03,-1.01,0.68,1.08,0],[0.38,1.13,-0.23,-0.46,0],[0.02,-0.15,0.6,0.08,0],[0.03,1.44,-0.68,-1.4,0],[-1.4,-2.45,3.16,0.22,1],[-1.19,-2.02,1.61,-0.37,1],[0.74,0.25,0.14,0.7,0],[-1.47,-1.76,2.52,0.12,1],[-0.22,-0.52,-0.01,0.92,1],[-0.94,1.71,-0.31,-3.11,0],[1.11,-0.18,0.05,0.94,0],[-0.42,-1.29,0.56,1.06,1],[-1.52,0.28,-0.41,-1.25,1],[1.64,1.15,-0.99,-0.14,0],[1.25,1.49,-1.27,-1.82,0],[0.16,-0.96,0.74,0.43,0],[0.37,0.01,-1.03,0.52,1],[0.9,-0.88,0.27,0.32,0],[0.61,0.15,-0.02,0.49,0],[-0.49,1.37,-0.05,-1.9,0],[0.17,0.67,0.11,0.42,0],[-0.94,-0.53,0.36,0.75,1],[0.13,-0.13,-0.89,0.55,1],[0.45,0.5,0.16,0.87,0],[0.97,1.15,-0.99,0.2,0],[0.97,1.01,-1.14,-0.0,0],[-2.64,1.24,-0.26,-1.64,1],[-0.8,-1.48,0.93,0.6,1],[0.67,1.46,-1.01,-0.94,0],[-0.97,-0.46,0.3,0.6,1],[1.7,0.23,-0.64,1.13,0],[-0.68,-2.1,1.95,0.34,1],[-1.42,-2.51,2.7,-0.64,1],[1.41,0.07,-0.1,0.97,0],[-0.46,-0.31,-0.31,0.47,1],[1.47,-0.83,0.29,1.15,0],[0.58,0.97,-0.43,-0.3,0],[0.36,0.98,-0.96,0.09,0],[-0.21,1.43,-1.18,-2.32,0],[-0.82,-1.43,0.79,0.56,1],[0.55,-0.0,-1.02,0.58,1],[0.15,0.59,0.15,0.48,0],[-0.29,0.17,-1.16,-0.87,1],[0.49,0.72,-0.09,-0.39,0],[-0.61,0.16,-0.88,-0.32,1],[-0.93,0.26,-0.6,-0.69,1],[-0.03,0.84,0.09,0.28,0],[0.46,-1.41,1.55,0.15,0],[0.11,1.22,-0.61,-0.14,0],[-0.44,1.3,-1.19,-2.98,0],[0.81,-0.21,0.63,0.44,0],[1.75,1.4,-1.26,-1.18,0],[-0.71,-0.69,0.65,0.71,1],[-0.15,0.72,0.09,0.23,0],[-1.09,-1.48,1.1,0.28,1],[-1.22,-1.87,1.88,0.23,1],[-0.15,0.82,-0.08,0.13,0],[0.68,1.34,-1.02,-0.76,0],[0.35,-1.14,1.59,-0.42,0],[-0.24,-0.43,-0.3,1.14,1],[-0.06,-0.29,-0.73,0.81,1],[0.0,0.25,-1.36,-1.34,1],[-0.21,-0.62,1.59,0.74,0],[-0.76,0.15,-0.82,-0.34,1],[-1.08,-0.5,0.57,0.94,1],[1.35,1.07,-0.96,-0.1,0],[0.19,1.11,-0.71,-0.41,0],[0.54,-0.0,0.28,0.8,0],[-1.11,-0.33,-0.18,0.6,1],[1.08,1.27,-1.16,-0.02,0],[-0.05,0.84,-0.16,0.31,0],[-0.89,0.33,-0.51,-0.0,1],[-1.52,-2.49,3.28,-0.03,1],[-1.22,-2.39,2.42,-0.45,1],[-0.08,0.04,-1.09,0.26,1],[0.55,0.72,-0.24,0.84,0],[-1.35,-2.65,3.79,-0.39,1],[-0.86,-0.15,-0.39,0.24,1],[0.23,0.94,-0.23,-0.86,0],[0.31,0.23,0.67,0.95,0],[1.24,1.57,-1.23,-1.48,0],[1.24,-0.78,0.23,0.98,0],[-1.43,-1.37,2.03,0.03,1],[1.33,-0.11,-0.17,1.02,0],[-0.12,-0.28,-0.43,1.03,1],[0.42,-0.24,0.77,1.16,0],[-0.19,0.73,-0.07,0.04,0],[-1.54,0.37,-0.38,-0.43,1],[-0.39,0.1,-1.0,0.09,1],[0.16,1.28,-0.48,-0.22,0],[0.42,0.19,-0.27,0.51,0],[-0.98,0.3,-0.48,-0.02,1],[0.24,1.2,-0.8,0.04,0],[-0.21,1.17,-0.11,-1.43,0],[-0.53,-1.4,0.95,0.95,1],[0.57,0.8,-0.21,-0.47,0],[1.78,1.44,-1.34,-1.33,0],[0.03,0.34,-1.43,-1.48,1],[0.44,0.18,0.34,0.63,0],[0.16,-0.96,0.74,0.43,0],[0.71,0.8,-0.51,0.14,0],[0.49,1.0,-0.38,-0.83,0],[0.77,0.22,0.13,0.66,0],[-0.7,-1.41,1.0,0.99,1],[-0.08,0.98,-0.1,0.16,0],[-0.57,-0.1,1.44,0.87,0],[-1.01,-1.86,1.82,0.27,1],[1.33,-0.74,0.05,0.91,0],[1.01,-1.1,0.59,0.46,0],[1.16,-1.24,0.55,-0.02,0],[-0.16,-0.29,-0.37,0.58,1],[-0.1,1.23,-1.18,-2.18,0],[-1.32,0.37,-0.43,-0.29,1],[1.27,0.98,-0.8,0.02,0],[0.45,-0.35,0.87,1.19,0],[0.15,0.07,-1.04,0.52,1],[-0.98,1.63,0.1,-1.97,0],[-0.66,-0.64,0.25,0.86,1],[-1.0,-0.39,0.06,0.37,1],[0.63,1.05,-0.38,-0.97,0],[1.39,-0.33,0.15,1.11,0],[0.96,0.66,-0.5,0.28,0],[0.52,0.77,-0.3,0.85,0],[-0.44,-0.3,-0.33,0.41,1],[-0.53,-0.18,-0.71,0.35,1],[-1.87,-1.32,2.2,0.19,1],[-1.32,-0.01,-0.28,-0.56,1],[1.22,-0.08,0.09,1.0,0],[0.02,-0.87,0.39,0.11,0],[-0.43,0.27,-1.11,-1.05,1],[0.24,-0.18,0.93,0.31,0],[-1.53,-2.49,2.61,-0.91,1],[0.31,-1.07,1.53,-0.25,0],[0.83,0.92,-0.51,-0.31,0],[-1.48,-2.6,3.72,-0.74,1],[-0.33,-1.05,0.13,0.93,1],[0.15,1.0,-0.95,-0.34,0],[-0.85,1.58,0.11,-1.06,0],[1.25,-0.77,0.25,0.75,0],[-0.48,-1.08,0.18,0.82,1],[-1.49,-1.72,2.04,0.76,1],[0.1,0.01,-1.04,0.48,1],[-0.64,-0.64,-0.36,0.52,1],[-0.88,-0.11,-0.28,0.06,1],[0.39,-1.11,1.49,-0.16,0],[0.83,1.27,-1.08,0.08,0],[1.27,-0.81,0.18,0.81,0],[0.89,0.9,-0.6,0.73,0],[-0.18,-0.41,1.45,0.79,0],[-1.23,-0.02,-0.15,0.36,1],[-0.03,-0.2,-0.15,0.36,0],[1.11,-0.07,-0.01,1.49,0],[-0.88,-0.56,-0.06,0.75,1],[-0.11,-0.89,-0.01,1.22,1],[-1.18,-2.35,2.41,-0.73,1],[-0.44,-0.64,0.23,1.11,1],[-1.77,-2.45,3.22,-0.13,1],[-0.68,1.23,0.08,-1.85,0],[-1.02,-0.04,-0.53,-0.13,1],[-1.35,-0.37,0.17,0.86,1],[1.45,-1.07,0.41,0.58,0],[1.13,0.41,-0.2,0.74,0],[-2.03,0.93,-0.32,-2.93,1],[-0.24,1.24,-1.17,-2.65,0],[0.37,-0.31,1.11,0.43,0],[-0.72,-0.14,-0.49,0.18,1],[1.06,1.49,-1.11,-1.37,0],[0.63,-0.32,0.76,0.44,0],[-0.65,-1.14,1.16,0.74,1],[-0.64,-0.29,-0.12,1.32,1],[0.7,-1.39,1.5,0.67,0],[0.72,-0.12,0.58,0.63,0],[0.99,-0.02,0.16,0.87,0],[1.16,-0.18,-0.1,1.05,0],[0.35,-0.33,0.64,0.86,0],[-1.0,-0.34,0.12,1.11,1],[-0.14,0.1,-1.0,0.28,1],[0.19,1.0,-0.39,-0.69,0],[0.14,-0.32,1.19,0.32,0],[1.16,0.15,-0.17,0.74,0],[-1.02,-0.36,-0.16,0.77,1],[1.66,1.08,-1.07,-0.17,0],[0.68,1.27,-1.09,-1.01,0],[0.78,0.7,-0.43,0.25,0],[-1.1,1.4,-0.63,-2.02,0],[1.38,1.32,-1.23,-0.92,0],[-0.36,0.17,-0.7,-0.58,1],[1.3,1.58,-1.15,-1.36,0],[-0.63,1.29,0.24,-1.92,0],[-1.8,-2.48,3.51,-0.95,1],[-0.45,-1.29,0.68,0.73,1],[1.28,1.41,-1.23,-1.41,0],[-0.62,0.24,-0.73,-0.97,1],[1.49,1.09,-0.91,-0.13,0],[-0.6,-0.6,0.25,0.82,1],[0.79,-1.03,0.64,0.66,0],[-2.33,1.03,-0.18,-0.97,1],[1.32,-0.28,-0.1,1.04,0],[-1.49,0.11,-0.13,0.43,1],[-1.11,1.75,-0.17,-3.48,0],[-0.46,-0.18,-0.7,0.48,1],[-0.62,1.42,-1.0,-2.2,0],[0.14,1.26,-0.5,-0.47,0],[0.04,0.97,0.04,-0.95,0],[-0.46,0.21,-1.01,-0.82,1],[-0.56,0.01,1.41,1.06,0],[-1.65,-2.43,3.11,-0.08,1],[-0.15,0.26,-1.34,-1.45,1],[0.63,-1.08,0.52,0.28,0],[-1.03,0.15,-0.47,-0.78,1],[1.13,0.19,-0.13,0.72,0],[1.64,-0.32,-0.25,1.1,0],[0.25,0.35,-1.37,-1.26,1],[-1.95,-1.2,2.07,0.16,1],[-1.14,-1.28,1.04,0.75,1],[1.45,0.22,-0.81,0.72,0],[1.87,0.63,-0.88,0.55,0],[-1.19,-1.92,1.92,0.29,1],[1.18,-0.97,0.6,1.03,0],[0.1,-0.02,-1.06,0.51,1],[-1.07,-1.48,1.74,1.59,1],[1.26,-0.25,0.01,0.88,0],[1.22,-0.0,-0.33,1.16,0],[0.37,0.65,-0.3,0.56,0],[0.39,-0.17,-0.85,0.97,1],[-0.85,-1.79,1.78,1.02,1],[-0.41,-1.26,0.61,1.0,1],[0.76,1.04,-1.18,-0.04,0],[0.47,0.49,-1.5,-0.96,1],[1.62,-0.28,-0.28,1.15,0],[-0.85,-0.05,-0.31,0.04,1],[-1.27,-0.25,0.28,0.54,1],[0.12,1.23,-0.82,-1.41,0],[0.88,-1.1,1.03,0.85,0],[0.31,0.38,-1.4,-0.66,1],[-0.07,0.53,-1.48,-2.45,1],[0.68,-0.28,0.79,1.26,0],[-0.97,-1.2,0.97,1.01,1],[-0.72,-1.44,1.01,0.72,1],[1.38,-0.26,0.15,1.14,0],[1.44,-0.93,0.34,0.71,0],[-1.67,1.13,0.4,0.14,0],[-0.66,-1.52,0.97,0.72,1],[-0.41,1.14,0.1,-1.48,0],[-0.34,0.2,-0.75,-0.77,1],[-0.26,1.07,-1.04,-0.62,0],[1.06,-0.13,0.08,1.21,0],[-0.96,0.24,-0.84,-0.59,1],[0.45,0.31,-1.24,-0.24,1],[0.37,-1.26,1.66,-0.24,0],[1.26,0.64,-0.78,0.59,0],[-1.51,0.55,-0.47,-2.0,1],[0.51,0.71,-0.27,-0.38,0],[-0.94,-0.07,-0.49,0.02,1],[1.06,-1.01,0.66,1.31,0],[0.74,0.28,-0.18,0.38,0],[0.39,-0.17,-0.78,0.89,1],[1.28,0.6,-0.74,0.69,0],[1.46,-1.01,0.31,0.73,0],[-1.54,0.13,-0.14,0.2,1],[1.91,0.69,-0.98,0.29,0],[-0.03,0.8,-0.4,0.31,0],[0.73,0.96,-0.42,-0.68,0],[-0.87,-0.4,-0.02,1.36,1],[-2.23,0.98,-0.2,-0.81,1],[0.24,-0.08,0.89,0.37,0],[-0.89,-0.1,-0.47,-0.02,1],[-0.76,0.16,-0.87,-0.54,1],[0.48,-1.46,1.6,0.32,0],[-0.48,0.19,-1.15,-1.06,1],[-0.05,-1.07,0.73,0.11,0],[1.35,1.24,-1.38,-1.47,0],[-0.44,0.23,-1.08,-0.89,1],[1.04,-0.34,-0.14,0.71,0],[-0.93,-0.05,-0.31,-0.22,1],[-0.77,-1.13,1.1,0.76,1],[1.31,0.25,-0.65,0.86,0],[-1.04,1.57,0.12,-1.07,0],[0.34,-0.2,-0.79,1.06,1],[-0.12,-0.25,-0.55,0.78,1],[-1.75,-1.3,2.18,0.32,1],[-1.46,0.23,-0.48,-1.04,1],[0.39,0.76,-0.37,-0.57,0],[-0.09,0.01,-1.08,0.28,1],[1.82,1.39,-1.31,-1.23,0],[0.25,1.1,-0.8,0.15,0],[1.05,1.56,-1.29,-1.84,0],[1.02,-1.2,0.52,0.03,0],[1.06,1.33,-1.19,-1.05,0],[-1.1,1.4,-0.63,-2.02,0],[0.1,0.2,0.35,0.54,0],[1.11,1.15,-0.97,0.36,0],[-0.41,0.18,-1.15,-0.92,1],[-2.09,1.07,-0.26,-1.81,1],[1.07,0.22,-0.27,0.5,0],[1.5,0.04,-0.39,1.32,0],[1.18,-0.18,0.16,1.06,0],[-1.48,-2.51,2.66,-0.7,1],[-0.05,-0.49,-0.07,0.99,1],[-0.22,-1.41,1.6,-0.15,0],[1.32,1.29,-1.46,-1.91,0],[-0.2,-0.45,1.46,0.88,0],[-0.31,-0.34,-0.31,0.5,1],[0.7,0.19,-0.28,0.55,0],[-1.74,0.93,-0.4,-2.64,1],[-0.5,-0.31,-0.38,0.72,1],[-0.14,0.88,-0.8,-0.92,0],[0.2,1.34,-0.64,-0.27,0],[0.53,1.25,-1.13,-0.31,0],[-0.21,-0.51,-0.54,0.85,1],[1.47,0.98,-0.77,0.4,0],[-1.65,0.48,-0.44,-1.9,1],[1.23,-0.96,0.34,0.58,0],[1.98,0.19,-0.63,1.26,0],[-2.46,1.31,-0.38,-2.72,1],[-1.02,-1.88,1.74,0.34,1],[-0.82,-1.94,1.46,0.11,1],[-0.1,0.79,0.14,0.16,0],[1.05,0.18,-0.09,0.83,0],[1.28,-1.13,0.45,0.34,0],[-0.07,0.53,-1.51,-2.45,1],[0.98,-0.25,-0.0,1.14,0],[-1.21,0.39,-0.46,-1.3,1],[0.1,-0.96,0.05,1.32,1],[-0.89,-0.29,-0.55,0.18,1],[-0.25,1.26,0.17,-1.5,0],[-0.95,1.81,0.35,-1.1,0],[-0.47,-0.69,-0.34,0.62,1],[-1.64,-1.7,2.46,-0.18,1],[-0.81,-0.1,-0.26,0.07,1],[0.88,0.64,-0.26,0.03,0],[0.06,0.31,-1.26,-0.41,1],[-0.48,-1.66,1.23,0.74,1],[-0.82,1.02,-0.71,-0.3,0],[-0.42,-0.02,-0.67,0.03,1],[1.72,0.32,-0.72,1.09,0],[-0.38,-1.38,0.77,1.1,1],[-0.05,0.24,-1.36,-1.33,1],[-0.7,-1.38,0.91,0.86,1],[-1.34,-0.4,0.28,0.83,1],[1.1,0.89,-0.62,0.68,0],[-0.34,0.16,-1.16,-0.89,1],[0.58,0.83,-0.36,0.81,0],[-1.01,1.82,0.35,-2.17,0],[1.33,0.99,-0.96,0.06,0],[-0.73,-1.94,1.84,0.61,1],[0.45,-0.38,0.64,0.11,0],[-2.23,1.24,-0.39,-2.29,1],[0.13,0.27,-1.16,-0.09,1],[-1.16,-1.85,1.76,0.11,1],[0.69,1.3,-1.03,-0.74,0],[1.36,-1.14,0.47,0.3,0],[-0.81,1.55,0.41,-1.74,0],[0.07,-0.32,-0.37,0.69,1],[-1.17,0.45,-0.46,-1.44,1],[-0.24,1.24,-1.17,-2.65,0],[-0.87,-1.46,1.75,0.62,1]],"medias_clase":{"0":[2.28,4.26,0.8,-1.15],"1":[-1.87,-0.99,2.15,-1.25]},"rangos":{"variance":[-7.04,6.82],"skewness":[-13.77,12.95],"curtosis":[-5.29,17.93],"entropy":[-8.55,2.45]}};
+
+/* ---------- utilidades ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const NS = "http://www.w3.org/2000/svg";
+const fmt = (x, d = 2) => Number(x).toLocaleString("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (x, d = 2) => fmt(x * 100, d) + " %";
+const signo = (x, d = 2) => (x < 0 ? "−" : "") + fmt(Math.abs(x), d);
+const NOMBRE = ["auténtico", "falsificado"];
+const VARS = ["variance", "skewness", "curtosis", "entropy"];
+const VARS_ES = ["Varianza", "Asimetría", "Curtosis", "Entropía"];
+function sv(tag, attrs = {}, padre) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (padre) padre.appendChild(e);
+  return e;
+}
+function marca(padre, x, y, clase, r = 4, extra = {}) {
+  const a = { class: (clase ? "m-fal" : "m-aut") + " aro", ...extra };
+  if (clase) return sv("path", { d: `M${x} ${y - r * 1.25}L${x + r * 1.15} ${y + r * 0.85}L${x - r * 1.15} ${y + r * 0.85}Z`, ...a }, padre);
+  return sv("circle", { cx: x, cy: y, r, ...a }, padre);
+}
+function leyenda(id, extra = "") {
+  $(id).innerHTML = `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="m-aut"/></svg>Auténtico (0)</span>
+    <span><svg viewBox="0 0 14 14"><path d="M7 1L13 12H1Z" class="m-fal"/></svg>Falsificado (1)</span>${extra}`;
+}
+/* tooltip compartido */
+const tip = $("#tip");
+document.addEventListener("pointermove", e => {
+  const t = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (!t) { tip.style.opacity = 0; return; }
+  tip.textContent = t.getAttribute("data-tip");
+  tip.style.opacity = 1;
+  const w = tip.offsetWidth, x = Math.min(window.innerWidth - w - 8, e.clientX + 14);
+  tip.style.left = Math.max(8, x) + "px";
+  tip.style.top = (e.clientY + 16) + "px";
+});
+
+/* ---------- modelo real ---------- */
+const W = D.w, B = D.b;
+const escalar = x => x.map((v, i) => (v - D.mean[i]) / D.scale[i]);
+const puntaje = x => escalar(x).reduce((s, v, i) => s + v * W[i], B);
+const TEST = D.test.map((r, i) => ({ i, x: r.slice(0, 4), real: r[4], pred: r[5], z: r[6] }));
+const { VN, FP, FN, VP } = D.cm;
+const TOTAL = VN + FP + FN + VP, ACIERTOS = VP + VN, ERRORES = FP + FN;
+const ACC = ACIERTOS / TOTAL, PREC = VP / (VP + FP), REC = VP / (VP + FN), F1 = 2 * PREC * REC / (PREC + REC);
+const cuantos = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+
+/* ---------- plano 2D reutilizable ---------- */
+function Plano(svg, dom) {
+  const [W0, H0] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number);
+  const m = { l: 44, r: 12, t: 12, b: 38 };
+  const X = v => m.l + (v - dom.x0) / (dom.x1 - dom.x0) * (W0 - m.l - m.r);
+  const Y = v => H0 - m.b - (v - dom.y0) / (dom.y1 - dom.y0) * (H0 - m.t - m.b);
+  const gZona = sv("g", {}, svg), gEje = sv("g", {}, svg), gPts = sv("g", {}, svg), gSobre = sv("g", {}, svg);
+  sv("rect", { x: m.l, y: m.t, width: W0 - m.l - m.r, height: H0 - m.t - m.b, class: "eje" }, gEje);
+  (dom.tx || []).forEach(v => { sv("text", { x: X(v), y: H0 - m.b + 16, "text-anchor": "middle" }, gEje).textContent = signo(v, 0); });
+  (dom.ty || []).forEach(v => { sv("text", { x: m.l - 7, y: Y(v) + 4, "text-anchor": "end" }, gEje).textContent = signo(v, 0); });
+  sv("text", { x: (W0 + m.l) / 2, y: H0 - 4, "text-anchor": "middle" }, gEje).textContent = dom.ex;
+  const ty = sv("text", { x: 12, y: (H0 - m.b) / 2, "text-anchor": "middle", transform: `rotate(-90 12 ${(H0 - m.b) / 2})` }, gEje);
+  ty.textContent = dom.ey;
+  const esquinas = [[dom.x0, dom.y0], [dom.x1, dom.y0], [dom.x1, dom.y1], [dom.x0, dom.y1]];
+  function recorte(w, b, positivo) {
+    const dentro = p => { const z = w[0] * p[0] + w[1] * p[1] + b; return positivo ? z >= 0 : z < 0; };
+    const f = p => w[0] * p[0] + w[1] * p[1] + b;
+    const out = [], cruces = [];
+    for (let i = 0; i < 4; i++) {
+      const a = esquinas[i], c = esquinas[(i + 1) % 4];
+      if (dentro(a)) out.push(a);
+      if (dentro(a) !== dentro(c)) {
+        const fa = f(a), fc = f(c), t = fa / (fa - fc);
+        const p = [a[0] + t * (c[0] - a[0]), a[1] + t * (c[1] - a[1])];
+        out.push(p); cruces.push(p);
+      }
+    }
+    return { out, cruces };
+  }
+  const pts = p => p.map(q => `${X(q[0]).toFixed(1)},${Y(q[1]).toFixed(1)}`).join(" ");
+  return {
+    X, Y, gPts, gSobre,
+    limpiar() { gZona.innerHTML = ""; },
+    frontera(w, b) {
+      gZona.innerHTML = "";
+      const pos = recorte(w, b, true), neg = recorte(w, b, false);
+      if (pos.out.length > 2) sv("polygon", { points: pts(pos.out), class: "z-fal" }, gZona);
+      if (neg.out.length > 2) sv("polygon", { points: pts(neg.out), class: "z-aut" }, gZona);
+      if (pos.cruces.length === 2) sv("polyline", { points: pts(pos.cruces), class: "frontera" }, gZona);
+    }
+  };
+}
+const zLineal = (x, w, b) => { let z = b; for (let j = 0; j < w.length; j++) z += x[j] * w[j]; return z; };
+function entrenarEpoca(X, y, w, b) {
+  let err = 0;
+  for (let k = 0; k < X.length; k++) {
+    const e = y[k] - (zLineal(X[k], w, b) >= 0 ? 1 : 0);
+    if (e !== 0) { for (let j = 0; j < w.length; j++) w[j] += e * X[k][j]; b += e; err++; }
+  }
+  return { b, err };
+}
+
+/* ============ INICIO ============ */
+$("#p-aciertos").textContent = `${ACIERTOS} de ${TOTAL} billetes (${pct(ACC)})`;
+const fallos = TEST.filter(t => t.real !== t.pred);
+let iFallo = 0;
+function roseta(x) {
+  const svg = $("#h-roseta"); svg.innerHTML = "";
+  const n1 = 5 + Math.round(Math.abs(x[0])), n2 = 2 + Math.round(Math.abs(x[1]) / 2);
+  const amp = 0.14 + Math.min(0.2, Math.abs(x[2]) / 60), fase = x[3];
+  for (let capa = 0; capa < 4; capa++) {
+    const R = 74 - capa * 15; let d = "";
+    for (let k = 0; k <= 540; k++) {
+      const t = k / 540 * Math.PI * 2;
+      const r = R * (1 - amp + amp * Math.sin(n1 * t + fase + capa) * Math.cos(n2 * t - capa * 0.7));
+      d += (k ? "L" : "M") + (r * Math.cos(t)).toFixed(1) + " " + (r * Math.sin(t)).toFixed(1);
+    }
+    sv("path", { d: d + "Z", class: "grab-s", "stroke-width": 0.7, opacity: 1 - capa * 0.15 }, svg);
+  }
+}
+function mostrarBillete(t) {
+  roseta(t.x);
+  $("#h-serie").textContent = `Billete de prueba n.º ${t.i + 1} de ${TOTAL}`;
+  $("#h-lecturas").innerHTML = VARS_ES.map((n, i) => `<dt>${n}</dt><dd>${signo(t.x[i])}</dd>`).join("");
+  $("#h-z").textContent = signo(t.z);
+  const e = $("#h-estampa");
+  e.textContent = t.pred ? "Falsificado" : "Auténtico";
+  e.className = "estampa " + (t.pred ? "c-fal" : "c-aut");
+  $("#h-real").innerHTML = t.pred === t.real
+    ? `Era ${NOMBRE[t.real]}: <strong>acertó</strong>`
+    : `Era ${NOMBRE[t.real]}: <strong>se equivocó</strong>`;
+}
+$("#h-otro").onclick = () => mostrarBillete(TEST[Math.floor(Math.random() * TEST.length)]);
+$("#h-error").onclick = () => { mostrarBillete(fallos[iFallo % fallos.length]); iFallo++; };
+mostrarBillete(TEST[1]);
+
+/* ============ PROBLEMA ============ */
+(function () {
+  const pasos = [
+    ["Foto del billete", "400 × 400 píxeles, en grises.", g => { for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) sv("rect", { x: 12 + i * 13, y: 10 + j * 13, width: 11, height: 11, class: "tinta-f", opacity: 0.12 + ((i * 7 + j * 5) % 6) * 0.13 }, g); }],
+    ["Transformada wavelet", "Resalta bordes y texturas finas.", g => { let d = "M6 36"; for (let x = 0; x <= 88; x += 2) d += `L${6 + x} ${36 + Math.sin(x / 4) * 18 * Math.exp(-Math.pow((x - 44) / 22, 2))}`; sv("path", { d, class: "grab-s", "stroke-width": 2 }, g); }],
+    ["Cuatro números", "Varianza, asimetría, curtosis y entropía.", g => { [26, 44, 18, 34].forEach((h, i) => sv("rect", { x: 14 + i * 19, y: 60 - h, width: 13, height: h, rx: 2, class: "grab-f" }, g)); }],
+    ["Perceptrón", "Pondera, suma y compara con cero.", g => { [18, 36, 54].forEach(y => sv("line", { x1: 10, y1: y, x2: 50, y2: 36, class: "eje" }, g)); sv("circle", { cx: 56, cy: 36, r: 15, class: "grab-s", "stroke-width": 2 }, g); sv("text", { x: 56, y: 41, "text-anchor": "middle", style: "font-size:15px" }, g).textContent = "Σ"; sv("line", { x1: 71, y1: 36, x2: 92, y2: 36, class: "eje" }, g); }],
+    ["Decisión", "0 auténtico, 1 falsificado.", g => { marca(g, 30, 36, 0, 11); marca(g, 70, 37, 1, 11); }]
+  ];
+  $("#camino").innerHTML = pasos.map(p => `<div class="et f"><svg viewBox="0 0 100 72" aria-hidden="true"></svg><b>${p[0]}</b><span>${p[1]}</span></div>`).join("");
+  $$("#camino svg").forEach((s, i) => pasos[i][2](s));
+
+  const dic = [
+    ["variance", "Numérica continua", "Varianza de la imagen transformada: qué tanto se dispersan sus valores, es decir, qué tan marcado es el contraste de la textura.", "Predictora (X)"],
+    ["skewness", "Numérica continua", "Asimetría: si los valores se cargan más hacia un lado que hacia el otro.", "Predictora (X)"],
+    ["curtosis", "Numérica continua", "Curtosis: qué tan puntiaguda es la distribución y cuánto pesan los valores extremos.", "Predictora (X)"],
+    ["entropy", "Numérica continua", "Entropía: cuánto desorden o complejidad tiene la textura.", "Predictora (X)"],
+    ["class", "Entera, 0 o 1", "Clase del billete: 0 auténtico, 1 falsificado.", "Objetivo (y)"]
+  ];
+  $("#diccionario").innerHTML = dic.map(r => {
+    const rg = D.rangos[r[0]] || [0, 1];
+    return `<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="n">${signo(rg[0])}</td><td class="n">${signo(rg[1])}</td></tr>`;
+  }).join("");
+
+  const cls = [[0, 762], [1, 610]];
+  $("#clases").innerHTML = cls.map(([c, n]) => `<div class="aporte" style="grid-template-columns:9em minmax(0,1fr) 7.5em">
+      <span class="pastilla ${c ? "c-fal" : "c-aut"}">${c} = ${NOMBRE[c]}</span>
+      <div class="barra" style="height:16px"><i style="width:${n / 762 * 100}%;background:var(--${c ? "falso" : "autentico"})"></i></div>
+      <span class="dato">${n} (${pct(n / 1372, 1)})</span></div>`).join("");
+})();
+
+/* ============ NEURONA ============ */
+(function () {
+  const s = $("#anatomia"), ys = [50, 110, 170, 230];
+  const g = n => sv("g", { "data-g": n }, s);
+  const gp = g("pesos"), ge = g("entradas"), gs = g("suma"), gb = g("sesgo"), go = g("salida");
+  ys.forEach((y, i) => {
+    sv("line", { x1: 134, y1: y, x2: 222, y2: 140, class: "eje", "stroke-width": 1.5 }, gp);
+    sv("text", { x: 176, y: y + (140 - y) * 0.48 - 7, "text-anchor": "middle" }, gp).textContent = "w" + (i + 1);
+    sv("circle", { cx: 112, cy: y, r: 22, class: "grab-s", "stroke-width": 1.5 }, ge);
+    sv("text", { x: 112, y: y + 4, "text-anchor": "middle" }, ge).textContent = "x" + (i + 1);
+    sv("text", { x: 82, y: y + 4, "text-anchor": "end" }, ge).textContent = VARS_ES[i].toLowerCase();
+  });
+  sv("circle", { cx: 250, cy: 140, r: 30, class: "grab-s", "stroke-width": 2.5 }, gs);
+  sv("text", { x: 250, y: 147, "text-anchor": "middle", style: "font-size:22px" }, gs).textContent = "Σ";
+  sv("text", { x: 250, y: 190, "text-anchor": "middle" }, gs).textContent = "puntaje z";
+  sv("line", { x1: 250, y1: 60, x2: 250, y2: 110, class: "eje", "stroke-width": 1.5 }, gb);
+  sv("text", { x: 250, y: 50, "text-anchor": "middle" }, gb).textContent = "sesgo b";
+  sv("line", { x1: 280, y1: 140, x2: 320, y2: 140, class: "eje", "stroke-width": 1.5 }, go);
+  sv("rect", { x: 320, y: 114, width: 56, height: 52, rx: 4, class: "grab-s", "stroke-width": 1.5 }, go);
+  sv("path", { d: "M330 154H348V126H366", class: "frontera" }, go);
+  sv("text", { x: 348, y: 186, "text-anchor": "middle" }, go).textContent = "¿z ≥ 0?";
+  sv("line", { x1: 376, y1: 140, x2: 402, y2: 140, class: "eje", "stroke-width": 1.5 }, go);
+  marca(go, 420, 128, 0, 7); marca(go, 420, 154, 1, 7);
+  sv("text", { x: 432, y: 132 }, go).textContent = "0";
+  sv("text", { x: 432, y: 158 }, go).textContent = "1";
+  const foco = n => $$("#anatomia [data-g]").forEach(x => x.style.opacity = !n || x.dataset.g === n ? 1 : 0.22);
+  $$("#partes tbody tr").forEach(tr => {
+    tr.addEventListener("pointerenter", () => foco(tr.dataset.pieza));
+    tr.addEventListener("focus", () => foco(tr.dataset.pieza));
+    tr.addEventListener("pointerleave", () => foco(null));
+    tr.addEventListener("blur", () => foco(null));
+  });
+
+  const cosas = [["Hace buen clima", 2, true], ["Van mis amigos", 4, true], ["Tengo plata para la boleta", 5, false]];
+  $("#estadio-filas").innerHTML = cosas.map((c, i) => `<div>
+      <label><input type="checkbox" id="est-x${i}" ${c[2] ? "checked" : ""}> ${c[0]}</label>
+      <div class="fila" style="flex-wrap:nowrap"><input type="range" id="est-w${i}" min="0" max="8" step="1" value="${c[1]}" aria-label="Importancia de: ${c[0]}"><span class="nota" style="white-space:nowrap">importancia <span class="dato" id="est-wv${i}"></span></span></div></div>`).join("");
+  function calc() {
+    const b = +$("#est-b").value; let z = b; const partes = [];
+    cosas.forEach((c, i) => { const x = $("#est-x" + i).checked ? 1 : 0, w = +$("#est-w" + i).value; $("#est-wv" + i).textContent = w; z += x * w; partes.push(`${w}·${x}`); });
+    $("#est-bv").textContent = signo(b, 0);
+    $("#est-cuenta").textContent = `z = ${partes.join(" + ")} + (${signo(b, 0)}) = ${signo(z, 0)}`;
+    $("#est-res").textContent = z >= 0 ? "z es 0 o más: voy al estadio." : "z es negativo: me quedo en casa.";
+    $("#est-res").className = z >= 0 ? "c-aut" : "c-fal";
+  }
+  $("#estadio").addEventListener("input", calc); calc();
+})();
+
+/* ============ DECIDE ============ */
+(function () {
+  $("#calc-entradas").innerHTML = VARS.map((v, i) => `<div><label for="c-${v}">${VARS_ES[i]}: <span class="dato" id="cv-${v}"></span></label>
+    <input type="range" id="c-${v}" min="${D.rangos[v][0]}" max="${D.rangos[v][1]}" step="0.01"></div>`).join("");
+  $("#calc-aportes").innerHTML = VARS.map((v, i) => `<div class="aporte"><span>${VARS_ES[i]} <span class="nota">(w = ${signo(W[i], 1)})</span></span><div class="pista"><i id="ca-${v}"></i></div><span class="dato" id="cn-${v}" style="text-align:right"></span></div>`).join("")
+    + `<div class="aporte"><span>Sesgo b</span><div class="pista"><i id="ca-b"></i></div><span class="dato" style="text-align:right">${signo(B, 1)}</span></div>`;
+  const TOPE = 45;
+  function barra(el, v) {
+    const a = Math.min(Math.abs(v), TOPE) / TOPE * 50;
+    el.style.width = a + "%"; el.style.left = (v < 0 ? 50 - a : 50) + "%";
+    el.style.background = v < 0 ? "var(--autentico)" : "var(--falso)";
+  }
+  barra($("#ca-b"), B);
+  function calc() {
+    const x = VARS.map(v => +$("#c-" + v).value), e = escalar(x);
+    let z = B;
+    VARS.forEach((v, i) => { const c = e[i] * W[i]; z += c; $("#cv-" + v).textContent = signo(x[i]); $("#cn-" + v).textContent = signo(c, 1); barra($("#ca-" + v), c); });
+    $("#calc-z").textContent = signo(z);
+    const f = z >= 0 ? 1 : 0;
+    $("#calc-veredicto").innerHTML = `<span class="pastilla ${f ? "c-fal" : "c-aut"}">${f ? "z ≥ 0: falsificado" : "z < 0: auténtico"}</span>`;
+    $("#calc-aguja").style.left = (50 + Math.max(-TOPE, Math.min(TOPE, z)) / TOPE * 50) + "%";
+    $("#calc-nota").textContent = Math.abs(z) < D.duda_p5 ? "Está pegado a la frontera: es un caso dudoso que conviene revisar a mano." : "Está lejos de la frontera: es un caso claro para el modelo.";
+  }
+  const dudoso = TEST.find(t => t.real === 1 && t.pred === 0) || fallos[0];
+  const presets = { 0: D.medias_clase["0"], 1: D.medias_clase["1"], duda: dudoso.x };
+  function poner(x) { VARS.forEach((v, i) => $("#c-" + v).value = x[i]); calc(); }
+  $$("[data-preset]").forEach(b => b.onclick = () => poner(presets[b.dataset.preset]));
+  $("#calc-entradas").addEventListener("input", calc);
+  poner(presets[0]);
+})();
+
+/* ============ APRENDE: el robot y las 100 sopas ============ */
+(function () {
+  const ING = [["Sal", "g", 9, 15], ["Limón", "ml", 22, 30], ["Ají", "g", 4, 8]], PASO = 0.25, TOL = 0.1, SOPAS = 100;
+  $("#robot-filas").innerHTML = ING.map((g, i) => `<div class="receta"><span><strong>${g[0]}</strong></span>
+      <div class="olla"><i id="rb-f${i}"></i><b style="left:${(g[2] - 1) / g[3] * 100}%;width:${2 / g[3] * 100}%"></b></div>
+      <span><span class="dato" id="rb-v${i}"></span> <span class="nota" id="rb-j${i}"></span></span></div>`).join("");
+  let q, n, timer = null;
+  const juicio = i => { const d = ING[i][2] - q[i]; return Math.abs(d) <= TOL ? 0 : (d > 0 ? 1 : -1); };
+  const enPunto = () => ING.filter((_, i) => juicio(i) === 0).length;
+  const lista = a => a.length > 1 ? a.slice(0, -1).join(", ") + " y " + a[a.length - 1] : a[0];
+  function pintar(dichos) {
+    ING.forEach((g, i) => {
+      $("#rb-f" + i).style.width = (q[i] / g[3] * 100) + "%";
+      $("#rb-v" + i).textContent = `${fmt(q[i])} ${g[1]}`;
+      $("#rb-j" + i).textContent = dichos ? ["me pasé", "igual", "le falta"][dichos[i] + 1] : "";
+    });
+    const par = ING.reduce((s, g, i) => s + Math.max(0, 1 - Math.abs(g[2] - q[i]) / g[2]), 0) / ING.length;
+    $("#robot-par").style.width = (par * 100) + "%"; $("#robot-parv").textContent = pct(par, 0);
+    $("#robot-n").textContent = n;
+    $("#robot-boca").setAttribute("d", enPunto() === ING.length ? "M48 68Q60 80 72 68" : "M48 70H72");
+    ["#robot-1", "#robot-10"].forEach(id => $(id).disabled = n >= SOPAS);
+    let msg = "Empieza sin receta: todo en cero, igual que los pesos del perceptrón.";
+    if (dichos) {
+      const falta = ING.filter((_, i) => dichos[i] === 1).map(g => g[0].toLowerCase());
+      const sobra = ING.filter((_, i) => dichos[i] === -1).map(g => g[0].toLowerCase());
+      if (!falta.length && !sobra.length) msg = `La sopa ${n} le sabe igual a la suya: no ajusta nada.`;
+      else msg = `Sopa ${n}: a la suya ${[falta.length ? "le falta " + lista(falta) : "", sobra.length ? "le sobra " + lista(sobra) : ""].filter(Boolean).join(" y ")}. Ajusta ${fmt(PASO)}.`;
+      if (n >= SOPAS) msg += " Ya probó las 100.";
+    }
+    $("#robot-msg").textContent = msg;
+  }
+  function probar() {
+    if (n >= SOPAS) return parar();
+    n++;
+    const dichos = ING.map((_, i) => juicio(i));
+    dichos.forEach((d, i) => q[i] += PASO * d);
+    $("#robot-nota").textContent = "";
+    pintar(dichos);
+    if (n >= SOPAS) parar();
+  }
+  function parar() { if (timer) { clearInterval(timer); timer = null; $("#robot-auto").textContent = "Probar las 100"; } }
+  function reset() { parar(); q = [0, 0, 0]; n = 0; $("#robot-nota").textContent = "El chef todavía no ha probado la sopa del robot."; pintar(null); }
+  $("#robot-1").onclick = () => { parar(); probar(); };
+  $("#robot-10").onclick = () => { parar(); for (let k = 0; k < 10; k++) probar(); };
+  $("#robot-reset").onclick = reset;
+  $("#robot-auto").onclick = () => {
+    if (timer) return parar();
+    if (n >= SOPAS) reset();
+    $("#robot-auto").textContent = "Pausar"; timer = setInterval(probar, 60);
+  };
+  $("#robot-chef").onclick = () => {
+    parar();
+    const ok = enPunto(), mal = ING.filter((_, i) => juicio(i) !== 0).map((g, k) => (juicio(ING.indexOf(g)) > 0 ? "le falta " : "le sobra ") + g[0].toLowerCase());
+    $("#robot-nota").innerHTML = ok === ING.length
+      ? `<strong class="c-aut">Aprobado.</strong> El chef la prueba y le sabe idéntica a la original: ${ok} de ${ING.length} ingredientes en su punto.`
+      : `<strong class="c-fal">Todavía no.</strong> ${ok} de ${ING.length} ingredientes en su punto: ${lista(mal)}. El robot tiene que seguir probando sopas y ajustando.`;
+  };
+  reset();
+})();
+
+/* ============ APRENDE: ejemplo a mano ============ */
+(function () {
+  const XM = [[3.6, 8.7], [-1.4, 3.3], [3.9, -2.6], [-2.3, -0.3], [4.5, 8.2], [-3.6, -8.2]], YM = [0, 1, 0, 1, 0, 1];
+  const pl = Plano($("#mini-plano"), { x0: -6, x1: 6, y0: -11, y1: 11, tx: [-4, -2, 0, 2, 4], ty: [-10, -5, 0, 5, 10], ex: "x₁ = varianza", ey: "x₂ = asimetría" });
+  XM.forEach((p, i) => {
+    marca(pl.gPts, pl.X(p[0]), pl.Y(p[1]), YM[i], 7, { "data-tip": `Billete ${i + 1}: ${NOMBRE[YM[i]]}, varianza ${signo(p[0], 1)}, asimetría ${signo(p[1], 1)}` });
+    sv("text", { x: pl.X(p[0]) + 11, y: pl.Y(p[1]) - 8 }, pl.gPts).textContent = i + 1;
+  });
+  leyenda("#ley-mini", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>billete que se está revisando</span>`);
+  let s, timer = null;
+  function pintar(msg) {
+    pl.frontera(s.w, s.b); pl.gSobre.innerHTML = "";
+    if (s.ult !== null) sv("circle", { cx: pl.X(XM[s.ult][0]), cy: pl.Y(XM[s.ult][1]), r: 15, class: "resalte" }, pl.gSobre);
+    $("#mini-epoca").textContent = s.epoca; $("#mini-w").textContent = `(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})`;
+    $("#mini-b").textContent = signo(s.b, 0); $("#mini-corr").textContent = s.corr; $("#mini-msg").innerHTML = msg;
+    $("#mini-paso").disabled = s.fin; $("#mini-paso").style.opacity = s.fin ? 0.5 : 1;
+  }
+  function reset() {
+    s = { w: [0, 0], b: 0, i: 0, epoca: 1, errEp: 0, corr: 0, fin: false, ult: null };
+    $("#mini-log").innerHTML = "";
+    pintar("Pesos y sesgo en cero. Todavía no hay frontera: con todo en cero el puntaje siempre da 0 y el modelo le dice «falsificado» a cualquier billete.");
+  }
+  function paso() {
+    if (s.fin) return;
+    const k = s.i, x = XM[k], y = YM[k], w0 = [...s.w], b0 = s.b;
+    const z = w0[0] * x[0] + w0[1] * x[1] + b0, pred = z >= 0 ? 1 : 0, e = y - pred;
+    let msg = `<strong>Billete ${k + 1}</strong> (${NOMBRE[y]}). z = (${signo(w0[0], 1)})(${signo(x[0], 1)}) + (${signo(w0[1], 1)})(${signo(x[1], 1)}) + (${signo(b0, 0)}) = <strong>${signo(z)}</strong>. Dice ${NOMBRE[pred]}. `;
+    if (e !== 0) {
+      s.w = [w0[0] + e * x[0], w0[1] + e * x[1]]; s.b = b0 + e; s.errEp++; s.corr++;
+      msg += `<strong>Se equivoca</strong> (error ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "suma" : "resta"} las entradas a los pesos y la frontera se mueve.`;
+    } else msg += "Acierta: no cambia nada.";
+    $("#mini-log").insertAdjacentHTML("afterbegin", `<tr><td class="n">${s.epoca}</td><td class="n">${k + 1}</td><td class="n">${signo(z)}</td><td>${NOMBRE[pred]}</td><td>${NOMBRE[y]}</td><td>${e === 0 ? "nada" : (e > 0 ? "suma x" : "resta x")}</td></tr>`);
+    s.ult = k; s.i++;
+    if (s.i === XM.length) {
+      if (s.errEp === 0) { s.fin = true; msg += ` <strong>Época ${s.epoca} completa sin errores: terminó de aprender con ${s.corr} correcciones.</strong>`; parar(); }
+      else { msg += ` Fin de la época ${s.epoca} con ${cuantos(s.errEp, "corrección", "correcciones")}; empieza otra pasada.`; s.epoca++; s.i = 0; s.errEp = 0; }
+    }
+    pintar(msg);
+  }
+  function parar() { if (timer) { clearInterval(timer); timer = null; $("#mini-auto").textContent = "Reproducir solo"; } }
+  $("#mini-paso").onclick = () => { parar(); paso(); };
+  $("#mini-reset").onclick = () => { parar(); reset(); };
+  $("#mini-auto").onclick = () => {
+    if (timer) return parar();
+    if (s.fin) reset();
+    $("#mini-auto").textContent = "Pausar"; timer = setInterval(paso, 1100);
+  };
+  reset();
+})();
+
+/* ============ APRENDE: datos reales en vivo ============ */
+(function () {
+  const X4 = D.train.map(r => r.slice(0, 4)), X2 = D.train.map(r => [r[0], r[1]]), Y = D.train.map(r => r[4]);
+  const T4 = TEST.map(t => escalar(t.x)), TY = TEST.map(t => t.real);
+  const pl = Plano($("#vivo-plano"), { x0: -3.2, x1: 3.2, y0: -3.2, y1: 3.2, tx: [-3, -2, -1, 0, 1, 2, 3], ty: [-3, -2, -1, 0, 1, 2, 3], ex: "varianza (escalada)", ey: "asimetría (escalada)" });
+  X2.forEach((p, i) => marca(pl.gPts, pl.X(p[0]), pl.Y(p[1]), Y[i], 2.6, { "stroke-width": 0.6, opacity: 0.8 }));
+  leyenda("#ley-vivo", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>mal clasificado por el modelo actual</span>`);
+  const NOTAS = {
+    4: "Con las cuatro medidas las correcciones bajan rápido en las primeras épocas y después suben y bajan sin llegar a cero: siempre queda algún billete del lado equivocado. La frontera no se puede dibujar porque vive en cuatro dimensiones; los aros marcan los billetes que el modelo actual clasifica mal.",
+    2: "Con solo dos medidas las nubes se mezclan en el centro. El perceptrón corrige muchísimo en cada época y no mejora: ninguna recta las separa. Por eso el modelo final usa las cuatro medidas."
+  };
+  let modo = 4, w, b, hist;
+  const datos = () => modo === 4 ? X4 : X2;
+  function curva() {
+    const s = $("#vivo-curva"); s.innerHTML = "";
+    const m = { l: 40, r: 16, t: 14, b: 34 }, W0 = 420, H0 = 170;
+    const n = Math.max(10, hist.length), top = Math.ceil(Math.max(60, ...hist) * 1.1 / 20) * 20;
+    const Xs = k => m.l + (k - 1) / (n - 1) * (W0 - m.l - m.r), Ys = v => H0 - m.b - v / top * (H0 - m.t - m.b);
+    [0, top / 2, top].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Ys(v), y2: Ys(v), class: "eje" }, s); sv("text", { x: m.l - 6, y: Ys(v) + 4, "text-anchor": "end" }, s).textContent = v; });
+    sv("text", { x: (W0 + m.l) / 2, y: H0 - 4, "text-anchor": "middle" }, s).textContent = "Época";
+    sv("text", { x: m.l, y: H0 - m.b + 15, "text-anchor": "middle" }, s).textContent = "1";
+    sv("text", { x: W0 - m.r, y: H0 - m.b + 15, "text-anchor": "end" }, s).textContent = n;
+    if (!hist.length) { sv("text", { x: (W0 + m.l) / 2, y: H0 / 2, "text-anchor": "middle" }, s).textContent = "Pulsa «Entrenar 1 época» para empezar"; return; }
+    sv("polyline", { points: hist.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2 }, s);
+    hist.forEach((v, k) => sv("circle", { cx: Xs(k + 1), cy: Ys(v), r: k === hist.length - 1 ? 5 : 3.5, class: "grab-f aro", "data-tip": `Época ${k + 1}: ${v} correcciones` }, s));
+    sv("text", { x: Math.min(Xs(hist.length) + 8, W0 - 34), y: Ys(hist[hist.length - 1]) - 9, class: "tinta-f" }, s).textContent = hist[hist.length - 1];
+  }
+  function pintar() {
+    pl.gSobre.innerHTML = "";
+    if (modo === 2) pl.frontera(w, b); else pl.limpiar();
+    curva();
+    $("#vivo-ep").textContent = hist.length; $("#vivo-nota").textContent = NOTAS[modo];
+    if (!hist.length) { ["err", "mal", "acc"].forEach(k => $("#vivo-" + k).textContent = "sin entrenar"); return; }
+    const X = datos(); let mal = 0;
+    X.forEach((x, i) => { if ((zLineal(x, w, b) >= 0 ? 1 : 0) !== Y[i]) { mal++; sv("circle", { cx: pl.X(X2[i][0]), cy: pl.Y(X2[i][1]), r: 5.5, class: "resalte", "stroke-width": 1.5 }, pl.gSobre); } });
+    const ok = T4.filter((x, i) => (zLineal(x, w, b) >= 0 ? 1 : 0) === TY[i]).length;
+    $("#vivo-err").textContent = hist[hist.length - 1]; $("#vivo-mal").textContent = `${mal} de ${X.length}`;
+    $("#vivo-acc").textContent = `${ok} de ${T4.length} (${pct(ok / T4.length, 1)})`;
+  }
+  function entrenar(n) { for (let k = 0; k < n && hist.length < 60; k++) { const r = entrenarEpoca(datos(), Y, w, b); b = r.b; hist.push(r.err); } pintar(); }
+  function reset() { w = modo === 4 ? [0, 0, 0, 0] : [0, 0]; b = 0; hist = []; pintar(); }
+  $$("[data-modo]").forEach(bt => bt.onclick = () => { modo = +bt.dataset.modo; $$("[data-modo]").forEach(o => o.setAttribute("aria-pressed", o === bt)); reset(); });
+  $("#vivo-1").onclick = () => entrenar(1); $("#vivo-10").onclick = () => entrenar(10); $("#vivo-reset").onclick = reset;
+  reset();
+})();
+
+/* ============ LIMITES ============ */
+(function () {
+  const P = [[0, 0], [0, 1], [1, 0], [1, 1]];
+  const PUERTAS = {
+    and: { y: [0, 0, 0, 1], d: "Clase 1 solo cuando las dos entradas valen 1. Sí se puede separar con una recta." },
+    or: { y: [0, 1, 1, 1], d: "Clase 1 cuando al menos una entrada vale 1. Sí se puede separar con una recta." },
+    xor: { y: [0, 1, 1, 0], d: "Clase 1 cuando las entradas son distintas. Busca una recta que deje los dos triángulos de un lado y los dos círculos del otro." }
+  };
+  const pl = Plano($("#xor-plano"), { x0: -0.6, x1: 1.6, y0: -0.6, y1: 1.6, tx: [0, 1], ty: [0, 1], ex: "entrada 1", ey: "entrada 2" });
+  leyenda("#ley-xor");
+  let puerta = "xor";
+  function puntos() { pl.gPts.innerHTML = ""; P.forEach((p, i) => marca(pl.gPts, pl.X(p[0]), pl.Y(p[1]), PUERTAS[puerta].y[i], 12, { "data-tip": `(${p[0]}, ${p[1]}) es clase ${PUERTAS[puerta].y[i]}` })); }
+  function evaluar(w, b, quien) {
+    pl.frontera(w, b);
+    const mal = P.filter((p, i) => ((w[0] * p[0] + w[1] * p[1] + b >= 0) ? 1 : 0) !== PUERTAS[puerta].y[i]).length;
+    const r = $("#xor-res");
+    r.textContent = mal === 0 ? `${quien} separó los cuatro puntos sin errores.` : `${quien}: ${cuantos(mal, "punto queda", "puntos quedan")} del lado equivocado.`;
+    r.className = mal === 0 ? "c-aut" : "c-fal";
+  }
+  function manual() {
+    const a = +$("#xor-ang").value * Math.PI / 180, d = +$("#xor-pos").value, n = [Math.cos(a), Math.sin(a)];
+    const c = [0.5 + d * n[0], 0.5 + d * n[1]];
+    evaluar(n, -(n[0] * c[0] + n[1] * c[1]), "Tu recta");
+  }
+  function elegir(p) {
+    puerta = p; $$("[data-puerta]").forEach(b => b.setAttribute("aria-pressed", b.dataset.puerta === p));
+    $("#xor-desc").textContent = PUERTAS[p].d; $("#xor-hist").textContent = ""; puntos(); manual();
+  }
+  $$("[data-puerta]").forEach(b => b.onclick = () => elegir(b.dataset.puerta));
+  $("#xor-ang").oninput = manual; $("#xor-pos").oninput = manual;
+  $("#xor-auto").onclick = () => {
+    const w = [0, 0]; let b = 0; const h = [];
+    for (let k = 0; k < 20; k++) { const r = entrenarEpoca(P, PUERTAS[puerta].y, w, b); b = r.b; h.push(r.err); if (r.err === 0) break; }
+    evaluar(w, b, "El perceptrón");
+    $("#xor-hist").textContent = `Errores por época: ${h.join(", ")}. ` + (h[h.length - 1] === 0 ? `Llegó a cero en la época ${h.length} y se detuvo.` : "Después de 20 épocas sigue fallando: no existe una recta que resuelva este problema.");
+  };
+  elegir("xor");
+})();
+
+/* ============ COLAB ============ */
+(function () {
+  const pasos = [
+    ["Presentación y diccionario", "Cargamos los datos con el lector oficial de UCI y armamos la tabla con nombre, tipo, descripción y función de cada variable. Verificamos que no haya valores faltantes.",
+      `datos = fetch_ucirepo(id=267)\ndf = datos.data.features.copy()\ndf["class"] = (datos.data.targets\n               .iloc[:, 0].to_numpy())\ndf.isna().sum().sum()   # 0 faltantes`],
+    ["Variables X e y", "X son las cuatro medidas de la foto; y es la clase. Todas las X se conocen en el momento de clasificar y ninguna es un identificador, así que no hay fuga de información.",
+      `X = df[["variance", "skewness",\n        "curtosis", "entropy"]]\ny = df["class"]   # 0 auténtico, 1 falsificado`],
+    ["Entrenamiento y prueba", `Separamos antes de cualquier otra cosa. Entrenamiento: ${D.n_train} billetes (${D.train_c0} auténticos y ${D.train_c1} falsificados) para aprender. Prueba: ${D.n_test} billetes (${D.test_c0} y ${D.test_c1}) que el modelo no ve hasta el final. stratify mantiene la misma proporción de clases y random_state hace que la partición sea siempre la misma.`,
+      `X_train, X_test, y_train, y_test = \\\n    train_test_split(X, y, test_size=0.20,\n                     stratify=y, random_state=42)`],
+    ["Escalado y modelo", `El perceptrón corrige sumando y restando las entradas, así que una medida con números grandes dominaría. Las llevamos a la misma escala. La media y la desviación se aprenden solo con entrenamiento (fit) y se reutilizan en prueba (transform); si no, el modelo estaría espiando la prueba. Aprendió en ${D.epochs} épocas.`,
+      `escalador = StandardScaler()\n# aprende media y desviación SOLO con train\nX_train_esc = escalador.fit_transform(X_train)\n# en prueba solo reutiliza esas medidas\nX_test_esc = escalador.transform(X_test)\n\nmodelo = Perceptron(eta0=1.0, max_iter=1000,\n                    tol=1e-3, random_state=42)\nmodelo.fit(X_train_esc, y_train)\ny_pred = modelo.predict(X_test_esc)`],
+    ["Evaluación", "Comparamos lo real con lo predicho en la prueba. De la matriz salen VP, VN, FP y FN, y con ellos las cuatro métricas. Las calculamos a mano y las verificamos con scikit-learn.",
+      `matriz = confusion_matrix(y_test, y_pred,\n                          labels=[0, 1])\nVN, FP, FN, VP = matriz.ravel()\n\naccuracy  = (VP + VN) / (VP + VN + FP + FN)\nprecision = VP / (VP + FP)\nrecall    = VP / (VP + FN)\nf1 = (2 * precision * recall\n      / (precision + recall))`],
+    ["Interpretación", "Explicamos cada acierto y cada error en el contexto del banco y respondemos las cinco preguntas de la gerencia. El texto se arma con las variables calculadas, para que las cifras escritas siempre coincidan con la ejecución.",
+      `# puntaje z de cada billete de prueba\nmodelo.decision_function(X_test_esc)\n# False: no entrega probabilidades\nhasattr(modelo, "predict_proba")`]
+  ];
+  const filas = pasos.map((p, i) => `<div class="dos paso f"><div class="pila" style="gap:6px"><h3><span class="n0">0${i + 1}</span>${p[0]}</h3><p>${p[1]}</p></div><pre>${p[2].replace(/</g, "&lt;")}</pre></div>`);
+  $("#pasos-a").innerHTML = filas.slice(0, 2).join("");
+  $("#pasos-b").innerHTML = filas.slice(2, 4).join("");
+  $("#pasos-c").innerHTML = filas.slice(4).join("");
+})();
+
+/* ============ RESULTADOS ============ */
+(function () {
+  $("#res-entrada").textContent = `Acertó ${ACIERTOS} y se equivocó en ${ERRORES}. Detectó ${VP} de los ${VP + FN} falsificados y dio ${cuantos(FP, "falsa alarma", "falsas alarmas")}.`;
+  const val = { VN, FP, FN, VP };
+  $$(".celda").forEach(c => $(".cifra", c).textContent = val[c.dataset.celda]);
+  const lista = arr => arr.length ? `<div class="desborde"><table><thead><tr><th class="n">Billete</th><th class="n">Varianza</th><th class="n">Asimetría</th><th class="n">Curtosis</th><th class="n">Entropía</th><th class="n">Puntaje z</th></tr></thead><tbody>${arr.map(t => `<tr><td class="n">n.º ${t.i + 1}</td>${t.x.map(v => `<td class="n">${signo(v)}</td>`).join("")}<td class="n"><strong>${signo(t.z)}</strong></td></tr>`).join("")}</tbody></table></div>` : "";
+  const det = {
+    VN: () => `<h3>Verdaderos negativos: ${VN}</h3><p>Billetes auténticos que el modelo reconoció como auténticos. De ${VN + FP} auténticos, reconoció ${VN} (${pct(VN / (VN + FP))}).</p><p>Para el banco: clientes atendidos sin demoras ni sospechas injustificadas.</p>`,
+    VP: () => `<h3>Verdaderos positivos: ${VP}</h3><p>Billetes falsificados que el modelo detectó. De ${VP + FN} falsificados, atrapó ${VP} (${pct(REC)}).</p><p>Para el banco: dinero falso que no entra a la caja.</p>`,
+    FP: () => `<h3>Falsos positivos: ${FP}</h3><p>Billetes auténticos señalados como falsificados. Son falsas alarmas: cuestan una segunda revisión y la molestia del cliente, pero no se pierde dinero.</p>${lista(TEST.filter(t => t.real === 0 && t.pred === 1))}`,
+    FN: () => `<h3>Falsos negativos: ${FN}</h3><p>Billetes falsificados que pasaron como auténticos. Es el error más grave: el banco recibe dinero sin valor y puede volver a ponerlo en circulación.</p>${lista(TEST.filter(t => t.real === 1 && t.pred === 0))}<p class="nota">Su puntaje quedó casi en cero: el modelo estaba dudando.</p>`
+  };
+  function elegir(k) { $$(".celda").forEach(c => c.setAttribute("aria-pressed", c.dataset.celda === k)); $("#celda-detalle").innerHTML = det[k](); }
+  $$(".celda").forEach(c => c.onclick = () => elegir(c.dataset.celda));
+  elegir("FN");
+
+  const mets = [
+    ["Accuracy", ACC, `(${VP} + ${VN}) / ${TOTAL}`, "De todos los billetes, cuántos clasificó bien."],
+    ["Precision", PREC, `${VP} / (${VP} + ${FP})`, "De sus alertas de «falsificado», cuántas eran ciertas."],
+    ["Recall", REC, `${VP} / (${VP} + ${FN})`, "De los falsificados que había, cuántos detectó."],
+    ["F1-score", F1, "2 · P · R / (P + R)", "Qué tan equilibradas están precision y recall."]
+  ];
+  $("#metricas").innerHTML = mets.map(m => `<div class="metrica f"><b>${m[0]}</b><span class="cifra" style="color:var(--tinta)">${pct(m[1])}</span><span class="dato">${m[2]}</span><span>${m[3]}</span></div>`).join("");
+
+  /* tira de puntajes */
+  const s = $("#tira"), W0 = 860, H0 = 250, m = { l: 20, r: 20, b: 44 }, LIM = 10, ANCHO = 0.5;
+  const Xz = z => m.l + (z + LIM) / (2 * LIM) * (W0 - m.l - m.r), base = H0 - m.b;
+  const banda = sv("rect", { y: 8, height: base - 8, fill: "var(--tinta)", opacity: 0.09 }, s);
+  sv("line", { x1: m.l, x2: W0 - m.r, y1: base, y2: base, class: "eje" }, s);
+  sv("line", { x1: Xz(0), x2: Xz(0), y1: 8, y2: base, class: "frontera", "stroke-width": 1.5 }, s);
+  for (let z = -10; z <= 10; z += 2) sv("text", { x: Xz(z), y: base + 16, "text-anchor": "middle" }, s).textContent = signo(z, 0);
+  sv("text", { x: Xz(0), y: H0 - 6, "text-anchor": "middle" }, s).textContent = "Puntaje z (frontera en 0)";
+  const cerca = TEST.filter(t => Math.abs(t.z) < LIM), izq = TEST.filter(t => t.z <= -LIM).length, der = TEST.filter(t => t.z >= LIM).length;
+  sv("text", { x: m.l, y: 22 }, s).textContent = `← ${izq} billetes más, auténticos claros`;
+  sv("text", { x: W0 - m.r, y: 22, "text-anchor": "end" }, s).textContent = `${der} billetes más, falsificados claros →`;
+  const pilas = {};
+  cerca.sort((a, b) => a.z - b.z).forEach(t => {
+    const k = Math.floor((t.z + LIM) / ANCHO); pilas[k] = (pilas[k] || 0) + 1;
+    const x = Xz(-LIM + (k + 0.5) * ANCHO), y = base - 9 - (pilas[k] - 1) * 11, err = t.real !== t.pred;
+    marca(s, x, y, t.real, 4.2, { "data-tip": `Billete n.º ${t.i + 1}: era ${NOMBRE[t.real]}, el modelo dijo ${NOMBRE[t.pred]}. z = ${signo(t.z)}` });
+    if (err) sv("circle", { cx: x, cy: y, r: 8.5, class: "resalte", "pointer-events": "none" }, s);
+  });
+  leyenda("#ley-tira", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>error del modelo</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" fill="var(--tinta)" opacity=".2"/></svg>zona de duda</span>`);
+  const sl = $("#duda"); sl.value = D.duda_p5;
+  function duda() {
+    const a = +sl.value;
+    banda.setAttribute("x", Xz(-a)); banda.setAttribute("width", Xz(a) - Xz(-a));
+    $("#duda-v").textContent = fmt(a); $("#duda-v2").textContent = fmt(a);
+    const en = TEST.filter(t => Math.abs(t.z) < a);
+    const fnF = TEST.filter(t => t.real === 1 && t.pred === 0 && Math.abs(t.z) >= a).length;
+    const fpF = TEST.filter(t => t.real === 0 && t.pred === 1 && Math.abs(t.z) >= a).length;
+    $("#duda-res").innerHTML = `Revisión manual: <strong>${en.length} de ${TOTAL} billetes</strong> (${pct(en.length / TOTAL, 1)}). Falsos negativos que quedan sin control: <strong>${fnF} de ${FN}</strong>. Falsas alarmas sin control: <strong>${fpF} de ${FP}</strong>.`;
+  }
+  sl.oninput = duda; duda();
+
+  /* laboratorio */
+  const pre = {
+    real: [VP, FN, FP, VN, "Nuestro modelo: las cuatro métricas altas y parejas."],
+    miedoso: [VP + FN, 0, VN + FP, 0, "Un modelo que alerta todo atrapa todos los falsos (recall 100 %), pero casi la mitad de sus alertas son falsas: precision baja."],
+    confiado: [0, VP + FN, 0, VN + FP, "Un modelo que nunca alerta acierta más de la mitad solo porque hay más auténticos, pero no detecta ni un falsificado: recall 0 %."]
+  };
+  const ids = ["VP", "FN", "FP", "VN"];
+  function lab() {
+    const [vp, fn, fp, vn] = ids.map(k => Math.max(0, +$("#lab-" + k).value || 0)), t = vp + fn + fp + vn;
+    const acc = t ? (vp + vn) / t : null, pr = vp + fp ? vp / (vp + fp) : null, re = vp + fn ? vp / (vp + fn) : null;
+    const f = pr !== null && re !== null && pr + re > 0 ? 2 * pr * re / (pr + re) : (pr !== null && re !== null ? 0 : null);
+    const fila = (n, v, sin) => `<div class="aporte" style="grid-template-columns:6em minmax(0,1fr) 9.5em"><span><strong>${n}</strong></span><div class="barra"><i style="width:${v === null ? 0 : v * 100}%"></i></div><span class="dato" style="text-align:right">${v === null ? sin : pct(v)}</span></div>`;
+    $("#lab-res").innerHTML = `<h3>${t} billetes en total</h3>` + fila("Accuracy", acc, "sin billetes") + fila("Precision", pr, "no hubo alertas") + fila("Recall", re, "no había falsos") + fila("F1-score", f, "no se puede");
+  }
+  function poner(k) { pre[k].slice(0, 4).forEach((v, i) => $("#lab-" + ids[i]).value = v); $("#lab-nota").textContent = pre[k][4]; lab(); }
+  ids.forEach(k => $("#lab-" + k).oninput = () => { $("#lab-nota").textContent = "Valores editados a mano."; lab(); });
+  $$("[data-lab]").forEach(b => b.onclick = () => poner(b.dataset.lab));
+  poner("real");
+
+  const base0 = (VN + FP) / TOTAL, cv = D.cv;
+  $("#suerte").innerHTML = `<p class="entrada">Dos comprobaciones para saber si el buen resultado depende de la partición que nos tocó.</p>
+    <div class="desborde"><table style="font-size:1em">
+      <thead><tr><th>Qué se evaluó</th><th class="n">Accuracy</th><th class="n">Recall</th></tr></thead>
+      <tbody>
+        <tr class="f"><td>Un «modelo» que siempre dice auténtico</td><td class="n">${pct(base0)}</td><td class="n">${pct(0)}</td></tr>
+        <tr class="f"><td><strong>Nuestro perceptrón, prueba del 20 %</strong></td><td class="n"><strong>${pct(ACC)}</strong></td><td class="n"><strong>${pct(REC)}</strong></td></tr>
+        <tr class="f"><td>El proceso repetido con 5 particiones distintas (de la peor a la mejor)</td><td class="n">${pct(cv.accuracy.min)} a ${pct(cv.accuracy.max)}</td><td class="n">${pct(cv.recall.min)} a ${pct(cv.recall.max)}</td></tr>
+      </tbody></table></div>
+    <p class="f">El modelo supera por mucho a la línea base y se mantiene alto en todas las particiones. No fue suerte, aunque los decimales sí cambian de una partición a otra: el recall exacto no está garantizado.</p>`;
+})();
+
+/* ============ GERENCIA ============ */
+(function () {
+  const falsos = VP + FN, autent = VN + FP, alertas = VP + FP, base0 = autent / TOTAL, a = D.duda_p5;
+  const enDuda = TEST.filter(t => Math.abs(t.z) < a).length;
+  const fnD = TEST.filter(t => t.real === 1 && t.pred === 0 && Math.abs(t.z) < a).length;
+  const fpD = TEST.filter(t => t.real === 0 && t.pred === 1 && Math.abs(t.z) < a).length;
+  const cv = D.cv;
+  const Q = [
+    ["Confiabilidad", "¿Cuántos billetes clasificó correctamente, cuántos incorrectamente y qué porcentaje de aciertos obtuvo?",
+      `De ${TOTAL} billetes de prueba clasificó bien <strong>${ACIERTOS}</strong> (${VN} auténticos y ${VP} falsificados) y mal <strong>${ERRORES}</strong> (${cuantos(FP, "falsa alarma", "falsas alarmas")} y ${cuantos(FN, "falsificado que pasó", "falsificados que pasaron")}). Accuracy = ${ACIERTOS} / ${TOTAL} = <strong>${pct(ACC)}</strong>.`,
+      `Acierta cerca de ${fmt(ACC * 100, 0)} de cada 100 billetes. Decir siempre «auténtico», sin modelo, acertaría solo ${pct(base0)}. La diferencia muestra que el perceptrón sí aprendió a distinguir las clases.`,
+      `En esta muestra es confiable como primer filtro. Pero el accuracy no dice qué tipo de error comete, y en un banco no cuesta lo mismo una falsa alarma que un billete falso aceptado. Hay que mirar recall y precision.`],
+    ["Detección", "¿Cuántos billetes falsificados detectó y cuántos dejó pasar como auténticos? ¿Qué indica el recall?",
+      `Había <strong>${falsos}</strong> falsificados en la prueba. Detectó <strong>${VP}</strong> y dejó pasar <strong>${FN}</strong>. Recall = ${VP} / (${VP} + ${FN}) = <strong>${pct(REC)}</strong>.`,
+      `El recall dice qué proporción de los falsos logra atrapar: cerca de ${fmt(REC * 100, 0)} de cada 100. Lo que falta (${pct(1 - REC)}) entra al banco como si fuera bueno. A ese ritmo, de cada 1.000 billetes falsos pasarían unos ${fmt((1 - REC) * 1000, 0)}.`,
+      `La detección es alta, pero no es del 100 %. El modelo no debe ser el único control: tiene que trabajar junto con la revisión del cajero, la luz ultravioleta y las máquinas contadoras.`],
+    ["Alertas incorrectas", "¿Cuántos billetes auténticos señaló como falsificados? ¿Qué refleja la precision de esas alertas?",
+      `El modelo dio <strong>${alertas} alertas</strong>. <strong>${VP}</strong> eran correctas y <strong>${FP}</strong> eran billetes auténticos. Precision = ${VP} / (${VP} + ${FP}) = <strong>${pct(PREC)}</strong>. Señaló por error a ${FP} de ${autent} auténticos (${pct(FP / autent)}).`,
+      `La precision dice qué tan creíbles son las alertas: de cada 100, cerca de ${fmt(PREC * 100, 0)} son falsos de verdad y unas ${fmt((1 - PREC) * 100, 0)} son falsas alarmas. Cada una significa una segunda revisión y un cliente al que se le cuestionó un billete legítimo.`,
+      `Las alertas son muy confiables y su costo operativo es bajo. Aun así, una alerta debe tratarse como una señal para revisar, no como una prueba: se necesita una segunda verificación antes de retener un billete.`],
+    ["Prioridades", "¿Qué error priorizarían para reducir: falsos positivos o falsos negativos?",
+      `Hubo <strong>${cuantos(FN, "falso negativo", "falsos negativos")}</strong> (${pct(FN / falsos)} de los falsificados) y <strong>${cuantos(FP, "falso positivo", "falsos positivos")}</strong> (${pct(FP / autent)} de los auténticos). Recall ${pct(REC)}, precision ${pct(PREC)}.`,
+      `No cuestan lo mismo. Un falso negativo es un billete falso aceptado: el banco pierde su valor, puede entregárselo a otro cliente y se expone a riesgo legal y de reputación. Un falso positivo cuesta unos minutos de revisión y se aclara de inmediato.`,
+      `Priorizamos reducir los <strong>falsos negativos</strong>, es decir, cuidar el recall, aunque aumenten un poco las falsas alarmas. Propuesta probada: enviar a revisión manual los billetes con puntaje cercano a cero (entre −${fmt(a)} y +${fmt(a)}). Son ${enDuda} de ${TOTAL} billetes (${pct(enDuda / TOTAL, 1)}) y con eso quedan bajo control ${fnD} de ${cuantos(FN, "falso negativo", "falsos negativos")} y ${fpD} de ${cuantos(FP, "falsa alarma", "falsas alarmas")}.`],
+    ["Decisión final", "¿Recomendarían continuar evaluando el modelo como apoyo a la autenticación?",
+      `Accuracy <strong>${pct(ACC)}</strong>, precision <strong>${pct(PREC)}</strong>, recall <strong>${pct(REC)}</strong> y F1-score <strong>${pct(F1)}</strong>, sobre ${TOTAL} billetes que el modelo nunca vio. Con 5 particiones distintas el recall estuvo entre ${pct(cv.recall.min)} y ${pct(cv.recall.max)}.`,
+      `Las cuatro métricas son altas y parejas: detecta casi todos los falsificados sin llenar al banco de falsas alarmas. Además es simple y explicable. Límites: no es perfecto, no da probabilidades, y las cifras salen de una sola base de laboratorio con 1.372 especímenes y una misma cámara.`,
+      `<strong>Sí, recomendamos continuar evaluándolo como apoyo, no como reemplazo de los controles actuales.</strong> Próximos pasos: probarlo con billetes reales de varias denominaciones y estados de desgaste, operar con la zona de duda, fijar con el área de riesgo el recall mínimo aceptable y compararlo con modelos que den probabilidades.`]
+  ];
+  $("#preguntas").outerHTML = Q.map((q, i) => `<section class="lamina" data-parte="gerencia">
+    <header class="cabeza"><span class="num">Parte 8, pregunta ${i + 1} de 5 de la gerencia</span><h2>${q[0]}</h2></header>
+    <div class="cuerpo centro a2"><p class="entrada">${q[1]}</p>
+    <dl class="resp"><div class="f"><dt>Cifras</dt><dd>${q[2]}</dd></div><div class="f"><dt>Interpretación</dt><dd>${q[3]}</dd></div><div class="f"><dt>Conclusión</dt><dd>${q[4]}</dd></div></dl></div></section>`).join("");
+  $("#conclusiones").innerHTML = [
+    `<strong>El Perceptrón Simple resolvió bien el problema.</strong> Con cuatro medidas de la foto clasificó bien ${ACIERTOS} de ${TOTAL} billetes: accuracy ${pct(ACC)}, precision ${pct(PREC)}, recall ${pct(REC)} y F1 ${pct(F1)}.`,
+    `<strong>Funciona porque las clases son casi separables con una frontera recta.</strong> Los ${ERRORES} errores fueron billetes pegados a la frontera.`,
+    `<strong>El error que más importa es el falso negativo.</strong> Un billete falso aceptado cuesta más que una falsa alarma; por eso hay que vigilar el recall y revisar a mano la zona de duda.`,
+    `<strong>Es un apoyo, no un reemplazo.</strong> Recomendamos seguir evaluándolo junto con los controles que ya existen.`,
+    `<strong>Las buenas prácticas pesan tanto como el modelo:</strong> partición 80/20 estratificada, escalado ajustado solo con entrenamiento y evaluación con billetes que el modelo no vio.`
+  ].map(t => `<li class="f">${t}</li>`).join("");
+})();
+
+/* ============ REPASO ============ */
+(function () {
+  const T = [
+    ["¿Qué es un Perceptrón Simple, en una frase?", "Una neurona artificial que multiplica cada entrada por un peso, suma todo con un sesgo y responde 1 si el resultado es cero o más, y 0 si es negativo. Es un clasificador binario lineal."],
+    ["¿Por qué escalaron las variables?", "Porque el perceptrón corrige sumando y restando las entradas. Si una medida tiene números mucho más grandes, domina las correcciones sin ser más importante. Al escalar, todas quedan con media 0 y desviación 1."],
+    ["¿Por qué el escalador se ajusta solo con entrenamiento?", "Para no filtrar información de la prueba. Si la media y la desviación se calcularan con todos los datos, el modelo habría visto algo de los billetes con los que luego se evalúa y las métricas saldrían mejores de lo real."],
+    ["¿Para qué sirven stratify y random_state?", "stratify hace que entrenamiento y prueba tengan la misma proporción de auténticos y falsificados que la base completa. random_state fija el azar para que la partición y el resultado se puedan repetir."],
+    ["¿Qué significa que un peso sea negativo?", "Que cuando esa medida sube, el puntaje baja y el billete se inclina hacia la clase 0, auténtico. En nuestro modelo los cuatro pesos son negativos. Es una asociación en esta muestra, no una causa."],
+    ["¿Qué es una época y cuántas necesitó el modelo?", `Una pasada completa por todos los billetes de entrenamiento. El modelo de scikit-learn se detuvo a las ${D.epochs} épocas, cuando el error dejó de mejorar.`],
+    ["¿Por qué el perceptrón no da probabilidades?", "Porque su salida es una función escalón: solo mira el signo del puntaje. Lo más parecido es el puntaje z de decision_function, que indica qué tan lejos está el billete de la frontera, pero no es una probabilidad."],
+    ["¿Qué pasa si los datos no son linealmente separables?", "El algoritmo nunca deja de corregir y la frontera queda oscilando. Por eso scikit-learn usa un criterio de parada. Lo vimos con XOR y también con nuestros datos: las correcciones por época no llegan a cero."],
+    ["¿Cuál es la diferencia entre precision y recall aquí?", `Recall (${pct(REC)}): de los billetes falsos que había, cuántos atrapó. Precision (${pct(PREC)}): de los que señaló como falsos, cuántos lo eran. Recall mira los falsos que se escapan; precision mira las falsas alarmas.`],
+    ["¿Por qué no basta con el accuracy?", "Porque no distingue el tipo de error. Un modelo que nunca alerta acertaría más de la mitad solo por haber más auténticos, sin detectar un solo falsificado. En un banco, dejar pasar un falso es mucho más grave que una falsa alarma."],
+    ["¿Por qué «falsificado» es la clase positiva?", "Porque es el evento que el banco quiere detectar. Así, recall y precision hablan directamente de los billetes falsos. La guía fija 1 = falsificado y la literatura del dataset coincide."],
+    ["¿En qué se diferencia de una regresión logística?", "Las dos trazan una frontera lineal. La regresión logística pasa la suma por una función sigmoide y entrega probabilidades; el perceptrón usa un escalón y solo entrega 0 o 1. Además, el perceptrón solo se corrige cuando se equivoca."],
+    ["¿El modelo está listo para usarse en un banco?", "No. Es un ejercicio académico con 1.372 especímenes de laboratorio y una sola cámara. Recomendamos seguir evaluándolo como apoyo, con billetes reales y junto a los controles que ya existen."]
+  ];
+  $("#tarjetas").innerHTML = T.map(t => `<details class="tarjeta"><summary>${t[0]}</summary><p>${t[1]}</p></details>`).join("");
+})();
+
+/* ============ exposición por láminas ============ */
+(function () {
+  const cuerpo = document.body, raiz = document.documentElement;
+  const L = $$(".lamina"), N = L.length;
+  const PARTES = [["inicio", "Inicio"], ["problema", "El problema"], ["neurona", "Qué es un perceptrón"], ["decide", "Cómo decide"], ["aprende", "Cómo aprende"], ["limites", "Ventajas y límites"], ["colab", "El Colab paso a paso"], ["resultados", "Resultados"], ["gerencia", "Preguntas de la gerencia"], ["cierre", "Conclusiones"], ["repaso", "Repaso y referencias"]];
+  const primera = id => L.findIndex(l => l.dataset.parte === id);
+  const expo = () => cuerpo.classList.contains("expo");
+  let actual = 0;
+
+  function pintar() {
+    const l = L[actual], p = PARTES.find(q => q[0] === l.dataset.parte);
+    $("#b-cuenta").textContent = `${actual + 1} / ${N}`;
+    $("#b-avance").style.width = ((actual + 1) / N * 100) + "%";
+    $("#b-rotulo").textContent = p ? p[1] : "";
+    $("#b-ant").disabled = actual === 0 && !$$(".f.visto", l).length;
+    $("#b-sig").disabled = actual === N - 1 && !$$(".f:not(.visto)", l).length;
+    $$("#menu-lista button").forEach(b => b.classList.toggle("aqui", b.dataset.ir === l.dataset.parte));
+    try { history.replaceState(null, "", "#" + l.dataset.parte); } catch (e) { /* sin historial: no pasa nada */ }
+  }
+  function ir(n, completa) {
+    n = Math.max(0, Math.min(N - 1, n));
+    L[actual].classList.remove("activa"); actual = n; L[n].classList.add("activa");
+    $$(".f", L[n]).forEach(f => f.classList.toggle("visto", !!completa));
+    if (!expo()) L[n].scrollIntoView();
+    pintar();
+  }
+  function siguiente() {
+    const pend = $(".f:not(.visto)", L[actual]);
+    if (pend) { pend.classList.add("visto"); pintar(); }
+    else if (actual < N - 1) ir(actual + 1, false);
+  }
+  function anterior() {
+    const vistos = $$(".f.visto", L[actual]);
+    if (vistos.length) { vistos[vistos.length - 1].classList.remove("visto"); pintar(); }
+    else if (actual > 0) ir(actual - 1, true);
+  }
+  $("#b-sig").onclick = siguiente; $("#b-ant").onclick = anterior;
+
+  document.addEventListener("keydown", e => {
+    if (!expo() || e.altKey || e.ctrlKey || e.metaKey) return;
+    const k = e.key;
+    if (k === "PageDown") { siguiente(); e.preventDefault(); return; }
+    if (k === "PageUp") { anterior(); e.preventDefault(); return; }
+    if (e.target.closest && e.target.closest("input, textarea, select, summary, button")) return;
+    if (k === "ArrowRight" || k === "ArrowDown" || k === " " || k === "Enter") { siguiente(); e.preventDefault(); }
+    else if (k === "ArrowLeft" || k === "ArrowUp" || k === "Backspace") { anterior(); e.preventDefault(); }
+    else if (k === "Home") { ir(0, false); e.preventDefault(); }
+    else if (k === "End") { ir(N - 1, true); e.preventDefault(); }
+  });
+  /* después de usar el ratón en un control, el teclado vuelve a mover las láminas */
+  document.addEventListener("pointerup", e => { const t = e.target.closest && e.target.closest("input[type=range]"); if (t) setTimeout(() => t.blur(), 0); });
+  document.addEventListener("click", e => { if (e.detail > 0) { const t = e.target.closest("button, summary"); if (t) t.blur(); } });
+
+  /* escala de la lámina a la pantalla */
+  const ajustar = () => raiz.style.setProperty("--k", Math.min(innerWidth / 1280, (innerHeight - 46) / 720));
+  addEventListener("resize", ajustar); ajustar();
+
+  /* menú de partes */
+  const menu = $("#menu"), bp = $("#b-partes");
+  $("#menu-lista").innerHTML = PARTES.map(p => `<li><button type="button" data-ir="${p[0]}">${p[1]}</button></li>`).join("");
+  const cerrar = () => { menu.hidden = true; bp.setAttribute("aria-expanded", "false"); };
+  bp.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; bp.setAttribute("aria-expanded", String(!menu.hidden)); };
+  $$("#menu-lista button").forEach(b => b.onclick = () => { ir(primera(b.dataset.ir), false); cerrar(); });
+  document.addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target)) cerrar(); });
+
+  /* modo lectura: todo en una página */
+  const bm = $("#b-modo");
+  function modo(enExpo) {
+    cuerpo.classList.toggle("expo", enExpo);
+    bm.textContent = enExpo ? "Ver todo en una página" : "Volver a la exposición";
+    if (enExpo) { scrollTo(0, 0); ir(actual, true); } else { L[actual].scrollIntoView(); pintar(); }
+  }
+  bm.onclick = () => modo(!expo());
+  const vista = new IntersectionObserver(es => {
+    if (expo()) return;
+    es.forEach(en => { if (en.isIntersecting) { actual = L.indexOf(en.target); pintar(); } });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+  L.forEach(l => vista.observe(l));
+
+  /* pantalla completa y luz UV */
+  const bf = $("#b-full");
+  bf.onclick = () => {
+    try {
+      const p = document.fullscreenElement ? document.exitFullscreen() : raiz.requestFullscreen();
+      if (p && p.catch) p.catch(() => { bf.textContent = "Pantalla completa no disponible"; });
+    } catch (e) { bf.textContent = "Pantalla completa no disponible"; }
+  };
+  const uv = $("#uv");
+  const oscuro = () => raiz.dataset.theme ? raiz.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const rotulo = () => uv.textContent = oscuro() ? "Luz de día" : "Luz UV";
+  uv.onclick = () => { raiz.dataset.theme = oscuro() ? "light" : "dark"; rotulo(); };
+  rotulo();
+
+  /* arranque: recuerda la lámina si la página se actualiza mientras está abierta */
+  function iniciar(d) {
+    const h = location.hash.slice(1), desdeHash = h ? primera(h) : -1;
+    const n = d && Number.isInteger(d.i) ? d.i : (desdeHash >= 0 ? desdeHash : 0);
+    if (innerWidth < 900) modo(false);
+    ir(n, !!(d && Number.isInteger(d.i)));
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(() => ({ i: actual }));
+  if (hot && hot.ready) hot.ready(iniciar); else iniciar((hot && hot.data) || {});
+})();
+
+</script>
+</body>
+</html>
