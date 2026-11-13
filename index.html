@@ -150,6 +150,28 @@ svg text{font-family:var(--f-texto);fill:var(--tinta-2);font-size:12px}
 .robot-ojo{fill:var(--grabado)}
 .robot-caja{flex-wrap:nowrap;align-items:center;gap:18px}
 .robot{width:112px;flex:none}
+.robot-eta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:14px;align-items:center}
+.robot-eta svg text{font-size:11px}
+table.apretada th,table.apretada td{padding:4px 10px}
+
+/* filtro de correos */
+.correo{border:1px solid var(--linea);border-left:4px solid var(--grabado);border-radius:4px;background:var(--papel);padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.correo .de{font-family:var(--f-codigo);font-size:.74em;color:var(--tinta-2);overflow-wrap:anywhere}
+.correo .asunto{font-weight:700;line-height:1.3}
+.rasgos{list-style:none;margin:4px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 14px;font-size:.78em}
+.rasgos li{display:flex;gap:7px;align-items:baseline;color:var(--tinta-2)}
+.rasgos li b{font-family:var(--f-codigo);font-weight:500;flex:none}
+.rasgos li.si{color:var(--tinta);font-weight:600}
+.rasgos li.si b{color:var(--grabado);font-weight:700}
+.marcador{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88em;border-top:1px dashed var(--linea);padding-top:8px}
+.aporte.apagado{opacity:.42}
+.aporte .pista i{transition:width .35s ease,left .35s ease}
+
+/* quiz */
+.quiz-op{display:flex;flex-wrap:wrap;gap:8px}
+.quiz-op .btn.bien{background:var(--grabado);border-color:var(--grabado);color:var(--sobre-grabado)}
+.quiz-op .btn.mal{background:var(--falso);border-color:var(--falso);color:#fff}
+td.hueco{color:var(--tinta-2)}
 /* ---------- Barra de mando ---------- */
 .mando{position:fixed;left:0;right:0;bottom:0;height:46px;overflow:hidden;z-index:30;background:var(--lamina);border-top:1px solid var(--linea);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:.84rem}
 .bb{font:600 .8rem var(--f-texto);padding:6px 10px;border-radius:4px;border:1px solid var(--linea);background:transparent;color:var(--tinta);cursor:pointer;white-space:nowrap}
@@ -183,7 +205,8 @@ body.expo .cuerpo.a2{font-size:1.2em}
 body.expo .cuerpo.a3{font-size:1.32em}
 body.expo .portada .cuerpo{display:grid}
 body.expo .metrica .cifra{font-size:3.3rem}
-body.expo .robot{width:140px}
+body.expo .robot{width:120px}
+body.expo #vivo-curva{max-height:136px;width:auto;margin:0 auto}
 body.expo .f{opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease,visibility 0s .3s}
 body.expo .f.visto{opacity:1;visibility:visible;transform:none;transition:opacity .3s ease,transform .3s ease}
 body.expo tr.f:not(.visto) td,body.expo thead.f:not(.visto) th{border-color:transparent}
@@ -215,6 +238,9 @@ body:not(.expo) #b-rotulo{flex:1}
   body:not(.expo) .robot-caja{flex-wrap:wrap}
   body:not(.expo) .receta{grid-template-columns:3.6em minmax(0,1fr)}
   body:not(.expo) .receta>span:last-child{grid-column:1/-1}
+  body:not(.expo) .robot-eta{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .rasgos{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .aporte.peso{grid-template-columns:7.5em minmax(0,1fr) 2.6em}
 }
 </style>
 </head>
@@ -442,15 +468,23 @@ body:not(.expo) #b-rotulo{flex:1}
           <button class="btn sec" id="robot-auto" type="button">Probar las 100</button>
           <button class="btn sec" id="robot-reset" type="button">Empezar de cero</button>
         </div>
-        <p style="font-size:.95em">Sopas probadas: <span class="dato" id="robot-n">0</span> de 100. <span id="robot-msg" aria-live="polite"></span></p>
+        <p style="font-size:.86em">Sopas probadas: <span class="dato" id="robot-n">0</span> de 100. <span id="robot-msg" aria-live="polite"></span></p>
         <div class="fila" style="flex-wrap:nowrap;align-items:flex-start;border-top:1px dashed var(--linea);padding-top:10px">
           <button class="btn" id="robot-chef" type="button" style="flex:none">Que lo evalúe el chef</button>
-          <p id="robot-nota" aria-live="polite" style="font-size:.92em;min-height:3.9em"></p>
+          <p id="robot-nota" aria-live="polite" style="font-size:.84em;min-height:3.9em"></p>
         </div>
       </div>
       <div class="pila" style="gap:8px">
+        <div class="panel robot-eta" style="padding:10px 14px">
+          <div>
+            <label for="robot-eta">Tamaño del ajuste (η): <span class="dato" id="robot-etav"></span></label>
+            <input type="range" id="robot-eta" min="0.05" max="1.5" step="0.05" value="0.25">
+            <p class="nota" style="font-size:.74em">Cambiarlo empieza de cero.</p>
+          </div>
+          <svg id="robot-curva" viewBox="0 0 260 66" role="img" aria-label="Curva de aprendizaje: parecido de la sopa del robot en cada intento"></svg>
+        </div>
         <div class="desborde">
-        <table style="font-size:.82em">
+        <table class="apretada" style="font-size:.8em">
           <thead><tr><th>En la cocina</th><th>En el perceptrón</th></tr></thead>
           <tbody>
             <tr class="f"><td>Las 100 sopas de muestra</td><td>Los billetes de <strong>entrenamiento</strong></td></tr>
@@ -470,19 +504,61 @@ body:not(.expo) #b-rotulo{flex:1}
 </section>
 
 <section class="lamina" data-parte="aprende">
+  <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Entrena tú un filtro de correos</h2></header>
+  <div class="cuerpo" style="gap:10px">
+    <p style="font-size:.92em">Un perceptrón real arranca con los pesos en cero y revisa 10 correos, uno por uno. Antes de cada revisión, apuesten: ¿spam o normal? Luego miren qué dice él y cómo se corrige cuando falla.</p>
+    <div class="dos" style="gap:22px">
+      <div class="panel" style="gap:9px">
+        <div class="correo" id="co-carta" aria-live="polite"></div>
+        <div class="fila" role="group" aria-label="Apuesta del público">
+          <span style="font-weight:600;font-size:.88em">¿Qué dice el público?</span>
+          <button class="btn sec" type="button" data-apuesta="1">Spam</button>
+          <button class="btn sec" type="button" data-apuesta="0">Normal</button>
+        </div>
+        <p id="co-msg" aria-live="polite" style="font-size:.86em;min-height:5.4em"></p>
+        <div class="fila">
+          <button class="btn" id="co-sig" type="button">Siguiente correo</button>
+          <button class="btn sec" id="co-auto" type="button">Entrenar solo</button>
+          <button class="btn sec" id="co-reset" type="button">Reiniciar</button>
+        </div>
+        <p class="marcador" id="co-marcador" aria-live="polite"></p>
+      </div>
+      <div class="pila" style="gap:10px">
+        <div class="panel" style="gap:7px">
+          <h3>Pesos del filtro, en vivo</h3>
+          <div id="co-pesos" class="pila" style="gap:5px"></div>
+          <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-aut"/></svg>empuja hacia normal</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-fal"/></svg>empuja hacia spam</span></div>
+          <p class="nota" id="co-z"></p>
+        </div>
+        <p class="nota f">Es la misma regla de aprendizaje que con los billetes: si acierta no toca nada; si falla, suma o resta las entradas a los pesos. La diferencia es que aquí las características se pueden leer, y al final se ve cuáles delatan al spam.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Solo corrige cuando se equivoca</h2></header>
-  <div class="cuerpo centro a2">
+  <div class="cuerpo centro" style="gap:12px">
     <p class="entrada">Arranca con todos los pesos en cero y revisa los billetes uno por uno. Si acierta, no toca nada. Si falla, mueve los pesos en la dirección que habría evitado el error.</p>
-    <pre class="f" aria-label="Regla de aprendizaje">w ← w + η · (real − predicho) · x        b ← b + η · (real − predicho)        η = tasa de aprendizaje</pre>
-    <div class="desborde">
-    <table style="font-size:.95em">
-      <thead class="f"><tr><th>Qué pasó</th><th class="n">real − predicho</th><th>Qué hace</th><th>Efecto</th></tr></thead>
-      <tbody>
-        <tr class="f"><td>Acertó</td><td class="n">0</td><td>Nada</td><td>Los pesos quedan igual.</td></tr>
-        <tr class="f"><td>Dijo auténtico y era falsificado</td><td class="n">+1</td><td>Suma las entradas a los pesos</td><td>Ese billete tendrá un puntaje más alto.</td></tr>
-        <tr class="f"><td>Dijo falsificado y era auténtico</td><td class="n">−1</td><td>Resta las entradas a los pesos</td><td>Ese billete tendrá un puntaje más bajo.</td></tr>
-      </tbody>
-    </table>
+    <pre aria-label="Regla de aprendizaje">w ← w + η · (real − predicho) · x        b ← b + η · (real − predicho)        η = tasa de aprendizaje</pre>
+    <div class="dos" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)">
+      <div class="panel" id="quiz">
+        <p class="nota" id="quiz-n"></p>
+        <p id="quiz-caso" style="font-weight:700;font-size:1.05em;min-height:2.8em"></p>
+        <div class="quiz-op" role="group" aria-label="¿Qué hace el perceptrón?">
+          <button class="btn sec" type="button" data-q="0">No hace nada</button>
+          <button class="btn sec" type="button" data-q="1">Suma las entradas</button>
+          <button class="btn sec" type="button" data-q="-1">Resta las entradas</button>
+        </div>
+        <p id="quiz-fb" aria-live="polite" style="font-size:.88em;min-height:4.2em"></p>
+        <div class="fila"><button class="btn" id="quiz-sig" type="button">Siguiente caso</button><span class="dato" id="quiz-pts" aria-live="polite"></span></div>
+      </div>
+      <div class="desborde">
+      <table style="font-size:.84em">
+        <thead><tr><th>Qué pasó</th><th class="n">real − predicho</th><th>Qué hace</th><th>Efecto</th></tr></thead>
+        <tbody id="quiz-tabla"></tbody>
+      </table>
+      </div>
     </div>
     <p class="nota f">Cada pasada completa por todos los billetes es una <strong>época</strong>. Si existe una recta que separa las dos clases, el algoritmo la encuentra en un número finito de correcciones (teorema de convergencia, 1962).</p>
   </div>
@@ -502,9 +578,15 @@ body:not(.expo) #b-rotulo{flex:1}
           <button class="btn sec" id="mini-auto" type="button">Reproducir solo</button>
           <button class="btn sec" id="mini-reset" type="button">Reiniciar</button>
         </div>
+        <div class="fila" style="border-top:1px dashed var(--linea);padding-top:8px">
+          <button class="btn sec" id="mini-predice" type="button" aria-pressed="false">Predice tú</button>
+          <button class="btn" type="button" data-mini="0" hidden>¿Acertará?</button>
+          <button class="btn" type="button" data-mini="1" hidden>¿Corregirá?</button>
+          <span class="nota" id="mini-pub" aria-live="polite"></span>
+        </div>
         <p>Época <span class="dato" id="mini-epoca"></span>. Pesos w = <span class="dato" id="mini-w"></span>, sesgo b = <span class="dato" id="mini-b"></span>. Correcciones: <span class="dato" id="mini-corr"></span>.</p>
         <p id="mini-msg" aria-live="polite" style="min-height:5.6em"></p>
-        <div class="desborde" style="max-height:190px;overflow-y:auto">
+        <div class="desborde" style="max-height:160px;overflow-y:auto">
         <table>
           <thead><tr><th class="n">Época</th><th class="n">Billete</th><th class="n">z</th><th>Dijo</th><th>Era</th><th>Acción</th></tr></thead>
           <tbody id="mini-log"></tbody>
@@ -530,12 +612,13 @@ body:not(.expo) #b-rotulo{flex:1}
         </div>
         <div class="fila">
           <button class="btn" id="vivo-1" type="button">Entrenar 1 época</button>
-          <button class="btn sec" id="vivo-10" type="button">Entrenar 10 épocas</button>
+          <button class="btn sec" id="vivo-10" type="button">10 épocas</button>
+          <button class="btn sec" id="vivo-hasta" type="button">Entrenar hasta que pare</button>
           <button class="btn sec" id="vivo-reset" type="button">Reiniciar</button>
         </div>
         <p style="font-size:.92em">Épocas: <span class="dato" id="vivo-ep">0</span>. Correcciones en la última: <span class="dato" id="vivo-err"></span>. Mal clasificados en entrenamiento: <span class="dato" id="vivo-mal"></span>. Aciertos en prueba: <span class="dato" id="vivo-acc"></span>.</p>
         <svg id="vivo-curva" viewBox="0 0 420 150" role="img" aria-label="Correcciones por época"></svg>
-        <p class="nota" id="vivo-nota"></p>
+        <p class="nota" id="vivo-nota" aria-live="polite"></p>
       </div>
     </div>
   </div>
@@ -993,7 +1076,8 @@ mostrarBillete(TEST[1]);
 
 /* ============ APRENDE: el robot y las 100 sopas ============ */
 (function () {
-  const ING = [["Sal", "g", 9, 15], ["Limón", "ml", 22, 30], ["Ají", "g", 4, 8]], PASO = 0.25, TOL = 0.1, SOPAS = 100;
+  const ING = [["Sal", "g", 9, 15], ["Limón", "ml", 22, 30], ["Ají", "g", 4, 8]], TOL = 0.1, SOPAS = 100;
+  let PASO = 0.25, hist, vaiven, previos;
   $("#robot-filas").innerHTML = ING.map((g, i) => `<div class="receta"><span><strong>${g[0]}</strong></span>
       <div class="olla"><i id="rb-f${i}"></i><b style="left:${(g[2] - 1) / g[3] * 100}%;width:${2 / g[3] * 100}%"></b></div>
       <span><span class="dato" id="rb-v${i}"></span> <span class="nota" id="rb-j${i}"></span></span></div>`).join("");
@@ -1001,38 +1085,68 @@ mostrarBillete(TEST[1]);
   const juicio = i => { const d = ING[i][2] - q[i]; return Math.abs(d) <= TOL ? 0 : (d > 0 ? 1 : -1); };
   const enPunto = () => ING.filter((_, i) => juicio(i) === 0).length;
   const lista = a => a.length > 1 ? a.slice(0, -1).join(", ") + " y " + a[a.length - 1] : a[0];
+  const parecido = () => ING.reduce((s, g, i) => s + Math.max(0, 1 - Math.abs(g[2] - q[i]) / g[2]), 0) / ING.length;
+  /* curva de aprendizaje: el parecido en cada sopa; las rayas de abajo marcan las sopas en que se pasó del punto */
+  function curva() {
+    const s = $("#robot-curva"); s.innerHTML = "";
+    const m = { l: 34, r: 6, t: 8, b: 16 }, W0 = 260, H0 = 66;
+    const X = k => m.l + k / SOPAS * (W0 - m.l - m.r), Y = v => H0 - m.b - v * (H0 - m.t - m.b);
+    [0, 1].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Y(v), y2: Y(v), class: "eje" }, s); sv("text", { x: m.l - 4, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = v ? "100 %" : "0"; });
+    sv("text", { x: m.l, y: H0 - 3 }, s).textContent = "parecido en cada sopa";
+    sv("text", { x: W0 - m.r, y: H0 - 3, "text-anchor": "end" }, s).textContent = SOPAS;
+    hist.forEach((h, k) => { if (h.paso) sv("line", { x1: X(k), x2: X(k), y1: Y(0) - 7, y2: Y(0), stroke: "var(--falso)", "stroke-width": 1.5 }, s); });
+    sv("polyline", { points: hist.map((h, k) => `${X(k).toFixed(1)},${Y(h.par).toFixed(1)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2, "stroke-linejoin": "round" }, s);
+    const u = hist[hist.length - 1];
+    sv("circle", { cx: X(hist.length - 1), cy: Y(u.par), r: 3.5, class: "grab-f" }, s);
+  }
   function pintar(dichos) {
     ING.forEach((g, i) => {
       $("#rb-f" + i).style.width = (q[i] / g[3] * 100) + "%";
       $("#rb-v" + i).textContent = `${fmt(q[i])} ${g[1]}`;
       $("#rb-j" + i).textContent = dichos ? ["me pasé", "igual", "le falta"][dichos[i] + 1] : "";
     });
-    const par = ING.reduce((s, g, i) => s + Math.max(0, 1 - Math.abs(g[2] - q[i]) / g[2]), 0) / ING.length;
+    const par = parecido();
     $("#robot-par").style.width = (par * 100) + "%"; $("#robot-parv").textContent = pct(par, 0);
     $("#robot-n").textContent = n;
     $("#robot-boca").setAttribute("d", enPunto() === ING.length ? "M48 68Q60 80 72 68" : "M48 70H72");
     ["#robot-1", "#robot-10"].forEach(id => $(id).disabled = n >= SOPAS);
-    let msg = "Empieza sin receta: todo en cero, igual que los pesos del perceptrón.";
+    curva();
+    let msg = `Empieza sin receta: todo en cero, igual que los pesos del perceptrón. Cada ajuste mueve ${fmt(PASO)} el ingrediente.`;
     if (dichos) {
       const falta = ING.filter((_, i) => dichos[i] === 1).map(g => g[0].toLowerCase());
       const sobra = ING.filter((_, i) => dichos[i] === -1).map(g => g[0].toLowerCase());
       if (!falta.length && !sobra.length) msg = `La sopa ${n} le sabe igual a la suya: no ajusta nada.`;
       else msg = `Sopa ${n}: a la suya ${[falta.length ? "le falta " + lista(falta) : "", sobra.length ? "le sobra " + lista(sobra) : ""].filter(Boolean).join(" y ")}. Ajusta ${fmt(PASO)}.`;
-      if (n >= SOPAS) msg += " Ya probó las 100.";
+      if (vaiven >= 4 && enPunto() < ING.length) msg += " <strong class=\"c-fal\">η muy grande: se pasa del punto y oscila entre «le falta» y «me pasé» sin llegar nunca a «igual».</strong>";
+      else if (n >= SOPAS && enPunto() < ING.length) msg += " <strong>η muy pequeño: aprende tan lento que no le alcanzaron las 100.</strong>";
+      else if (n >= SOPAS) msg += " Ya probó las 100.";
     }
-    $("#robot-msg").textContent = msg;
+    $("#robot-msg").innerHTML = msg;
   }
   function probar() {
     if (n >= SOPAS) return parar();
     n++;
     const dichos = ING.map((_, i) => juicio(i));
-    dichos.forEach((d, i) => q[i] += PASO * d);
+    /* se pasó del punto: un ingrediente que antes «le faltaba» ahora «sobra», o al revés */
+    const paso = dichos.some((d, i) => d && previos[i] && d !== previos[i]);
+    if (paso) vaiven++;
+    dichos.forEach((d, i) => { q[i] += PASO * d; if (d) previos[i] = d; });
+    hist.push({ par: parecido(), paso });
     $("#robot-nota").textContent = "";
     pintar(dichos);
     if (n >= SOPAS) parar();
   }
   function parar() { if (timer) { clearInterval(timer); timer = null; $("#robot-auto").textContent = "Probar las 100"; } }
-  function reset() { parar(); q = [0, 0, 0]; n = 0; $("#robot-nota").textContent = "El chef todavía no ha probado la sopa del robot."; pintar(null); }
+  function reset() {
+    parar(); q = [0, 0, 0]; n = 0; vaiven = 0; previos = [0, 0, 0];
+    hist = [{ par: parecido(), paso: false }];
+    $("#robot-nota").textContent = "El chef todavía no ha probado la sopa del robot.";
+    pintar(null);
+  }
+  const eta = $("#robot-eta");
+  const ponerEta = () => { PASO = +eta.value; $("#robot-etav").textContent = fmt(PASO); };
+  eta.addEventListener("input", () => { ponerEta(); reset(); });
+  ponerEta();
   $("#robot-1").onclick = () => { parar(); probar(); };
   $("#robot-10").onclick = () => { parar(); for (let k = 0; k < 10; k++) probar(); };
   $("#robot-reset").onclick = reset;
@@ -1048,6 +1162,140 @@ mostrarBillete(TEST[1]);
       ? `<strong class="c-aut">Aprobado.</strong> El chef la prueba y le sabe idéntica a la original: ${ok} de ${ING.length} ingredientes en su punto.`
       : `<strong class="c-fal">Todavía no.</strong> ${ok} de ${ING.length} ingredientes en su punto: ${lista(mal)}. El robot tiene que seguir probando sopas y ajustando.`;
   };
+  reset();
+})();
+
+/* ============ APRENDE: filtro de correos que entrena el público ============ */
+(function () {
+  const RASGOS = ["Dice «gratis» o «premio»", "Muchos signos «¡!»", "Remitente desconocido", "Pide datos o un enlace"];
+  const CORTO = ["«Gratis» o «premio»", "Muchos «¡!»", "Remitente desconocido", "Pide datos o enlace"];
+  const TIPO = ["normal", "spam"], SUB = ["₁", "₂", "₃", "₄"];
+  /* correos inventados; y = 1 es spam */
+  const CORREOS = [
+    { de: "premios-ya@promo-click.biz", asunto: "¡¡GANASTE un premio!!! Reclámalo aquí", x: [1, 1, 1, 1], y: 1 },
+    { de: "coordinacion@universidad.edu.co", asunto: "Acta de la reunión del martes", x: [0, 0, 0, 0], y: 0 },
+    { de: "soporte@banco-seguro.xyz", asunto: "Tu cuenta será bloqueada: confirma tus datos", x: [0, 0, 1, 1], y: 1 },
+    { de: "bienestar@universidad.edu.co", asunto: "Entrada gratis al foro de analítica: inscríbete en el enlace", x: [1, 0, 0, 1], y: 0 },
+    { de: "ofertas@megadescuentos.top", asunto: "¡¡¡Oferta increíble, solo por hoy!!!", x: [0, 1, 1, 0], y: 1 },
+    { de: "tia.marta@correo.com", asunto: "¡¡Feliz cumpleaños, sobrino!!", x: [0, 1, 0, 0], y: 0 },
+    { de: "cupones@regalos-gratis.info", asunto: "Cupón GRATIS: ingresa el número de tu tarjeta", x: [1, 0, 1, 1], y: 1 },
+    { de: "facturacion@energia-del-valle.com.co", asunto: "Tu factura de octubre: descárgala en el enlace", x: [0, 0, 0, 1], y: 0 },
+    { de: "ganador2026@sorteos-mundiales.net", asunto: "¡¡Premio garantizado para ti!!", x: [1, 1, 1, 0], y: 1 },
+    { de: "practicante.nuevo@correo.com", asunto: "Hola, soy el nuevo practicante del área", x: [0, 0, 1, 0], y: 0 }
+  ];
+  const TOPE = 4;
+  $("#co-pesos").innerHTML = CORTO.map((r, j) => `<div class="aporte peso" id="cp-${j}" style="grid-template-columns:11em minmax(0,1fr) 2.6em"><span>w${SUB[j]} ${r}</span><div class="pista"><i></i></div><span class="dato" style="text-align:right"></span></div>`).join("")
+    + `<div class="aporte peso" id="cp-b" style="grid-template-columns:11em minmax(0,1fr) 2.6em"><span>Sesgo b</span><div class="pista"><i></i></div><span class="dato" style="text-align:right"></span></div>`;
+  function barra(fila, v) {
+    const el = $("i", fila), a = Math.min(Math.abs(v), TOPE) / TOPE * 50;
+    el.style.width = a + "%"; el.style.left = (v < 0 ? 50 - a : 50) + "%";
+    el.style.background = v < 0 ? "var(--autentico)" : "var(--falso)";
+    $(".dato", fila).textContent = signo(v, 0);
+  }
+  let s, timer = null;
+  const zDe = c => zLineal(c.x, s.w, s.b);
+  function pintarPesos() {
+    const c = CORREOS[s.i];
+    s.w.forEach((v, j) => { const f = $("#cp-" + j); barra(f, v); f.classList.toggle("apagado", !c.x[j]); });
+    barra($("#cp-b"), s.b);
+    const act = c.x.map((v, j) => v ? j : -1).filter(j => j >= 0);
+    $("#co-z").textContent = `Para este correo: z = ${act.map(j => "w" + SUB[j]).concat("b").join(" + ")} = ${act.map(j => signo(s.w[j], 0)).concat(signo(s.b, 0)).join(" + ").replace(/\+ −/g, "− ")} = ${signo(zDe(c), 0)}. Si z ≥ 0 dice spam.`;
+  }
+  function pintarCarta() {
+    const c = CORREOS[s.i];
+    $("#co-carta").innerHTML = `<span class="nota">Correo ${s.i + 1} de ${CORREOS.length} · ronda ${s.ronda}</span>
+      <span class="de">De: ${c.de}</span><span class="asunto">${c.asunto}</span>
+      <ul class="rasgos">${RASGOS.map((r, j) => `<li class="${c.x[j] ? "si" : ""}"><b>x${SUB[j]} = ${c.x[j]}</b>${r}</li>`).join("")}</ul>`;
+  }
+  function pintarMando() {
+    $$("[data-apuesta]").forEach(b => b.disabled = !s.pend || s.fin);
+    $("#co-sig").textContent = s.pend && !s.fin ? "Revisar sin apostar" : "Siguiente correo";
+    $("#co-sig").disabled = s.fin;
+    const pub = s.apuestas ? `Público: <span class="dato">${s.pub} de ${s.apuestas}</span> · Perceptrón en esos mismos correos: <span class="dato">${s.percEnApuestas} de ${s.apuestas}</span>` : "Público: todavía sin apuestas";
+    $("#co-marcador").innerHTML = `${pub} · Correcciones: <span class="dato">${s.corr}</span>`;
+  }
+  function revisar(apuesta) {
+    const c = CORREOS[s.i], z = zDe(c), pred = z >= 0 ? 1 : 0, e = c.y - pred;
+    let msg = "";
+    if (apuesta !== null) {
+      s.apuestas++; if (apuesta === c.y) s.pub++; if (pred === c.y) s.percEnApuestas++;
+      msg += `Ustedes dijeron ${TIPO[apuesta]}: <strong>${apuesta === c.y ? "acertaron" : "fallaron"}</strong>. `;
+    }
+    msg += `El perceptrón calcula z = ${signo(z, 0)} y dice <span class="pastilla ${pred ? "c-fal" : "c-aut"}">${TIPO[pred]}</span>; era <span class="pastilla ${c.y ? "c-fal" : "c-aut"}">${TIPO[c.y]}</span>. `;
+    if (e === 0) msg += "Acierta: no toca los pesos.";
+    else {
+      const act = c.x.map((v, j) => v ? "w" + SUB[j] : "").filter(Boolean);
+      s.w = s.w.map((v, j) => v + e * c.x[j]); s.b += e; s.corr++; s.errRonda++;
+      msg += `<strong>Se equivoca</strong> (error ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "le suma 1" : "le resta 1"} a ${act.length ? act.join(", ") + " y al sesgo" : "al sesgo"}.`;
+    }
+    s.pend = false;
+    if (s.i === CORREOS.length - 1 && s.errRonda === 0) {
+      s.fin = true; parar();
+      msg += ` <strong>Ronda ${s.ronda} completa sin errores: el filtro aprendió con ${cuantos(s.corr, "corrección", "correcciones")}.</strong> Lo que más delata al spam es lo que tiene el peso más alto.`;
+    } else if (s.i === CORREOS.length - 1) msg += ` Fin de la ronda ${s.ronda} con ${cuantos(s.errRonda, "corrección", "correcciones")}: vuelve a revisarlos.`;
+    $("#co-msg").innerHTML = msg;
+    pintarPesos(); pintarMando();
+  }
+  function siguiente() {
+    if (s.fin) return parar();
+    if (s.pend) return revisar(null);
+    s.i++;
+    if (s.i === CORREOS.length) { s.i = 0; s.ronda++; s.errRonda = 0; }
+    s.pend = true;
+    $("#co-msg").innerHTML = "¿Spam o normal? Apuesten antes de revisar.";
+    pintarCarta(); pintarPesos(); pintarMando();
+  }
+  function parar() { if (timer) { clearInterval(timer); timer = null; $("#co-auto").textContent = "Entrenar solo"; } }
+  function reset() {
+    parar();
+    s = { w: [0, 0, 0, 0], b: 0, i: 0, ronda: 1, errRonda: 0, corr: 0, pend: true, fin: false, pub: 0, apuestas: 0, percEnApuestas: 0 };
+    $("#co-msg").innerHTML = "Pesos y sesgo en cero: con todo en cero z da 0 y el filtro le dice spam a cualquier correo. ¿Spam o normal? Apuesten antes de revisar.";
+    pintarCarta(); pintarPesos(); pintarMando();
+  }
+  $$("[data-apuesta]").forEach(b => b.onclick = () => { parar(); if (s.pend && !s.fin) revisar(+b.dataset.apuesta); });
+  $("#co-sig").onclick = () => { parar(); siguiente(); };
+  $("#co-reset").onclick = reset;
+  $("#co-auto").onclick = () => {
+    if (timer) return parar();
+    if (s.fin) reset();
+    $("#co-auto").textContent = "Pausar"; timer = setInterval(siguiente, 700);
+  };
+  reset();
+})();
+
+/* ============ APRENDE: quiz de la regla ============ */
+(function () {
+  const CASOS = [
+    { caso: "Dijo auténtico y era falsificado.", e: 1, que: "Suma las entradas a los pesos", efecto: "Ese billete tendrá un puntaje más alto.", por: "Real − predicho = 1 − 0 = +1: suma las entradas para que la próxima vez ese billete quede del lado de los falsificados." },
+    { caso: "Dijo falsificado y era falsificado.", e: 0, que: "Nada", efecto: "Los pesos quedan igual.", por: "Acertó: real − predicho = 1 − 1 = 0, así que la regla no mueve nada." },
+    { caso: "Dijo falsificado y era auténtico.", e: -1, que: "Resta las entradas a los pesos", efecto: "Ese billete tendrá un puntaje más bajo.", por: "Real − predicho = 0 − 1 = −1: resta las entradas para bajarle el puntaje a ese billete." }
+  ];
+  const FILAS = [["Acertó", 1], ["Dijo auténtico y era falsificado", 0], ["Dijo falsificado y era auténtico", 2]];
+  let k, pts, resp;
+  function tabla() {
+    $("#quiz-tabla").innerHTML = FILAS.map(([t, c]) => {
+      const C = CASOS[c], ok = resp[c] !== undefined;
+      return `<tr><td>${t}</td><td class="n">${ok ? (C.e > 0 ? "+1" : C.e < 0 ? "−1" : "0") : "?"}</td><td class="${ok ? "" : "hueco"}">${ok ? C.que : "¿…?"}</td><td class="${ok ? "" : "hueco"}">${ok ? C.efecto : ""}</td></tr>`;
+    }).join("");
+  }
+  function pintar() {
+    const C = CASOS[k], hecho = resp[k] !== undefined;
+    $("#quiz-n").textContent = `Caso ${k + 1} de ${CASOS.length}: ¿qué hace el perceptrón?`;
+    $("#quiz-caso").textContent = C.caso;
+    $$("[data-q]").forEach(b => { const v = +b.dataset.q; b.disabled = hecho; b.classList.toggle("bien", hecho && v === C.e); b.classList.toggle("mal", hecho && v === resp[k] && v !== C.e); });
+    $("#quiz-sig").textContent = k === CASOS.length - 1 && hecho ? "Repetir el quiz" : "Siguiente caso";
+    $("#quiz-sig").disabled = !hecho;
+    $("#quiz-pts").textContent = `Aciertos: ${pts} de ${Object.keys(resp).length}`;
+    tabla();
+  }
+  function reset() { k = 0; pts = 0; resp = {}; $("#quiz-fb").textContent = ""; pintar(); }
+  $$("[data-q]").forEach(b => b.onclick = () => {
+    if (resp[k] !== undefined) return;
+    const v = +b.dataset.q, C = CASOS[k]; resp[k] = v; if (v === C.e) pts++;
+    $("#quiz-fb").innerHTML = `<strong class="${v === C.e ? "c-aut" : "c-fal"}">${v === C.e ? "¡Correcto!" : "No."}</strong> ${C.por}`;
+    pintar();
+  });
+  $("#quiz-sig").onclick = () => { if (k === CASOS.length - 1) return reset(); k++; $("#quiz-fb").textContent = ""; pintar(); };
   reset();
 })();
 
@@ -1067,17 +1315,30 @@ mostrarBillete(TEST[1]);
     $("#mini-epoca").textContent = s.epoca; $("#mini-w").textContent = `(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})`;
     $("#mini-b").textContent = signo(s.b, 0); $("#mini-corr").textContent = s.corr; $("#mini-msg").innerHTML = msg;
     $("#mini-paso").disabled = s.fin; $("#mini-paso").style.opacity = s.fin ? 0.5 : 1;
+    $("#mini-paso").hidden = predice;
+    $$("[data-mini]").forEach(b => { b.hidden = !predice; b.disabled = s.fin; });
+    $("#mini-predice").setAttribute("aria-pressed", predice);
+    $("#mini-predice").textContent = predice ? "Predice tú: activado" : "Predice tú";
+    $("#mini-pub").textContent = predice ? (pub.n ? `Aciertos del público: ${pub.ok} de ${pub.n}` : "Antes de revisar cada billete, apuesten.") : "";
   }
+  let predice = false, pub = { ok: 0, n: 0 };
   function reset() {
+    pub = { ok: 0, n: 0 };
     s = { w: [0, 0], b: 0, i: 0, epoca: 1, errEp: 0, corr: 0, fin: false, ult: null };
     $("#mini-log").innerHTML = "";
     pintar("Pesos y sesgo en cero. Todavía no hay frontera: con todo en cero el puntaje siempre da 0 y el modelo le dice «falsificado» a cualquier billete.");
   }
-  function paso() {
+  function paso(apuesta) {
     if (s.fin) return;
     const k = s.i, x = XM[k], y = YM[k], w0 = [...s.w], b0 = s.b;
     const z = w0[0] * x[0] + w0[1] * x[1] + b0, pred = z >= 0 ? 1 : 0, e = y - pred;
-    let msg = `<strong>Billete ${k + 1}</strong> (${NOMBRE[y]}). z = (${signo(w0[0], 1)})(${signo(x[0], 1)}) + (${signo(w0[1], 1)})(${signo(x[1], 1)}) + (${signo(b0, 0)}) = <strong>${signo(z)}</strong>. Dice ${NOMBRE[pred]}. `;
+    let msg = "";
+    if (apuesta !== undefined) {
+      const ok = apuesta === (e !== 0 ? 1 : 0);
+      pub.n++; if (ok) pub.ok++;
+      msg += `Apostaron «${apuesta ? "corregirá" : "acertará"}»: <strong class="${ok ? "c-aut" : "c-fal"}">${ok ? "¡bien!" : "no"}</strong>. `;
+    }
+    msg += `<strong>Billete ${k + 1}</strong> (${NOMBRE[y]}). z = (${signo(w0[0], 1)})(${signo(x[0], 1)}) + (${signo(w0[1], 1)})(${signo(x[1], 1)}) + (${signo(b0, 0)}) = <strong>${signo(z)}</strong>. Dice ${NOMBRE[pred]}. `;
     if (e !== 0) {
       s.w = [w0[0] + e * x[0], w0[1] + e * x[1]]; s.b = b0 + e; s.errEp++; s.corr++;
       msg += `<strong>Se equivoca</strong> (error ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "suma" : "resta"} las entradas a los pesos y la frontera se mueve.`;
@@ -1092,11 +1353,13 @@ mostrarBillete(TEST[1]);
   }
   function parar() { if (timer) { clearInterval(timer); timer = null; $("#mini-auto").textContent = "Reproducir solo"; } }
   $("#mini-paso").onclick = () => { parar(); paso(); };
+  $$("[data-mini]").forEach(b => b.onclick = () => { parar(); paso(+b.dataset.mini); });
+  $("#mini-predice").onclick = () => { predice = !predice; parar(); pintar($("#mini-msg").innerHTML); };
   $("#mini-reset").onclick = () => { parar(); reset(); };
   $("#mini-auto").onclick = () => {
     if (timer) return parar();
     if (s.fin) reset();
-    $("#mini-auto").textContent = "Pausar"; timer = setInterval(paso, 1100);
+    $("#mini-auto").textContent = "Pausar"; timer = setInterval(() => paso(), 1100);
   };
   reset();
 })();
@@ -1141,9 +1404,29 @@ mostrarBillete(TEST[1]);
     $("#vivo-acc").textContent = `${ok} de ${T4.length} (${pct(ok / T4.length, 1)})`;
   }
   function entrenar(n) { for (let k = 0; k < n && hist.length < 60; k++) { const r = entrenarEpoca(datos(), Y, w, b); b = r.b; hist.push(r.err); } pintar(); }
-  function reset() { w = modo === 4 ? [0, 0, 0, 0] : [0, 0]; b = 0; hist = []; pintar(); }
+  /* entrenar hasta que pare: una época cada 300 ms hasta que no corrija nada o llegue a 40 épocas seguidas */
+  const MAX_SEGUIDAS = 40;
+  let timer = null, seguidas = 0;
+  function parar(motivo) {
+    if (timer) { clearInterval(timer); timer = null; }
+    $("#vivo-hasta").textContent = "Entrenar hasta que pare";
+    if (motivo) $("#vivo-nota").textContent = motivo;
+  }
+  function tic() {
+    if (hist.length >= 60) return parar("Llegó al tope de 60 épocas de esta demostración: pulsa Reiniciar para volver a empezar.");
+    entrenar(1); seguidas++;
+    const ult = hist[hist.length - 1];
+    if (ult === 0) parar(`Paró en la época ${hist.length}: recorrió todos los billetes sin corregir ninguno.`);
+    else if (seguidas >= MAX_SEGUIDAS) parar(`Paró tras ${MAX_SEGUIDAS} épocas sin llegar a cero correcciones (quedaron ${ult} en la última): siempre queda algún billete del lado equivocado, así que el resultado depende de cuándo se detenga.`);
+  }
+  $("#vivo-hasta").onclick = () => {
+    if (timer) return parar(`En pausa en la época ${hist.length}.`);
+    if (hist.length >= 60) reset();
+    seguidas = 0; $("#vivo-hasta").textContent = "Pausar"; timer = setInterval(tic, 300);
+  };
+  function reset() { parar(); w = modo === 4 ? [0, 0, 0, 0] : [0, 0]; b = 0; hist = []; pintar(); }
   $$("[data-modo]").forEach(bt => bt.onclick = () => { modo = +bt.dataset.modo; $$("[data-modo]").forEach(o => o.setAttribute("aria-pressed", o === bt)); reset(); });
-  $("#vivo-1").onclick = () => entrenar(1); $("#vivo-10").onclick = () => entrenar(10); $("#vivo-reset").onclick = reset;
+  $("#vivo-1").onclick = () => { parar(); entrenar(1); }; $("#vivo-10").onclick = () => { parar(); entrenar(10); }; $("#vivo-reset").onclick = reset;
   reset();
 })();
 
