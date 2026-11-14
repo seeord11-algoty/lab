@@ -143,7 +143,7 @@ svg text{font-family:var(--f-texto);fill:var(--tinta-2);font-size:12px}
 .paso p{font-size:.9em}
 .paso .n0{font-family:var(--f-titulo);font-style:italic;color:var(--grabado);margin-right:8px}
 
-.receta{display:grid;grid-template-columns:4.2em minmax(0,1fr) 9.6em;gap:10px;align-items:center;font-size:.9em}
+.receta{display:grid;grid-template-columns:4.9em minmax(0,1fr) 10.4em;gap:10px;align-items:center;font-size:.9em}
 .olla{position:relative;height:20px;background:var(--hundido);border-radius:3px}
 .olla i{position:absolute;left:0;top:0;bottom:0;background:var(--grabado);border-radius:3px;transition:width .08s linear}
 .olla b{position:absolute;top:-4px;bottom:-4px;border:2px solid var(--tinta);border-radius:3px}
@@ -172,6 +172,35 @@ table.apretada th,table.apretada td{padding:4px 10px}
 .quiz-op .btn.bien{background:var(--grabado);border-color:var(--grabado);color:var(--sobre-grabado)}
 .quiz-op .btn.mal{background:var(--falso);border-color:var(--falso);color:#fff}
 td.hueco{color:var(--tinta-2)}
+.celda{transition:transform .15s ease,box-shadow .15s ease}
+.celda[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--tinta);transform:scale(1.03)}
+.banco-dice{border-left:4px solid var(--grabado);background:var(--hundido);padding:8px 12px;border-radius:0 4px 4px 0;font-weight:600}
+.banco-dice.grave{border-left-color:var(--falso)}
+.met2{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 22px}
+button.metrica{font:inherit;font-size:.86em;text-align:left;background:transparent;border:0;border-top:3px solid var(--grabado);border-radius:0 0 6px 6px;cursor:pointer;padding:9px 10px 8px}
+button.metrica[aria-pressed="true"]{background:var(--hundido);border-top-color:var(--tinta)}
+.mcel{border:2px solid var(--linea);border-radius:4px;padding:7px 10px;display:flex;flex-direction:column;background:var(--lamina);font-size:.92em;transition:opacity .2s ease,background .2s ease}
+.mcel .cifra{font-size:1.7rem}
+.mcel.den{border:2px dashed var(--tinta)}
+.mcel.num{border:2px solid var(--tinta);background:color-mix(in srgb,var(--grabado) 24%,var(--lamina))}
+.mcel.fuera{opacity:.32}
+.tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.tres>div{border-top:3px solid var(--grabado);padding-top:6px;font-size:.82em;color:var(--tinta-2);display:flex;flex-direction:column;gap:2px}
+.tres .cifra{font-size:1.8rem;color:var(--tinta)}
+.resalte.atrapado{stroke:var(--grabado);stroke-width:3.5}
+.cv-fila{display:grid;grid-template-columns:4.4em minmax(0,1fr) 9em;gap:10px;align-items:center;font-size:.84em;padding:3px 4px;border-radius:4px}
+.cv-fila.turno{background:var(--hundido);box-shadow:0 0 0 2px var(--tinta)}
+.cv-bloques{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.cv-bloques i{height:22px;border-radius:3px;background:var(--hundido);border:1px solid var(--linea)}
+.cv-bloques i.prueba{background:var(--grabado);border-color:var(--grabado)}
+#cv-rango text{font-size:12.5px}
+#cv-rango .rot{fill:var(--tinta);font-weight:700}
+mark.cambio{background:color-mix(in srgb,var(--falso) 30%,transparent);color:inherit;padding:0 4px;border-radius:3px;font-weight:700}
+.calculo{display:flex;flex-direction:column;gap:3px;font-size:.88em}
+.calculo .cuenta{font-family:var(--f-codigo);font-size:.9em}
+#regla-svg text{font-size:13px}
+#regla-svg .rot{fill:var(--tinta);font-weight:600}
+.epoca-n{font-family:var(--f-titulo);font-weight:700;font-size:1.9rem;line-height:1;font-variant-numeric:tabular-nums}
 /* ---------- Barra de mando ---------- */
 .mando{position:fixed;left:0;right:0;bottom:0;height:46px;overflow:hidden;z-index:30;background:var(--lamina);border-top:1px solid var(--linea);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:.84rem}
 .bb{font:600 .8rem var(--f-texto);padding:6px 10px;border-radius:4px;border:1px solid var(--linea);background:transparent;color:var(--tinta);cursor:pointer;white-space:nowrap}
@@ -205,13 +234,17 @@ body.expo .cuerpo.a2{font-size:1.2em}
 body.expo .cuerpo.a3{font-size:1.32em}
 body.expo .portada .cuerpo{display:grid}
 body.expo .metrica .cifra{font-size:3.3rem}
+body.expo .met2 .metrica .cifra{font-size:2.7rem}
+body.expo #pz-grid{max-height:118px;width:auto;margin:0 auto}
+body.expo #cv-rango{max-height:170px;width:auto;margin:0 auto}
 body.expo .robot{width:120px}
+body.expo #regla-svg{max-height:128px;width:auto;margin:0 auto}
 body.expo #vivo-curva{max-height:136px;width:auto;margin:0 auto}
 body.expo .f{opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease,visibility 0s .3s}
 body.expo .f.visto{opacity:1;visibility:visible;transform:none;transition:opacity .3s ease,transform .3s ease}
 body.expo tr.f:not(.visto) td,body.expo thead.f:not(.visto) th{border-color:transparent}
 body.expo .plano{max-height:372px;width:auto;margin:0 auto}
-body.expo #tira{max-height:210px;width:auto;margin:0 auto}
+body.expo #tira{max-height:236px;width:auto;margin:0 auto}
 body.expo #anatomia{max-height:330px;width:auto;margin:0 auto}
 body.expo .lect{display:none}
 
@@ -228,7 +261,7 @@ body:not(.expo) p,body:not(.expo) li{max-width:70ch}
 body:not(.expo) .solo-expo,body:not(.expo) #b-ant,body:not(.expo) #b-sig,body:not(.expo) #b-cuenta,body:not(.expo) #b-full,body:not(.expo) .avance{display:none}
 body:not(.expo) #b-rotulo{flex:1}
 @media (max-width:900px){
-  body:not(.expo) .dos,body:not(.expo) .portada .cuerpo{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .dos,body:not(.expo) .portada .cuerpo{grid-template-columns:minmax(0,1fr)!important}
   body:not(.expo) .camino,body:not(.expo) .metricas{grid-template-columns:repeat(2,minmax(0,1fr))}
   body:not(.expo) .tarjetas{columns:1}
   body:not(.expo) .billete{grid-template-columns:minmax(0,1fr)}
@@ -238,7 +271,9 @@ body:not(.expo) #b-rotulo{flex:1}
   body:not(.expo) .robot-caja{flex-wrap:wrap}
   body:not(.expo) .receta{grid-template-columns:3.6em minmax(0,1fr)}
   body:not(.expo) .receta>span:last-child{grid-column:1/-1}
-  body:not(.expo) .robot-eta{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .robot-eta,body:not(.expo) .tres{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .cv-fila{grid-template-columns:4.4em minmax(0,1fr)}
+  body:not(.expo) .cv-fila>span:last-child{grid-column:1/-1}
   body:not(.expo) .rasgos{grid-template-columns:minmax(0,1fr)}
   body:not(.expo) .aporte.peso{grid-template-columns:7.5em minmax(0,1fr) 2.6em}
 }
@@ -440,7 +475,7 @@ body:not(.expo) #b-rotulo{flex:1}
 <section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>El robot que aprendió una sopa probando 100 platos</h2></header>
   <div class="cuerpo">
-    <p>Un robot no sabe la receta de una sopa. Le dan a probar 100 sopas hechas con la receta original: tras cada una la compara con la suya y ajusta un poquito los ingredientes, hasta que le sale idéntica. Al final lo evalúa el chef.</p>
+    <p>Un robot no sabe la receta de una sopa. Prueba 100 sopas hechas con la receta original: compara cada una con la suya, mide la diferencia y ajusta un poquito los ingredientes. Al final lo evalúa el chef con platos que nunca probó.</p>
     <div class="dos">
       <div class="panel" style="gap:10px">
         <div class="fila robot-caja">
@@ -458,12 +493,12 @@ body:not(.expo) #b-rotulo{flex:1}
           </svg>
           <div class="pila" style="flex:1;gap:9px">
             <div id="robot-filas" class="pila" style="gap:9px"></div>
-            <div class="receta"><span class="nota">Parecido</span><div class="barra" style="height:12px"><i id="robot-par" style="width:0"></i></div><span class="dato" id="robot-parv"></span></div>
+            <div class="receta"><span class="nota">Error total</span><div class="barra" style="height:12px"><i id="robot-par" style="width:0;background:var(--falso)"></i></div><span class="dato" id="robot-parv" aria-live="polite"></span></div>
           </div>
         </div>
         <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="var(--tinta)" stroke-width="2"/></svg>la receta original (el robot no la ve, solo la prueba)</span></div>
         <div class="fila">
-          <button class="btn" id="robot-1" type="button">Probar 1 sopa</button>
+          <button class="btn" id="robot-1" type="button">Probar otra sopa</button>
           <button class="btn sec" id="robot-10" type="button">Probar 10</button>
           <button class="btn sec" id="robot-auto" type="button">Probar las 100</button>
           <button class="btn sec" id="robot-reset" type="button">Empezar de cero</button>
@@ -481,19 +516,19 @@ body:not(.expo) #b-rotulo{flex:1}
             <input type="range" id="robot-eta" min="0.05" max="1.5" step="0.05" value="0.25">
             <p class="nota" style="font-size:.74em">Cambiarlo empieza de cero.</p>
           </div>
-          <svg id="robot-curva" viewBox="0 0 260 66" role="img" aria-label="Curva de aprendizaje: parecido de la sopa del robot en cada intento"></svg>
+          <svg id="robot-curva" viewBox="0 0 260 66" role="img" aria-label="Curva de aprendizaje: error de la sopa del robot en cada intento"></svg>
         </div>
         <div class="desborde">
         <table class="apretada" style="font-size:.8em">
           <thead><tr><th>En la cocina</th><th>En el perceptrón</th></tr></thead>
           <tbody>
-            <tr class="f"><td>Las 100 sopas de muestra</td><td>Los billetes de <strong>entrenamiento</strong></td></tr>
+            <tr class="f"><td>Cada sopa de muestra</td><td>Un billete de <strong>entrenamiento</strong></td></tr>
             <tr class="f"><td>La cantidad de cada ingrediente</td><td>Los <strong>pesos</strong> y el sesgo</td></tr>
             <tr class="f"><td>Probar una y compararla con la suya</td><td><strong>Predecir</strong> y comparar con lo real</td></tr>
-            <tr class="f"><td>«Le falta» o «me pasé»</td><td>El <strong>error</strong>: real − predicho</td></tr>
+            <tr class="f"><td>La diferencia: «falta» o «sobra»</td><td>El <strong>error</strong>: real − predicho</td></tr>
             <tr class="f"><td>Ajustar un poquito</td><td>La <strong>regla de aprendizaje</strong></td></tr>
             <tr class="f"><td>Le sabe igual: no cambia nada</td><td>Si <strong>acierta</strong>, no toca los pesos</td></tr>
-            <tr class="f"><td>El chef que califica al final</td><td>Los billetes de <strong>prueba</strong> y las métricas</td></tr>
+            <tr class="f"><td>El chef y sus platos nuevos</td><td>El conjunto de <strong>prueba</strong> y las métricas</td></tr>
           </tbody>
         </table>
         </div>
@@ -540,7 +575,7 @@ body:not(.expo) #b-rotulo{flex:1}
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Solo corrige cuando se equivoca</h2></header>
   <div class="cuerpo centro" style="gap:12px">
     <p class="entrada">Arranca con todos los pesos en cero y revisa los billetes uno por uno. Si acierta, no toca nada. Si falla, mueve los pesos en la dirección que habría evitado el error.</p>
-    <pre aria-label="Regla de aprendizaje">w ← w + η · (real − predicho) · x        b ← b + η · (real − predicho)        η = tasa de aprendizaje</pre>
+    <pre aria-label="Regla de aprendizaje">w ← w + η · (y − ŷ) · x        b ← b + η · (y − ŷ)        y = real, ŷ = predicho, η = tasa de aprendizaje</pre>
     <div class="dos" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)">
       <div class="panel" id="quiz">
         <p class="nota" id="quiz-n"></p>
@@ -553,11 +588,19 @@ body:not(.expo) #b-rotulo{flex:1}
         <p id="quiz-fb" aria-live="polite" style="font-size:.88em;min-height:4.2em"></p>
         <div class="fila"><button class="btn" id="quiz-sig" type="button">Siguiente caso</button><span class="dato" id="quiz-pts" aria-live="polite"></span></div>
       </div>
-      <div class="desborde">
-      <table style="font-size:.84em">
-        <thead><tr><th>Qué pasó</th><th class="n">real − predicho</th><th>Qué hace</th><th>Efecto</th></tr></thead>
-        <tbody id="quiz-tabla"></tbody>
-      </table>
+      <div class="panel" id="regla" style="gap:8px">
+        <div class="fila" role="group" aria-label="Los tres casos de la regla">
+          <button class="btn sec" type="button" data-caso="0" aria-pressed="true">Acertó</button>
+          <button class="btn sec" type="button" data-caso="-1" aria-pressed="false">Falsa alarma</button>
+          <button class="btn sec" type="button" data-caso="1" aria-pressed="false">Se le pasó un falso</button>
+        </div>
+        <p id="regla-cuenta" style="font-size:.86em"></p>
+        <svg id="regla-svg" viewBox="0 0 460 112" role="img" aria-label="Hacia dónde se mueven los dos pesos y el sesgo en el caso elegido"></svg>
+        <div class="fila" style="flex-wrap:nowrap">
+          <label for="regla-eta" style="white-space:nowrap">Tasa η: <span class="dato" id="regla-etav"></span></label>
+          <input type="range" id="regla-eta" min="0.1" max="2" step="0.1" value="1">
+        </div>
+        <p id="regla-efecto" aria-live="polite" style="font-size:.86em;min-height:2.9em"></p>
       </div>
     </div>
     <p class="nota f">Cada pasada completa por todos los billetes es una <strong>época</strong>. Si existe una recta que separa las dos clases, el algoritmo la encuentra en un número finito de correcciones (teorema de convergencia, 1962).</p>
@@ -574,7 +617,7 @@ body:not(.expo) #b-rotulo{flex:1}
       </div>
       <div class="panel">
         <div class="fila">
-          <button class="btn" id="mini-paso" type="button">Revisar el siguiente billete</button>
+          <button class="btn" id="mini-paso" type="button">Siguiente billete</button>
           <button class="btn sec" id="mini-auto" type="button">Reproducir solo</button>
           <button class="btn sec" id="mini-reset" type="button">Reiniciar</button>
         </div>
@@ -584,9 +627,9 @@ body:not(.expo) #b-rotulo{flex:1}
           <button class="btn" type="button" data-mini="1" hidden>¿Corregirá?</button>
           <span class="nota" id="mini-pub" aria-live="polite"></span>
         </div>
-        <p>Época <span class="dato" id="mini-epoca"></span>. Pesos w = <span class="dato" id="mini-w"></span>, sesgo b = <span class="dato" id="mini-b"></span>. Correcciones: <span class="dato" id="mini-corr"></span>.</p>
-        <p id="mini-msg" aria-live="polite" style="min-height:5.6em"></p>
-        <div class="desborde" style="max-height:160px;overflow-y:auto">
+        <p style="font-size:.92em">Época <span class="dato" id="mini-epoca"></span>. Pesos w = <span class="dato" id="mini-w"></span>, sesgo b = <span class="dato" id="mini-b"></span>. Correcciones: <span class="dato" id="mini-corr"></span>.</p>
+        <div class="calculo" id="mini-msg" aria-live="polite" style="min-height:7.6em"></div>
+        <div class="desborde" style="max-height:118px;overflow-y:auto">
         <table>
           <thead><tr><th class="n">Época</th><th class="n">Billete</th><th class="n">z</th><th>Dijo</th><th>Era</th><th>Acción</th></tr></thead>
           <tbody id="mini-log"></tbody>
@@ -609,15 +652,20 @@ body:not(.expo) #b-rotulo{flex:1}
         <div class="fila" role="group" aria-label="Medidas que usa el perceptrón">
           <button class="btn sec" type="button" data-modo="4" aria-pressed="true">Con las 4 medidas</button>
           <button class="btn sec" type="button" data-modo="2" aria-pressed="false">Solo con 2 medidas</button>
-        </div>
-        <div class="fila">
-          <button class="btn" id="vivo-1" type="button">Entrenar 1 época</button>
-          <button class="btn sec" id="vivo-10" type="button">10 épocas</button>
-          <button class="btn sec" id="vivo-hasta" type="button">Entrenar hasta que pare</button>
           <button class="btn sec" id="vivo-reset" type="button">Reiniciar</button>
         </div>
-        <p style="font-size:.92em">Épocas: <span class="dato" id="vivo-ep">0</span>. Correcciones en la última: <span class="dato" id="vivo-err"></span>. Mal clasificados en entrenamiento: <span class="dato" id="vivo-mal"></span>. Aciertos en prueba: <span class="dato" id="vivo-acc"></span>.</p>
-        <svg id="vivo-curva" viewBox="0 0 420 150" role="img" aria-label="Correcciones por época"></svg>
+        <div class="fila">
+          <button class="btn" id="vivo-play" type="button">Reproducir</button>
+          <button class="btn sec" id="vivo-1" type="button">Época siguiente</button>
+          <button class="btn sec" id="vivo-barajar" type="button">Barajar y entrenar de nuevo</button>
+        </div>
+        <div class="fila" style="flex-wrap:nowrap">
+          <label for="vivo-vel" style="white-space:nowrap">Velocidad</label>
+          <input type="range" id="vivo-vel" min="1" max="5" step="1" value="3">
+          <span class="nota" id="vivo-velv" style="white-space:nowrap"></span>
+        </div>
+        <p style="font-size:.88em" aria-live="polite"><span class="epoca-n">Época <span id="vivo-ep">0</span></span> · Correcciones: <span class="dato" id="vivo-err"></span> · Mal clasificados: <span class="dato" id="vivo-mal"></span> · Aciertos en prueba: <span class="dato" id="vivo-acc"></span></p>
+        <svg id="vivo-curva" viewBox="0 0 420 170" role="img" aria-label="Correcciones por época"></svg>
         <p class="nota" id="vivo-nota" aria-live="polite"></p>
       </div>
     </div>
@@ -719,68 +767,99 @@ body:not(.expo) #b-rotulo{flex:1}
           <button class="celda acierto" type="button" data-celda="VN" aria-pressed="false"><span class="cifra"></span><span>VN, auténtico reconocido</span></button>
           <button class="celda fallo" type="button" data-celda="FP" aria-pressed="false"><span class="cifra"></span><span>FP, falsa alarma</span></button>
           <span class="rot">Era falsificado</span>
-          <button class="celda fallo" type="button" data-celda="FN" aria-pressed="true"><span class="cifra"></span><span>FN, falso que pasó</span></button>
+          <button class="celda fallo" type="button" data-celda="FN" aria-pressed="false"><span class="cifra"></span><span>FN, falso que pasó</span></button>
           <button class="celda acierto" type="button" data-celda="VP" aria-pressed="false"><span class="cifra"></span><span>VP, falso detectado</span></button>
         </div>
-        <p class="nota">Toca cada casilla para ver qué significa.</p>
+        <p class="nota">Toca cada casilla, o avanza con la flecha, para ver qué significa para el banco.</p>
+        <div hidden id="celda-pasos"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
       </div>
-      <div class="panel" id="celda-detalle" aria-live="polite" style="min-height:250px"></div>
+      <div class="panel" id="celda-detalle" aria-live="polite" style="min-height:270px;gap:10px"></div>
     </div>
   </div>
 </section>
 
 <section class="lamina" data-parte="resultados">
   <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Las cuatro métricas</h2></header>
-  <div class="cuerpo centro a2">
-    <div class="metricas" id="metricas"></div>
-    <p class="f">Las cuatro son altas y parejas: el modelo detecta casi todos los falsificados sin llenar al banco de falsas alarmas.</p>
+  <div class="cuerpo" style="gap:10px">
+    <div class="dos" style="grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:24px">
+      <div class="metricas met2" id="metricas"></div>
+      <div class="panel" style="gap:8px;padding:12px 14px">
+        <div class="matriz" id="met-matriz" style="font-size:.74em">
+          <span></span><span class="rot">Dijo auténtico</span><span class="rot">Dijo falsificado</span>
+          <span class="rot">Era auténtico</span>
+          <div class="mcel" data-m="VN"><span class="cifra"></span><span>VN</span></div>
+          <div class="mcel" data-m="FP"><span class="cifra"></span><span>FP, falsa alarma</span></div>
+          <span class="rot">Era falsificado</span>
+          <div class="mcel" data-m="FN"><span class="cifra"></span><span>FN, falso que pasó</span></div>
+          <div class="mcel" data-m="VP"><span class="cifra"></span><span>VP</span></div>
+        </div>
+        <p id="met-cuenta" aria-live="polite" style="font-size:.86em;min-height:4.4em"></p>
+      </div>
+    </div>
+    <div class="panel" style="gap:6px;padding:10px 16px">
+      <div class="fila" style="justify-content:space-between">
+        <span><strong>¿Y si…?</strong> <span class="nota" id="ysi-estado" aria-live="polite"></span></span>
+        <button class="btn sec" id="ysi-reset" type="button">Volver a los valores reales</button>
+      </div>
+      <div class="dos" style="gap:28px">
+        <div><label for="ysi-fp">Falsas alarmas (FP): <span class="dato" id="ysi-fpv"></span></label><input type="range" id="ysi-fp" min="0" max="40" step="1"></div>
+        <div><label for="ysi-fn">Falsos que pasan (FN): <span class="dato" id="ysi-fnv"></span></label><input type="range" id="ysi-fn" min="0" max="40" step="1"></div>
+      </div>
+    </div>
+    <p class="f" style="font-size:.95em">Las cuatro son altas y parejas: el modelo detecta casi todos los falsificados sin llenar al banco de falsas alarmas.</p>
   </div>
 </section>
 
 <section class="lamina" data-parte="resultados">
   <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Los errores quedaron pegados a la frontera</h2></header>
   <div class="cuerpo">
-    <p style="font-size:.92em">Cada marca es un billete de prueba según su puntaje z. A la izquierda de cero el modelo dice auténtico; a la derecha, falsificado. Los errores llevan un aro.</p>
+    <p style="font-size:.9em">Cada marca es un billete de prueba según su puntaje z: a la izquierda de cero dice auténtico; a la derecha, falsificado. Los 4 errores llevan un aro.</p>
     <div class="panel">
       <div class="desborde"><svg id="tira" viewBox="0 0 860 250" role="img" aria-label="Distribución de los puntajes de los billetes de prueba cerca de la frontera"></svg></div>
       <div class="leyenda" id="ley-tira"></div>
       <div>
-        <label for="duda">Zona de duda: enviar a revisión manual los billetes con puntaje entre −<span id="duda-v"></span> y +<span id="duda-v2"></span></label>
+        <div class="fila" style="justify-content:space-between;gap:6px 10px">
+          <label for="duda">Zona de duda: revisión manual entre −<span id="duda-v"></span> y +<span id="duda-v2"></span></label>
+          <span class="fila" style="gap:8px">
+            <button class="btn sec" type="button" data-duda="0">Sin zona</button>
+            <button class="btn sec" type="button" data-duda="real">La nuestra: 1,892</button>
+            <button class="btn sec" type="button" data-duda="todos">Atrapar los 4 errores</button>
+          </span>
+        </div>
         <input type="range" id="duda" min="0" max="6" step="0.01">
       </div>
-      <p id="duda-res" aria-live="polite"></p>
-      <p class="nota">El ancho inicial se fijó solo con datos de entrenamiento (el 5 % más cercano a la frontera). Es una prueba pequeña que habría que confirmar con más billetes.</p>
+      <div class="tres" id="duda-res" aria-live="polite"></div>
+      <p class="nota" style="font-size:.76em">El ancho 1,892 se fijó solo con datos de entrenamiento (el 5 % más cercano a la frontera). Habría que confirmarlo con más billetes.</p>
     </div>
   </div>
 </section>
 
 <section class="lamina" data-parte="resultados">
   <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Por qué el accuracy solo no alcanza</h2></header>
-  <div class="cuerpo centro a2">
-    <p>Cambia las cuatro casillas, o prueba los dos modelos extremos, y mira cómo se mueven las métricas.</p>
+  <div class="cuerpo centro" style="gap:12px">
+    <p class="entrada">Un «modelo perezoso» que siempre dice auténtico acierta sin mirar el billete. ¿Cuánto? Depende de cuántos falsos haya.</p>
     <div class="dos">
-      <div class="panel">
-        <div class="fila">
-          <div><label for="lab-VP">VP</label><br><input type="number" id="lab-VP" min="0" max="999"></div>
-          <div><label for="lab-FN">FN</label><br><input type="number" id="lab-FN" min="0" max="999"></div>
-          <div><label for="lab-FP">FP</label><br><input type="number" id="lab-FP" min="0" max="999"></div>
-          <div><label for="lab-VN">VN</label><br><input type="number" id="lab-VN" min="0" max="999"></div>
+      <div class="panel" style="gap:9px">
+        <div>
+          <label for="pz-p">Billetes falsos en la caja: <span class="dato" id="pz-pv"></span></label>
+          <input type="range" id="pz-p" min="1" max="60" step="1">
         </div>
+        <svg id="pz-grid" viewBox="0 0 400 104" role="img" aria-label="Cien billetes: los falsificados llevan un aro porque el modelo perezoso los deja pasar a todos"></svg>
+        <div class="leyenda" id="pz-ley"></div>
         <div class="fila">
-          <button class="btn sec" type="button" data-lab="real">Nuestro modelo</button>
-          <button class="btn sec" type="button" data-lab="miedoso">Alerta todo</button>
-          <button class="btn sec" type="button" data-lab="confiado">Nunca alerta</button>
+          <button class="btn sec" id="pz-real" type="button">Volver a la proporción real</button>
+          <button class="btn sec" id="pz-raro" type="button">Solo 1 falso de cada 100</button>
         </div>
-        <p id="lab-nota" style="min-height:4.5em"></p>
       </div>
-      <div class="panel" id="lab-res"></div>
+      <div class="panel" id="pz-res" aria-live="polite" style="gap:7px"></div>
     </div>
+    <p class="f">Entre menos falsos hay, más «acierta» el perezoso sin detectar ninguno. Por eso el accuracy se lee junto con el recall y la precision.</p>
   </div>
 </section>
 
 <section class="lamina" data-parte="resultados">
   <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>¿Fue suerte?</h2></header>
-  <div class="cuerpo centro a3" id="suerte"></div>
+  <div class="cuerpo centro" id="suerte" style="gap:12px"></div>
 </section>
 
 <!-- ============ PARTE 8 (se genera) ============ -->
@@ -1076,7 +1155,9 @@ mostrarBillete(TEST[1]);
 
 /* ============ APRENDE: el robot y las 100 sopas ============ */
 (function () {
-  const ING = [["Sal", "g", 9, 15], ["Limón", "ml", 22, 30], ["Ají", "g", 4, 8]], TOL = 0.1, SOPAS = 100;
+  const ING = [["Sal", "g", 9, 15], ["Agua", "cl", 22, 30], ["Especias", "g", 4, 8]], TOL = 0.1, SOPAS = 100;
+  const PLATOS = [1, 2, 3, 4, 6]; /* el chef pide platos para distinto número de personas: en los grandes el error se nota más */
+  const ERR0 = ING.reduce((s, g) => s + g[2], 0);
   let PASO = 0.25, hist, vaiven, previos;
   $("#robot-filas").innerHTML = ING.map((g, i) => `<div class="receta"><span><strong>${g[0]}</strong></span>
       <div class="olla"><i id="rb-f${i}"></i><b style="left:${(g[2] - 1) / g[3] * 100}%;width:${2 / g[3] * 100}%"></b></div>
@@ -1085,28 +1166,29 @@ mostrarBillete(TEST[1]);
   const juicio = i => { const d = ING[i][2] - q[i]; return Math.abs(d) <= TOL ? 0 : (d > 0 ? 1 : -1); };
   const enPunto = () => ING.filter((_, i) => juicio(i) === 0).length;
   const lista = a => a.length > 1 ? a.slice(0, -1).join(", ") + " y " + a[a.length - 1] : a[0];
-  const parecido = () => ING.reduce((s, g, i) => s + Math.max(0, 1 - Math.abs(g[2] - q[i]) / g[2]), 0) / ING.length;
-  /* curva de aprendizaje: el parecido en cada sopa; las rayas de abajo marcan las sopas en que se pasó del punto */
+  const error = () => ING.reduce((s, g, i) => s + Math.abs(g[2] - q[i]), 0);
+  /* curva de aprendizaje: el error en cada sopa; las rayas de abajo marcan las sopas en que se pasó del punto */
   function curva() {
     const s = $("#robot-curva"); s.innerHTML = "";
     const m = { l: 34, r: 6, t: 8, b: 16 }, W0 = 260, H0 = 66;
-    const X = k => m.l + k / SOPAS * (W0 - m.l - m.r), Y = v => H0 - m.b - v * (H0 - m.t - m.b);
-    [0, 1].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Y(v), y2: Y(v), class: "eje" }, s); sv("text", { x: m.l - 4, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = v ? "100 %" : "0"; });
-    sv("text", { x: m.l, y: H0 - 3 }, s).textContent = "parecido en cada sopa";
+    const X = k => m.l + k / SOPAS * (W0 - m.l - m.r), Y = v => H0 - m.b - Math.min(1, v) * (H0 - m.t - m.b);
+    [0, 1].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Y(v), y2: Y(v), class: "eje" }, s); sv("text", { x: m.l - 4, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = v ? ERR0 : "0"; });
+    sv("text", { x: m.l, y: H0 - 3 }, s).textContent = "error en cada sopa";
     sv("text", { x: W0 - m.r, y: H0 - 3, "text-anchor": "end" }, s).textContent = SOPAS;
     hist.forEach((h, k) => { if (h.paso) sv("line", { x1: X(k), x2: X(k), y1: Y(0) - 7, y2: Y(0), stroke: "var(--falso)", "stroke-width": 1.5 }, s); });
-    sv("polyline", { points: hist.map((h, k) => `${X(k).toFixed(1)},${Y(h.par).toFixed(1)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2, "stroke-linejoin": "round" }, s);
+    sv("polyline", { points: hist.map((h, k) => `${X(k).toFixed(1)},${Y(h.err / ERR0).toFixed(1)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2, "stroke-linejoin": "round" }, s);
     const u = hist[hist.length - 1];
-    sv("circle", { cx: X(hist.length - 1), cy: Y(u.par), r: 3.5, class: "grab-f" }, s);
+    sv("circle", { cx: X(hist.length - 1), cy: Y(u.err / ERR0), r: 3.5, class: "grab-f" }, s);
   }
   function pintar(dichos) {
     ING.forEach((g, i) => {
+      const d = g[2] - q[i];
       $("#rb-f" + i).style.width = (q[i] / g[3] * 100) + "%";
       $("#rb-v" + i).textContent = `${fmt(q[i])} ${g[1]}`;
-      $("#rb-j" + i).textContent = dichos ? ["me pasé", "igual", "le falta"][dichos[i] + 1] : "";
+      $("#rb-j" + i).textContent = Math.abs(d) <= TOL ? "igual" : (d > 0 ? "falta " : "sobra ") + fmt(Math.abs(d));
     });
-    const par = parecido();
-    $("#robot-par").style.width = (par * 100) + "%"; $("#robot-parv").textContent = pct(par, 0);
+    const err = error();
+    $("#robot-par").style.width = Math.min(100, err / ERR0 * 100) + "%"; $("#robot-parv").textContent = fmt(err);
     $("#robot-n").textContent = n;
     $("#robot-boca").setAttribute("d", enPunto() === ING.length ? "M48 68Q60 80 72 68" : "M48 70H72");
     ["#robot-1", "#robot-10"].forEach(id => $(id).disabled = n >= SOPAS);
@@ -1117,7 +1199,7 @@ mostrarBillete(TEST[1]);
       const sobra = ING.filter((_, i) => dichos[i] === -1).map(g => g[0].toLowerCase());
       if (!falta.length && !sobra.length) msg = `La sopa ${n} le sabe igual a la suya: no ajusta nada.`;
       else msg = `Sopa ${n}: a la suya ${[falta.length ? "le falta " + lista(falta) : "", sobra.length ? "le sobra " + lista(sobra) : ""].filter(Boolean).join(" y ")}. Ajusta ${fmt(PASO)}.`;
-      if (vaiven >= 4 && enPunto() < ING.length) msg += " <strong class=\"c-fal\">η muy grande: se pasa del punto y oscila entre «le falta» y «me pasé» sin llegar nunca a «igual».</strong>";
+      if (vaiven >= 4 && enPunto() < ING.length) msg += " <strong class=\"c-fal\">η muy grande: se pasa del punto y oscila entre «falta» y «sobra» sin llegar nunca a «igual».</strong>";
       else if (n >= SOPAS && enPunto() < ING.length) msg += " <strong>η muy pequeño: aprende tan lento que no le alcanzaron las 100.</strong>";
       else if (n >= SOPAS) msg += " Ya probó las 100.";
     }
@@ -1127,11 +1209,11 @@ mostrarBillete(TEST[1]);
     if (n >= SOPAS) return parar();
     n++;
     const dichos = ING.map((_, i) => juicio(i));
-    /* se pasó del punto: un ingrediente que antes «le faltaba» ahora «sobra», o al revés */
+    /* se pasó del punto: un ingrediente que antes «faltaba» ahora «sobra», o al revés */
     const paso = dichos.some((d, i) => d && previos[i] && d !== previos[i]);
     if (paso) vaiven++;
     dichos.forEach((d, i) => { q[i] += PASO * d; if (d) previos[i] = d; });
-    hist.push({ par: parecido(), paso });
+    hist.push({ err: error(), paso });
     $("#robot-nota").textContent = "";
     pintar(dichos);
     if (n >= SOPAS) parar();
@@ -1139,7 +1221,7 @@ mostrarBillete(TEST[1]);
   function parar() { if (timer) { clearInterval(timer); timer = null; $("#robot-auto").textContent = "Probar las 100"; } }
   function reset() {
     parar(); q = [0, 0, 0]; n = 0; vaiven = 0; previos = [0, 0, 0];
-    hist = [{ par: parecido(), paso: false }];
+    hist = [{ err: error(), paso: false }];
     $("#robot-nota").textContent = "El chef todavía no ha probado la sopa del robot.";
     pintar(null);
   }
@@ -1155,12 +1237,15 @@ mostrarBillete(TEST[1]);
     if (n >= SOPAS) reset();
     $("#robot-auto").textContent = "Pausar"; timer = setInterval(probar, 60);
   };
+  /* el chef califica con platos que el robot nunca probó: cada plato sale bien si ningún ingrediente se nota distinto */
   $("#robot-chef").onclick = () => {
     parar();
-    const ok = enPunto(), mal = ING.filter((_, i) => juicio(i) !== 0).map((g, k) => (juicio(ING.indexOf(g)) > 0 ? "le falta " : "le sobra ") + g[0].toLowerCase());
-    $("#robot-nota").innerHTML = ok === ING.length
-      ? `<strong class="c-aut">Aprobado.</strong> El chef la prueba y le sabe idéntica a la original: ${ok} de ${ING.length} ingredientes en su punto.`
-      : `<strong class="c-fal">Todavía no.</strong> ${ok} de ${ING.length} ingredientes en su punto: ${lista(mal)}. El robot tiene que seguir probando sopas y ajustando.`;
+    const peor = Math.max(...ING.map((g, i) => Math.abs(g[2] - q[i])));
+    const bien = PLATOS.filter(p => peor * p <= 1 + 1e-9).length, nota = fmt(bien, 1);
+    const intro = `El chef le pide ${PLATOS.length} platos que nunca probó (para ${lista(PLATOS.map(String))} personas).`;
+    $("#robot-nota").innerHTML = bien === PLATOS.length
+      ? `<strong class="c-aut">Nota ${nota} de 5,0: aprobado.</strong> ${intro} Los ${bien} le saben igual al original.`
+      : `<strong class="c-fal">Nota ${nota} de 5,0: todavía no.</strong> ${intro} ${bien ? `Solo ${bien} le ${bien === 1 ? "sabe" : "saben"} igual` : "Ninguno le sabe igual"} al original. Tiene que seguir probando sopas.`;
   };
   reset();
 })();
@@ -1263,21 +1348,14 @@ mostrarBillete(TEST[1]);
   reset();
 })();
 
-/* ============ APRENDE: quiz de la regla ============ */
+/* ============ APRENDE: la regla, caso por caso ============ */
 (function () {
   const CASOS = [
-    { caso: "Dijo auténtico y era falsificado.", e: 1, que: "Suma las entradas a los pesos", efecto: "Ese billete tendrá un puntaje más alto.", por: "Real − predicho = 1 − 0 = +1: suma las entradas para que la próxima vez ese billete quede del lado de los falsificados." },
-    { caso: "Dijo falsificado y era falsificado.", e: 0, que: "Nada", efecto: "Los pesos quedan igual.", por: "Acertó: real − predicho = 1 − 1 = 0, así que la regla no mueve nada." },
-    { caso: "Dijo falsificado y era auténtico.", e: -1, que: "Resta las entradas a los pesos", efecto: "Ese billete tendrá un puntaje más bajo.", por: "Real − predicho = 0 − 1 = −1: resta las entradas para bajarle el puntaje a ese billete." }
+    { caso: "Dijo auténtico y era falsificado.", e: 1, por: "Se le pasó un falso: y − ŷ = 1 − 0 = +1. Suma las entradas para que la próxima vez ese billete quede del lado de los falsificados." },
+    { caso: "Dijo falsificado y era falsificado.", e: 0, por: "Acertó: y − ŷ = 1 − 1 = 0, así que la regla no mueve nada." },
+    { caso: "Dijo falsificado y era auténtico.", e: -1, por: "Falsa alarma: y − ŷ = 0 − 1 = −1. Resta las entradas para bajarle el puntaje a ese billete." }
   ];
-  const FILAS = [["Acertó", 1], ["Dijo auténtico y era falsificado", 0], ["Dijo falsificado y era auténtico", 2]];
   let k, pts, resp;
-  function tabla() {
-    $("#quiz-tabla").innerHTML = FILAS.map(([t, c]) => {
-      const C = CASOS[c], ok = resp[c] !== undefined;
-      return `<tr><td>${t}</td><td class="n">${ok ? (C.e > 0 ? "+1" : C.e < 0 ? "−1" : "0") : "?"}</td><td class="${ok ? "" : "hueco"}">${ok ? C.que : "¿…?"}</td><td class="${ok ? "" : "hueco"}">${ok ? C.efecto : ""}</td></tr>`;
-    }).join("");
-  }
   function pintar() {
     const C = CASOS[k], hecho = resp[k] !== undefined;
     $("#quiz-n").textContent = `Caso ${k + 1} de ${CASOS.length}: ¿qué hace el perceptrón?`;
@@ -1286,17 +1364,50 @@ mostrarBillete(TEST[1]);
     $("#quiz-sig").textContent = k === CASOS.length - 1 && hecho ? "Repetir el quiz" : "Siguiente caso";
     $("#quiz-sig").disabled = !hecho;
     $("#quiz-pts").textContent = `Aciertos: ${pts} de ${Object.keys(resp).length}`;
-    tabla();
   }
   function reset() { k = 0; pts = 0; resp = {}; $("#quiz-fb").textContent = ""; pintar(); }
   $$("[data-q]").forEach(b => b.onclick = () => {
     if (resp[k] !== undefined) return;
     const v = +b.dataset.q, C = CASOS[k]; resp[k] = v; if (v === C.e) pts++;
     $("#quiz-fb").innerHTML = `<strong class="${v === C.e ? "c-aut" : "c-fal"}">${v === C.e ? "¡Correcto!" : "No."}</strong> ${C.por}`;
-    pintar();
+    pintar(); verCaso(C.e);
   });
   $("#quiz-sig").onclick = () => { if (k === CASOS.length - 1) return reset(); k++; $("#quiz-fb").textContent = ""; pintar(); };
-  reset();
+
+  /* los tres casos sobre un billete de ejemplo: se ve hacia dónde y cuánto se mueve cada peso según η */
+  const XE = [2, -1], WE = [1, -2], BE = 0, LIM = 6;
+  const svg = $("#regla-svg"), X = v => 150 + (v + LIM) / (2 * LIM) * 190;
+  const FILAS = [["w₁", "x₁ = 2", WE[0], XE[0]], ["w₂", "x₂ = −1", WE[1], XE[1]], ["b", "sesgo", BE, 1]];
+  let caso = 0;
+  function mover() {
+    const eta = +$("#regla-eta").value, color = caso > 0 ? "var(--falso)" : "var(--autentico)";
+    $("#regla-etav").textContent = fmt(eta, 1);
+    svg.innerHTML = "";
+    FILAS.forEach(([nom, sub, v0, x], i) => {
+      const y = 20 + i * 36, d = eta * caso * x, v1 = v0 + d;
+      sv("text", { x: 4, y: y + 5, class: "rot" }, svg).textContent = nom;
+      sv("text", { x: 34, y: y + 5 }, svg).textContent = `(${sub})`;
+      sv("line", { x1: X(-LIM), x2: X(LIM), y1: y, y2: y, class: "eje" }, svg);
+      sv("line", { x1: X(0), x2: X(0), y1: y - 7, y2: y + 7, class: "eje" }, svg);
+      if (d) {
+        const dir = d > 0 ? 1 : -1;
+        sv("line", { x1: X(v0), x2: X(v1) - dir * 9, y1: y, y2: y, stroke: color, "stroke-width": 3 }, svg);
+        sv("path", { d: `M${X(v1) - dir * 2} ${y}l${-dir * 10} -6v12z`, fill: color }, svg);
+        sv("circle", { cx: X(v0), cy: y, r: 5.5, fill: "var(--lamina)", stroke: "var(--tinta-2)", "stroke-width": 2 }, svg);
+      } else sv("circle", { cx: X(v0), cy: y, r: 6, class: "tinta-f" }, svg);
+      sv("text", { x: 352, y: y + 5, class: "rot" }, svg).textContent = d ? `${signo(v0, 1)} → ${signo(v1, 1)}` : `${signo(v0, 1)} (igual)`;
+    });
+    $$("[data-caso]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.caso === caso));
+    const dz = fmt(eta * 6, 1);
+    $("#regla-cuenta").innerHTML = `Billete de ejemplo: x₁ = 2, x₂ = −1. <strong>y − ŷ = ${caso > 0 ? "+1" : caso < 0 ? "−1" : "0"}</strong>${caso ? `, así que cada peso se mueve η · (${caso > 0 ? "+1" : "−1"}) · x.` : ": no hay nada que corregir."}`;
+    $("#regla-efecto").innerHTML = caso === 0 ? "<strong>Acertó: los pesos quedan igual</strong>, con cualquier η."
+      : caso > 0 ? `<strong>Suma η · x a los pesos.</strong> El puntaje z de ese billete sube ${dz}: queda más cerca de «falsificado». Con η más grande, el paso es más grande.`
+        : `<strong>Resta η · x a los pesos.</strong> El puntaje z de ese billete baja ${dz}: se aleja de «falsificado». Con η más pequeña, el paso es más corto.`;
+  }
+  function verCaso(c) { caso = c; mover(); }
+  $$("[data-caso]").forEach(b => b.onclick = () => verCaso(+b.dataset.caso));
+  $("#regla-eta").addEventListener("input", mover);
+  reset(); mover();
 })();
 
 /* ============ APRENDE: ejemplo a mano ============ */
@@ -1309,11 +1420,12 @@ mostrarBillete(TEST[1]);
   });
   leyenda("#ley-mini", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>billete que se está revisando</span>`);
   let s, timer = null;
-  function pintar(msg) {
+  function pintar(msg, cambio) {
     pl.frontera(s.w, s.b); pl.gSobre.innerHTML = "";
     if (s.ult !== null) sv("circle", { cx: pl.X(XM[s.ult][0]), cy: pl.Y(XM[s.ult][1]), r: 15, class: "resalte" }, pl.gSobre);
-    $("#mini-epoca").textContent = s.epoca; $("#mini-w").textContent = `(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})`;
-    $("#mini-b").textContent = signo(s.b, 0); $("#mini-corr").textContent = s.corr; $("#mini-msg").innerHTML = msg;
+    const res = t => cambio ? `<mark class="cambio">${t}</mark>` : t;
+    $("#mini-epoca").textContent = s.epoca; $("#mini-w").innerHTML = res(`(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})`);
+    $("#mini-b").innerHTML = res(signo(s.b, 0)); $("#mini-corr").textContent = s.corr; $("#mini-msg").innerHTML = msg;
     $("#mini-paso").disabled = s.fin; $("#mini-paso").style.opacity = s.fin ? 0.5 : 1;
     $("#mini-paso").hidden = predice;
     $$("[data-mini]").forEach(b => { b.hidden = !predice; b.disabled = s.fin; });
@@ -1326,30 +1438,32 @@ mostrarBillete(TEST[1]);
     pub = { ok: 0, n: 0 };
     s = { w: [0, 0], b: 0, i: 0, epoca: 1, errEp: 0, corr: 0, fin: false, ult: null };
     $("#mini-log").innerHTML = "";
-    pintar("Pesos y sesgo en cero. Todavía no hay frontera: con todo en cero el puntaje siempre da 0 y el modelo le dice «falsificado» a cualquier billete.");
+    pintar("<div>Pesos y sesgo en cero. Todavía no hay frontera: con todo en cero el puntaje siempre da 0 y el modelo le dice «falsificado» a cualquier billete.</div><div>Pulsa «Siguiente billete» para revisar el primero.</div>");
   }
   function paso(apuesta) {
     if (s.fin) return;
     const k = s.i, x = XM[k], y = YM[k], w0 = [...s.w], b0 = s.b;
     const z = w0[0] * x[0] + w0[1] * x[1] + b0, pred = z >= 0 ? 1 : 0, e = y - pred;
-    let msg = "";
+    const L = [];
     if (apuesta !== undefined) {
       const ok = apuesta === (e !== 0 ? 1 : 0);
       pub.n++; if (ok) pub.ok++;
-      msg += `Apostaron «${apuesta ? "corregirá" : "acertará"}»: <strong class="${ok ? "c-aut" : "c-fal"}">${ok ? "¡bien!" : "no"}</strong>. `;
+      L.push(`Apostaron «${apuesta ? "corregirá" : "acertará"}»: <strong class="${ok ? "c-aut" : "c-fal"}">${ok ? "¡bien!" : "no"}</strong>.`);
     }
-    msg += `<strong>Billete ${k + 1}</strong> (${NOMBRE[y]}). z = (${signo(w0[0], 1)})(${signo(x[0], 1)}) + (${signo(w0[1], 1)})(${signo(x[1], 1)}) + (${signo(b0, 0)}) = <strong>${signo(z)}</strong>. Dice ${NOMBRE[pred]}. `;
+    L.push(`<strong>Billete ${k + 1}</strong>, ${NOMBRE[y]}: x = (${signo(x[0], 1)}; ${signo(x[1], 1)})`);
+    L.push(`<span class="cuenta">z = (${signo(w0[0], 1)})(${signo(x[0], 1)}) + (${signo(w0[1], 1)})(${signo(x[1], 1)}) + (${signo(b0, 0)}) = <strong>${signo(z)}</strong></span>`);
     if (e !== 0) {
       s.w = [w0[0] + e * x[0], w0[1] + e * x[1]]; s.b = b0 + e; s.errEp++; s.corr++;
-      msg += `<strong>Se equivoca</strong> (error ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "suma" : "resta"} las entradas a los pesos y la frontera se mueve.`;
-    } else msg += "Acierta: no cambia nada.";
+      L.push(`z ${pred ? "≥" : "<"} 0: dice ${NOMBRE[pred]}. <strong class="c-fal">Se equivoca</strong> (y − ŷ = ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "suma" : "resta"} x a los pesos.`);
+      L.push(`w: (${signo(w0[0], 1)}; ${signo(w0[1], 1)}) → <mark class="cambio">(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})</mark>, b: ${signo(b0, 0)} → <mark class="cambio">${signo(s.b, 0)}</mark>. La frontera se mueve.`);
+    } else L.push(`z ${pred ? "≥" : "<"} 0: dice ${NOMBRE[pred]}. <strong class="c-aut">Acierta</strong>: los pesos no cambian.`);
     $("#mini-log").insertAdjacentHTML("afterbegin", `<tr><td class="n">${s.epoca}</td><td class="n">${k + 1}</td><td class="n">${signo(z)}</td><td>${NOMBRE[pred]}</td><td>${NOMBRE[y]}</td><td>${e === 0 ? "nada" : (e > 0 ? "suma x" : "resta x")}</td></tr>`);
     s.ult = k; s.i++;
     if (s.i === XM.length) {
-      if (s.errEp === 0) { s.fin = true; msg += ` <strong>Época ${s.epoca} completa sin errores: terminó de aprender con ${s.corr} correcciones.</strong>`; parar(); }
-      else { msg += ` Fin de la época ${s.epoca} con ${cuantos(s.errEp, "corrección", "correcciones")}; empieza otra pasada.`; s.epoca++; s.i = 0; s.errEp = 0; }
+      if (s.errEp === 0) { s.fin = true; L.push(`<strong>Época ${s.epoca} completa sin errores: terminó de aprender con ${s.corr} correcciones.</strong>`); parar(); }
+      else { L.push(`Fin de la época ${s.epoca} con ${cuantos(s.errEp, "corrección", "correcciones")}; empieza otra pasada.`); s.epoca++; s.i = 0; s.errEp = 0; }
     }
-    pintar(msg);
+    pintar(L.map(t => `<div>${t}</div>`).join(""), e !== 0);
   }
   function parar() { if (timer) { clearInterval(timer); timer = null; $("#mini-auto").textContent = "Reproducir solo"; } }
   $("#mini-paso").onclick = () => { parar(); paso(); };
@@ -1375,18 +1489,24 @@ mostrarBillete(TEST[1]);
     4: "Con las cuatro medidas las correcciones bajan rápido en las primeras épocas y después suben y bajan sin llegar a cero: siempre queda algún billete del lado equivocado. La frontera no se puede dibujar porque vive en cuatro dimensiones; los aros marcan los billetes que el modelo actual clasifica mal.",
     2: "Con solo dos medidas las nubes se mezclan en el centro. El perceptrón corrige muchísimo en cada época y no mejora: ninguna recta las separa. Por eso el modelo final usa las cuatro medidas."
   };
-  let modo = 4, w, b, hist;
+  let modo = 4, w, b, hist, previa = null, orden = Y.map((_, i) => i), barajado = false;
   const datos = () => modo === 4 ? X4 : X2;
   function curva() {
     const s = $("#vivo-curva"); s.innerHTML = "";
     const m = { l: 40, r: 16, t: 14, b: 34 }, W0 = 420, H0 = 170;
-    const n = Math.max(10, hist.length), top = Math.ceil(Math.max(60, ...hist) * 1.1 / 20) * 20;
+    const todas = previa ? hist.concat(previa) : hist;
+    const n = Math.max(10, hist.length, previa ? previa.length : 0), top = Math.ceil(Math.max(60, ...todas) * 1.1 / 20) * 20;
     const Xs = k => m.l + (k - 1) / (n - 1) * (W0 - m.l - m.r), Ys = v => H0 - m.b - v / top * (H0 - m.t - m.b);
     [0, top / 2, top].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Ys(v), y2: Ys(v), class: "eje" }, s); sv("text", { x: m.l - 6, y: Ys(v) + 4, "text-anchor": "end" }, s).textContent = v; });
-    sv("text", { x: (W0 + m.l) / 2, y: H0 - 4, "text-anchor": "middle" }, s).textContent = "Época";
+    sv("text", { x: (W0 + m.l) / 2, y: H0 - 4, "text-anchor": "middle" }, s).textContent = "Correcciones en cada época";
     sv("text", { x: m.l, y: H0 - m.b + 15, "text-anchor": "middle" }, s).textContent = "1";
     sv("text", { x: W0 - m.r, y: H0 - m.b + 15, "text-anchor": "end" }, s).textContent = n;
-    if (!hist.length) { sv("text", { x: (W0 + m.l) / 2, y: H0 / 2, "text-anchor": "middle" }, s).textContent = "Pulsa «Entrenar 1 época» para empezar"; return; }
+    /* el camino del orden anterior queda de fondo para comparar */
+    if (previa && previa.length) {
+      sv("polyline", { points: previa.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--tinta-2)", "stroke-width": 1.5, "stroke-dasharray": "4 4", opacity: 0.7 }, s);
+      sv("text", { x: W0 - m.r, y: m.t + 14, "text-anchor": "end" }, s).textContent = "- - - con el orden anterior";
+    }
+    if (!hist.length) { sv("text", { x: (W0 + m.l) / 2, y: H0 / 2, "text-anchor": "middle" }, s).textContent = "Pulsa «Reproducir» para empezar"; return; }
     sv("polyline", { points: hist.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2 }, s);
     hist.forEach((v, k) => sv("circle", { cx: Xs(k + 1), cy: Ys(v), r: k === hist.length - 1 ? 5 : 3.5, class: "grab-f aro", "data-tip": `Época ${k + 1}: ${v} correcciones` }, s));
     sv("text", { x: Math.min(Xs(hist.length) + 8, W0 - 34), y: Ys(hist[hist.length - 1]) - 9, class: "tinta-f" }, s).textContent = hist[hist.length - 1];
@@ -1400,33 +1520,49 @@ mostrarBillete(TEST[1]);
     const X = datos(); let mal = 0;
     X.forEach((x, i) => { if ((zLineal(x, w, b) >= 0 ? 1 : 0) !== Y[i]) { mal++; sv("circle", { cx: pl.X(X2[i][0]), cy: pl.Y(X2[i][1]), r: 5.5, class: "resalte", "stroke-width": 1.5 }, pl.gSobre); } });
     const ok = T4.filter((x, i) => (zLineal(x, w, b) >= 0 ? 1 : 0) === TY[i]).length;
-    $("#vivo-err").textContent = hist[hist.length - 1]; $("#vivo-mal").textContent = `${mal} de ${X.length}`;
+    $("#vivo-err").textContent = hist[hist.length - 1]; $("#vivo-mal").textContent = `${mal} de ${fmt(X.length, 0)}`;
     $("#vivo-acc").textContent = `${ok} de ${T4.length} (${pct(ok / T4.length, 1)})`;
   }
-  function entrenar(n) { for (let k = 0; k < n && hist.length < 60; k++) { const r = entrenarEpoca(datos(), Y, w, b); b = r.b; hist.push(r.err); } pintar(); }
-  /* entrenar hasta que pare: una época cada 300 ms hasta que no corrija nada o llegue a 40 épocas seguidas */
-  const MAX_SEGUIDAS = 40;
+  /* una época recorre los billetes en el orden vigente (el original o el barajado) */
+  function entrenar(n) {
+    const X = datos(), Xo = orden.map(i => X[i]), Yo = orden.map(i => Y[i]);
+    for (let k = 0; k < n && hist.length < 60; k++) { const r = entrenarEpoca(Xo, Yo, w, b); b = r.b; hist.push(r.err); }
+    pintar();
+  }
+  /* reproducir: una época por tic hasta que no corrija nada o lleve 40 épocas seguidas */
+  const MAX_SEGUIDAS = 40, RITMOS = [900, 600, 300, 150, 60];
   let timer = null, seguidas = 0;
+  const ritmo = () => RITMOS[+$("#vivo-vel").value - 1];
   function parar(motivo) {
     if (timer) { clearInterval(timer); timer = null; }
-    $("#vivo-hasta").textContent = "Entrenar hasta que pare";
+    $("#vivo-play").textContent = "Reproducir";
     if (motivo) $("#vivo-nota").textContent = motivo;
   }
   function tic() {
     if (hist.length >= 60) return parar("Llegó al tope de 60 épocas de esta demostración: pulsa Reiniciar para volver a empezar.");
     entrenar(1); seguidas++;
-    const ult = hist[hist.length - 1];
-    if (ult === 0) parar(`Paró en la época ${hist.length}: recorrió todos los billetes sin corregir ninguno.`);
-    else if (seguidas >= MAX_SEGUIDAS) parar(`Paró tras ${MAX_SEGUIDAS} épocas sin llegar a cero correcciones (quedaron ${ult} en la última): siempre queda algún billete del lado equivocado, así que el resultado depende de cuándo se detenga.`);
+    const ult = hist[hist.length - 1], otro = barajado ? " Con otro orden el camino cambia, pero igual aprende." : "";
+    if (ult === 0) parar(`Paró en la época ${hist.length}: recorrió todos los billetes sin corregir ninguno.` + otro);
+    else if (seguidas >= MAX_SEGUIDAS) parar(`Paró tras ${MAX_SEGUIDAS} épocas sin llegar a cero correcciones (quedaron ${ult} en la última): siempre queda algún billete del lado equivocado.` + otro);
   }
-  $("#vivo-hasta").onclick = () => {
+  function reproducir() { seguidas = 0; $("#vivo-play").textContent = "Pausar"; timer = setInterval(tic, ritmo()); }
+  $("#vivo-play").onclick = () => {
     if (timer) return parar(`En pausa en la época ${hist.length}.`);
-    if (hist.length >= 60) reset();
-    seguidas = 0; $("#vivo-hasta").textContent = "Pausar"; timer = setInterval(tic, 300);
+    if (hist.length >= 60) cero();
+    reproducir();
   };
-  function reset() { parar(); w = modo === 4 ? [0, 0, 0, 0] : [0, 0]; b = 0; hist = []; pintar(); }
+  const vel = $("#vivo-vel");
+  function ponerVel() { $("#vivo-velv").textContent = `1 época cada ${fmt(ritmo() / 1000)} s`; if (timer) { clearInterval(timer); timer = setInterval(tic, ritmo()); } }
+  vel.addEventListener("input", ponerVel); ponerVel();
+  function cero() { parar(); w = modo === 4 ? [0, 0, 0, 0] : [0, 0]; b = 0; hist = []; pintar(); }
+  function reset() { previa = null; barajado = false; orden = Y.map((_, i) => i); cero(); }
+  $("#vivo-barajar").onclick = () => {
+    previa = hist.slice(); barajado = true;
+    for (let i = orden.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [orden[i], orden[j]] = [orden[j], orden[i]]; }
+    cero(); reproducir();
+  };
   $$("[data-modo]").forEach(bt => bt.onclick = () => { modo = +bt.dataset.modo; $$("[data-modo]").forEach(o => o.setAttribute("aria-pressed", o === bt)); reset(); });
-  $("#vivo-1").onclick = () => { parar(); entrenar(1); }; $("#vivo-10").onclick = () => { parar(); entrenar(10); }; $("#vivo-reset").onclick = reset;
+  $("#vivo-1").onclick = () => { parar(); entrenar(1); }; $("#vivo-reset").onclick = reset;
   reset();
 })();
 
@@ -1492,28 +1628,66 @@ mostrarBillete(TEST[1]);
 })();
 
 /* ============ RESULTADOS ============ */
+/* pasos de teclado: avisa cuántos fragmentos de la lista van vistos cada vez que la exposición revela u oculta uno */
+function alVer(elems, cb) {
+  const ob = new MutationObserver(() => cb(elems.filter(e => e.classList.contains("visto")).length));
+  elems.forEach(e => ob.observe(e, { attributes: true, attributeFilter: ["class"] }));
+}
 (function () {
   $("#res-entrada").textContent = `Acertó ${ACIERTOS} y se equivocó en ${ERRORES}. Detectó ${VP} de los ${VP + FN} falsificados y dio ${cuantos(FP, "falsa alarma", "falsas alarmas")}.`;
   const val = { VN, FP, FN, VP };
   $$(".celda").forEach(c => $(".cifra", c).textContent = val[c.dataset.celda]);
   const lista = arr => arr.length ? `<div class="desborde"><table><thead><tr><th class="n">Billete</th><th class="n">Varianza</th><th class="n">Asimetría</th><th class="n">Curtosis</th><th class="n">Entropía</th><th class="n">Puntaje z</th></tr></thead><tbody>${arr.map(t => `<tr><td class="n">n.º ${t.i + 1}</td>${t.x.map(v => `<td class="n">${signo(v)}</td>`).join("")}<td class="n"><strong>${signo(t.z)}</strong></td></tr>`).join("")}</tbody></table></div>` : "";
+  const parte = (n, t, de) => `<div class="aporte" style="grid-template-columns:minmax(0,1fr) auto"><div class="barra"><i style="width:${n / t * 100}%"></i></div><span class="dato">${n} de ${t} ${de} (${pct(n / t)})</span></div>`;
   const det = {
-    VN: () => `<h3>Verdaderos negativos: ${VN}</h3><p>Billetes auténticos que el modelo reconoció como auténticos. De ${VN + FP} auténticos, reconoció ${VN} (${pct(VN / (VN + FP))}).</p><p>Para el banco: clientes atendidos sin demoras ni sospechas injustificadas.</p>`,
-    VP: () => `<h3>Verdaderos positivos: ${VP}</h3><p>Billetes falsificados que el modelo detectó. De ${VP + FN} falsificados, atrapó ${VP} (${pct(REC)}).</p><p>Para el banco: dinero falso que no entra a la caja.</p>`,
-    FP: () => `<h3>Falsos positivos: ${FP}</h3><p>Billetes auténticos señalados como falsificados. Son falsas alarmas: cuestan una segunda revisión y la molestia del cliente, pero no se pierde dinero.</p>${lista(TEST.filter(t => t.real === 0 && t.pred === 1))}`,
-    FN: () => `<h3>Falsos negativos: ${FN}</h3><p>Billetes falsificados que pasaron como auténticos. Es el error más grave: el banco recibe dinero sin valor y puede volver a ponerlo en circulación.</p>${lista(TEST.filter(t => t.real === 1 && t.pred === 0))}<p class="nota">Su puntaje quedó casi en cero: el modelo estaba dudando.</p>`
+    VP: () => `<h3>Verdaderos positivos (VP): ${VP}</h3><p>Billetes falsificados que el modelo detectó.</p>${parte(VP, VP + FN, "falsificados")}<p class="banco-dice">Para el banco: dinero falso que no entra a la caja.</p>`,
+    VN: () => `<h3>Verdaderos negativos (VN): ${VN}</h3><p>Billetes auténticos que el modelo reconoció como auténticos.</p>${parte(VN, VN + FP, "auténticos")}<p class="banco-dice">Para el banco: cliente atendido sin demoras ni sospechas.</p>`,
+    FP: () => `<h3>Falsos positivos (FP): ${FP}</h3><p>Billetes auténticos señalados como falsificados.</p><p class="banco-dice">Para el banco: falsa alarma. Cuesta una segunda revisión y la molestia del cliente, pero no se pierde dinero.</p>${lista(TEST.filter(t => t.real === 0 && t.pred === 1))}`,
+    FN: () => `<h3>Falsos negativos (FN): ${FN}</h3><p>Billetes falsificados que pasaron como auténticos.</p><p class="banco-dice grave">Para el banco: el error más grave. Dinero sin valor que entra y sigue circulando.</p>${lista(TEST.filter(t => t.real === 1 && t.pred === 0))}<p class="nota">Su puntaje quedó casi en cero: el modelo estaba dudando.</p>`,
+    nada: () => `<h3>${ACIERTOS} aciertos y ${ERRORES} errores</h3><p>Las dos casillas de la diagonal son los aciertos. Las otras dos son los errores, y no le cuestan lo mismo al banco.</p>${parte(ACIERTOS, TOTAL, "billetes bien clasificados")}`
   };
-  function elegir(k) { $$(".celda").forEach(c => c.setAttribute("aria-pressed", c.dataset.celda === k)); $("#celda-detalle").innerHTML = det[k](); }
+  const ORDEN = ["VP", "VN", "FP", "FN"];
+  function elegir(k) { $$(".celda").forEach(c => c.setAttribute("aria-pressed", c.dataset.celda === k)); $("#celda-detalle").innerHTML = det[k || "nada"](); }
   $$(".celda").forEach(c => c.onclick = () => elegir(c.dataset.celda));
-  elegir("FN");
+  alVer($$("#celda-pasos .f"), n => elegir(n ? ORDEN[n - 1] : null));
+  elegir(null);
 
-  const mets = [
-    ["Accuracy", ACC, `(${VP} + ${VN}) / ${TOTAL}`, "De todos los billetes, cuántos clasificó bien."],
-    ["Precision", PREC, `${VP} / (${VP} + ${FP})`, "De sus alertas de «falsificado», cuántas eran ciertas."],
-    ["Recall", REC, `${VP} / (${VP} + ${FN})`, "De los falsificados que había, cuántos detectó."],
-    ["F1-score", F1, "2 · P · R / (P + R)", "Qué tan equilibradas están precision y recall."]
+  /* las cuatro métricas: cada una ilumina en la matriz las casillas de su fórmula; «¿Y si…?» mueve FP y FN */
+  const FALSOS = VP + FN, AUTENT = VN + FP;
+  const METS = [
+    { n: "Accuracy", d: "De todos los billetes, cuántos clasificó bien.", num: ["VP", "VN"], den: ["VP", "VN", "FP", "FN"],
+      v: c => (c.VP + c.VN) / TOTAL, cuenta: c => `(VP + VN) / total = (${c.VP} + ${c.VN}) / ${TOTAL}` },
+    { n: "Precision", d: "De sus alertas de «falsificado», cuántas eran ciertas.", num: ["VP"], den: ["VP", "FP"],
+      v: c => c.VP + c.FP ? c.VP / (c.VP + c.FP) : null, cuenta: c => `VP / (VP + FP) = ${c.VP} / (${c.VP} + ${c.FP})` },
+    { n: "Recall", d: "De los falsificados que había, cuántos detectó.", num: ["VP"], den: ["VP", "FN"],
+      v: c => c.VP / (c.VP + c.FN), cuenta: c => `VP / (VP + FN) = ${c.VP} / (${c.VP} + ${c.FN})` },
+    { n: "F1-score", d: "Qué tan equilibradas están precision y recall.", num: ["VP"], den: ["VP", "FP", "FN"],
+      v: c => 2 * c.VP / (2 * c.VP + c.FP + c.FN), cuenta: c => `2 · P · R / (P + R), con P = ${pct(METS[1].v(c))} y R = ${pct(METS[2].v(c))}` }
   ];
-  $("#metricas").innerHTML = mets.map(m => `<div class="metrica f"><b>${m[0]}</b><span class="cifra" style="color:var(--tinta)">${pct(m[1])}</span><span class="dato">${m[2]}</span><span>${m[3]}</span></div>`).join("");
+  $("#metricas").innerHTML = METS.map((m, i) => `<button class="metrica f" type="button" data-met="${i}" aria-pressed="false"><b>${m.n}</b><span class="cifra" style="color:var(--tinta)"></span><span>${m.d}</span></button>`).join("");
+  const sFP = $("#ysi-fp"), sFN = $("#ysi-fn");
+  let sel = null;
+  function metricas() {
+    const fp = +sFP.value, fn = +sFN.value, c = { FP: fp, FN: fn, VN: AUTENT - fp, VP: FALSOS - fn }, real = fp === FP && fn === FN;
+    $$("[data-met]").forEach((b, i) => { const v = METS[i].v(c); $(".cifra", b).textContent = v === null ? "sin alertas" : pct(v); b.setAttribute("aria-pressed", i === sel); });
+    $$("#met-matriz .mcel").forEach(e => {
+      const k = e.dataset.m, m = sel === null ? null : METS[sel];
+      $(".cifra", e).textContent = c[k];
+      e.classList.toggle("num", !!m && m.num.includes(k)); e.classList.toggle("den", !!m && !m.num.includes(k) && m.den.includes(k));
+      e.classList.toggle("fuera", !!m && !m.den.includes(k));
+    });
+    $("#ysi-fpv").textContent = fp; $("#ysi-fnv").textContent = fn;
+    $("#ysi-estado").textContent = real ? "Ahora: valores reales del modelo." : `Simulación: ${cuantos(fp, "falsa alarma", "falsas alarmas")} y ${cuantos(fn, "falso que pasa", "falsos que pasan")}.`;
+    $("#ysi-reset").disabled = real;
+    if (sel === null) { $("#met-cuenta").innerHTML = "Toca una métrica: se iluminan las casillas que entran en su fórmula."; return; }
+    const m = METS[sel], v = m.v(c);
+    $("#met-cuenta").innerHTML = `<strong>${m.n}</strong> = ${m.cuenta(c)} = <strong>${v === null ? "no se puede calcular" : pct(v)}</strong><br><span class="nota">Relleno: va arriba en la fracción. Borde punteado: solo entra abajo.</span>`;
+  }
+  $$("[data-met]").forEach((b, i) => b.onclick = () => { sel = i; metricas(); });
+  alVer($$("[data-met]"), n => { sel = n ? n - 1 : null; metricas(); });
+  sFP.addEventListener("input", metricas); sFN.addEventListener("input", metricas);
+  $("#ysi-reset").onclick = () => { sFP.value = FP; sFN.value = FN; metricas(); };
+  sFP.value = FP; sFN.value = FN; metricas();
 
   /* tira de puntajes */
   const s = $("#tira"), W0 = 860, H0 = 250, m = { l: 20, r: 20, b: 44 }, LIM = 10, ANCHO = 0.5;
@@ -1526,55 +1700,115 @@ mostrarBillete(TEST[1]);
   const cerca = TEST.filter(t => Math.abs(t.z) < LIM), izq = TEST.filter(t => t.z <= -LIM).length, der = TEST.filter(t => t.z >= LIM).length;
   sv("text", { x: m.l, y: 22 }, s).textContent = `← ${izq} billetes más, auténticos claros`;
   sv("text", { x: W0 - m.r, y: 22, "text-anchor": "end" }, s).textContent = `${der} billetes más, falsificados claros →`;
-  const pilas = {};
+  const pilas = {}, aros = [];
   cerca.sort((a, b) => a.z - b.z).forEach(t => {
     const k = Math.floor((t.z + LIM) / ANCHO); pilas[k] = (pilas[k] || 0) + 1;
     const x = Xz(-LIM + (k + 0.5) * ANCHO), y = base - 9 - (pilas[k] - 1) * 11, err = t.real !== t.pred;
-    marca(s, x, y, t.real, 4.2, { "data-tip": `Billete n.º ${t.i + 1}: era ${NOMBRE[t.real]}, el modelo dijo ${NOMBRE[t.pred]}. z = ${signo(t.z)}` });
-    if (err) sv("circle", { cx: x, cy: y, r: 8.5, class: "resalte", "pointer-events": "none" }, s);
+    marca(s, x, y, t.real, 4.2, { "data-tip": `Billete n.º ${t.i + 1}: era ${NOMBRE[t.real]}, el modelo dijo ${NOMBRE[t.pred]}${err ? " (error)" : ""}. z = ${signo(t.z)}` });
+    if (err) aros.push({ t, el: sv("circle", { cx: x, cy: y, r: 8.5, class: "resalte", "pointer-events": "none" }, s) });
   });
-  leyenda("#ley-tira", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>error del modelo</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" fill="var(--tinta)" opacity=".2"/></svg>zona de duda</span>`);
-  const sl = $("#duda"); sl.value = D.duda_p5;
+  leyenda("#ley-tira", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>error fuera de la zona</span><span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" class="resalte atrapado"/></svg>error atrapado por la zona</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" fill="var(--tinta)" opacity=".2"/></svg>zona de duda</span>`);
+  const sl = $("#duda"), errs = TEST.filter(t => t.real !== t.pred);
+  /* el ancho más angosto que deja los cuatro errores dentro de la zona */
+  const TODOS = Math.ceil((Math.max(...errs.map(t => Math.abs(t.z))) + 0.005) * 100) / 100;
+  let a = D.duda_p5;
   function duda() {
-    const a = +sl.value;
     banda.setAttribute("x", Xz(-a)); banda.setAttribute("width", Xz(a) - Xz(-a));
-    $("#duda-v").textContent = fmt(a); $("#duda-v2").textContent = fmt(a);
-    const en = TEST.filter(t => Math.abs(t.z) < a);
-    const fnF = TEST.filter(t => t.real === 1 && t.pred === 0 && Math.abs(t.z) >= a).length;
-    const fpF = TEST.filter(t => t.real === 0 && t.pred === 1 && Math.abs(t.z) >= a).length;
-    $("#duda-res").innerHTML = `Revisión manual: <strong>${en.length} de ${TOTAL} billetes</strong> (${pct(en.length / TOTAL, 1)}). Falsos negativos que quedan sin control: <strong>${fnF} de ${FN}</strong>. Falsas alarmas sin control: <strong>${fpF} de ${FP}</strong>.`;
+    const txt = fmt(a, a === D.duda_p5 ? 3 : 2);
+    $("#duda-v").textContent = txt; $("#duda-v2").textContent = txt;
+    const en = TEST.filter(t => Math.abs(t.z) < a), fuera = errs.filter(t => Math.abs(t.z) >= a), dentro = errs.length - fuera.length;
+    aros.forEach(o => o.el.classList.toggle("atrapado", Math.abs(o.t.z) < a));
+    const fa = fuera.filter(t => !t.real).length, fq = fuera.length - fa;
+    const cuales = fuera.length === 1 ? `${fq ? "un falso que pasó" : "una falsa alarma"} (z = ${signo(fuera[0].z)})` : [fa ? cuantos(fa, "falsa alarma", "falsas alarmas") : "", fq ? cuantos(fq, "falso que pasó", "falsos que pasaron") : ""].filter(Boolean).join(" y ");
+    $("#duda-res").innerHTML = `<div><span class="cifra">${en.length} de ${TOTAL}</span><span>billetes a revisión manual (${pct(en.length / TOTAL, 1)})</span></div>
+      <div><span class="cifra">${dentro} de ${errs.length}</span><span>errores que atraparía la revisión</span></div>
+      <div><span class="cifra">${fuera.length}</span><span>${fuera.length ? "sin control: " + cuales : "errores sin control"}</span></div>`;
   }
-  sl.oninput = duda; duda();
+  sl.oninput = () => { a = +sl.value; duda(); };
+  $$("[data-duda]").forEach(bt => bt.onclick = () => { const k = bt.dataset.duda; a = k === "real" ? D.duda_p5 : k === "todos" ? TODOS : 0; sl.value = a; duda(); });
+  sl.value = a; duda();
 
-  /* laboratorio */
-  const pre = {
-    real: [VP, FN, FP, VN, "Nuestro modelo: las cuatro métricas altas y parejas."],
-    miedoso: [VP + FN, 0, VN + FP, 0, "Un modelo que alerta todo atrapa todos los falsos (recall 100 %), pero casi la mitad de sus alertas son falsas: precision baja."],
-    confiado: [0, VP + FN, 0, VN + FP, "Un modelo que nunca alerta acierta más de la mitad solo porque hay más auténticos, pero no detecta ni un falsificado: recall 0 %."]
+  /* el modelo perezoso frente al perceptrón, según cuántos falsos haya */
+  const P_REAL = FALSOS / TOTAL, ESP = VN / AUTENT;
+  const ps = $("#pz-p"), grid = $("#pz-grid");
+  let p = P_REAL;
+  leyenda("#pz-ley", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>falso que el perezoso deja pasar</span>`);
+  const barraM = (n, v) => `<div class="aporte" style="grid-template-columns:5.2em minmax(0,1fr) 4.8em"><span>${n}</span><div class="barra"><i style="width:${v * 100}%"></i></div><span class="dato" style="text-align:right">${pct(v)}</span></div>`;
+  function perezoso() {
+    const real = p === P_REAL, nF = Math.round(p * 100), mil = Math.round(p * 1000);
+    $("#pz-pv").textContent = real ? `${pct(p)} (la proporción real de la prueba)` : `${fmt(p * 100, 0)} %`;
+    grid.innerHTML = "";
+    /* 100 billetes en 20 columnas; los falsos se reparten con una permutación fija para que no queden en bloque */
+    for (let j = 0; j < 100; j++) {
+      const f = (j * 37) % 100 < nF, x = 10 + (j % 20) * 20, y = 11 + Math.floor(j / 20) * 20.5;
+      marca(grid, x, y, f ? 1 : 0, 5);
+      if (f) sv("circle", { cx: x, cy: y, r: 8.6, class: "resalte", "stroke-width": 1.5 }, grid);
+    }
+    const accN = p * REC + (1 - p) * ESP;
+    $("#pz-res").innerHTML = `<h3>El perezoso: siempre dice «auténtico»</h3>${barraM("Accuracy", 1 - p)}${barraM("Recall", 0)}
+      <h3 style="margin-top:6px">Nuestro perceptrón</h3>${barraM("Accuracy", accN)}${barraM("Recall", REC)}
+      <p class="nota">${real ? "Cifras reales de la prueba." : "Perceptrón estimado: si mantiene las tasas de acierto que tuvo en la prueba."}</p>
+      <p style="font-size:.92em"><strong>De cada 1.000 billetes, ${mil} son falsos.</strong> El perezoso deja pasar los ${mil}. El perceptrón, ${mil * (1 - REC) < 1 ? "menos de 1" : "unos " + Math.round(mil * (1 - REC))}.</p>`;
+    $("#pz-real").disabled = real;
+  }
+  ps.oninput = () => { p = +ps.value / 100; perezoso(); };
+  $("#pz-real").onclick = () => { p = P_REAL; ps.value = Math.round(p * 100); perezoso(); };
+  $("#pz-raro").onclick = () => { p = 0.01; ps.value = 1; perezoso(); };
+  ps.value = Math.round(p * 100); perezoso();
+
+  /* ¿fue suerte?: validación cruzada en 5 vueltas; el archivo trae el mínimo, el promedio y el máximo de las cinco */
+  const base0 = AUTENT / TOTAL, cv = D.cv, K = 5;
+  $("#suerte").innerHTML = `<p class="entrada">¿El buen resultado depende de la partición que nos tocó? Repetimos todo el proceso 5 veces, cambiando cada vez el bloque de prueba.</p>
+    <div class="dos">
+      <div class="panel" style="gap:7px">
+        <h3>Validación cruzada: 5 vueltas</h3>
+        ${Array.from({ length: K }, (_, v) => `<div class="cv-fila f"><span><strong>Vuelta ${v + 1}</strong></span><div class="cv-bloques">${Array.from({ length: K }, (_, k) => `<i class="${k === v ? "prueba" : ""}"></i>`).join("")}</div><span class="nota">prueba con el bloque ${v + 1}</span></div>`).join("")}
+        <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" fill="var(--hundido)" stroke="var(--linea)"/></svg>entrena</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="grab-f"/></svg>prueba (no lo ve al entrenar)</span></div>
+        <div class="fila"><button class="btn sec" id="cv-play" type="button">Reproducir las 5 vueltas</button></div>
+      </div>
+      <div class="pila" style="gap:10px">
+        <div class="panel f" id="cv-panel" style="gap:4px;padding:10px 14px">
+          <h3>Resultado de las 5 vueltas</h3>
+          <svg id="cv-rango" viewBox="0 0 460 150" role="img" aria-label="Rango de accuracy y de recall en las cinco vueltas: mínimo, promedio y máximo"></svg>
+        </div>
+        <div class="desborde f"><table style="font-size:.84em">
+          <thead><tr><th>Comparación</th><th class="n">Accuracy</th><th class="n">Recall</th></tr></thead>
+          <tbody>
+            <tr><td>Un «modelo» que siempre dice auténtico</td><td class="n">${pct(base0)}</td><td class="n">${pct(0)}</td></tr>
+            <tr><td><strong>Nuestra prueba del 20 %</strong></td><td class="n"><strong>${pct(ACC)}</strong></td><td class="n"><strong>${pct(REC)}</strong></td></tr>
+          </tbody></table></div>
+      </div>
+    </div>
+    <p class="f" style="font-size:.95em">Se mantiene alto en las 5 vueltas y muy por encima de la línea base. No fue suerte, aunque los decimales cambian de una partición a otra: el recall exacto no está garantizado.</p>`;
+  (function rango() {
+    const g = $("#cv-rango"), A = 0.93, B = 1, X = v => 96 + (v - A) / (B - A) * 340;
+    [["Accuracy", cv.accuracy, ACC, 36], ["Recall", cv.recall, REC, 98]].forEach(([n, r, nuestra, y]) => {
+      sv("text", { x: 2, y: y + 5, class: "rot" }, g).textContent = n;
+      sv("line", { x1: X(A), x2: X(B), y1: y, y2: y, class: "eje" }, g);
+      sv("rect", { x: X(r.min), y: y - 9, width: X(r.max) - X(r.min), height: 18, rx: 3, class: "grab-f", opacity: 0.3 }, g);
+      [r.min, r.max].forEach(v => sv("line", { x1: X(v), x2: X(v), y1: y - 12, y2: y + 12, stroke: "var(--grabado)", "stroke-width": 2.5 }, g));
+      sv("line", { x1: X(r.mean), x2: X(r.mean), y1: y - 14, y2: y + 14, class: "frontera", "stroke-width": 3 }, g);
+      marca(g, X(nuestra), y, 0, 5, { class: "tinta-f aro", "data-tip": `Nuestra prueba del 20 %: ${pct(nuestra)}` });
+      sv("text", { x: (X(A) + X(B)) / 2, y: y + 30, "text-anchor": "middle", class: "rot" }, g).textContent = `mín. ${pct(r.min)} · promedio ${pct(r.mean)} · máx. ${pct(r.max)}`;
+    });
+    sv("text", { x: X(A), y: 11 }, g).textContent = "93 %";
+    sv("text", { x: X(B), y: 11, "text-anchor": "end" }, g).textContent = "100 %";
+    sv("circle", { cx: 100, cy: 142, r: 5, class: "tinta-f" }, g);
+    sv("text", { x: 110, y: 146 }, g).textContent = "nuestra prueba del 20 %, dentro del rango";
+  })();
+  /* animación: cada bloque se turna como prueba y al final aparece el rango */
+  let cvT = null;
+  $("#cv-play").onclick = () => {
+    const filas = $$("#suerte .cv-fila"), panel = $("#cv-panel");
+    clearInterval(cvT); let v = 0;
+    if (document.body.classList.contains("expo")) { filas.forEach(f => f.classList.remove("visto")); panel.classList.remove("visto"); }
+    const turno = () => {
+      filas.forEach((f, k) => f.classList.toggle("turno", k === v));
+      if (v < K) { filas[v].classList.add("visto"); v++; return; }
+      clearInterval(cvT); panel.classList.add("visto");
+    };
+    turno(); cvT = setInterval(turno, 800);
   };
-  const ids = ["VP", "FN", "FP", "VN"];
-  function lab() {
-    const [vp, fn, fp, vn] = ids.map(k => Math.max(0, +$("#lab-" + k).value || 0)), t = vp + fn + fp + vn;
-    const acc = t ? (vp + vn) / t : null, pr = vp + fp ? vp / (vp + fp) : null, re = vp + fn ? vp / (vp + fn) : null;
-    const f = pr !== null && re !== null && pr + re > 0 ? 2 * pr * re / (pr + re) : (pr !== null && re !== null ? 0 : null);
-    const fila = (n, v, sin) => `<div class="aporte" style="grid-template-columns:6em minmax(0,1fr) 9.5em"><span><strong>${n}</strong></span><div class="barra"><i style="width:${v === null ? 0 : v * 100}%"></i></div><span class="dato" style="text-align:right">${v === null ? sin : pct(v)}</span></div>`;
-    $("#lab-res").innerHTML = `<h3>${t} billetes en total</h3>` + fila("Accuracy", acc, "sin billetes") + fila("Precision", pr, "no hubo alertas") + fila("Recall", re, "no había falsos") + fila("F1-score", f, "no se puede");
-  }
-  function poner(k) { pre[k].slice(0, 4).forEach((v, i) => $("#lab-" + ids[i]).value = v); $("#lab-nota").textContent = pre[k][4]; lab(); }
-  ids.forEach(k => $("#lab-" + k).oninput = () => { $("#lab-nota").textContent = "Valores editados a mano."; lab(); });
-  $$("[data-lab]").forEach(b => b.onclick = () => poner(b.dataset.lab));
-  poner("real");
-
-  const base0 = (VN + FP) / TOTAL, cv = D.cv;
-  $("#suerte").innerHTML = `<p class="entrada">Dos comprobaciones para saber si el buen resultado depende de la partición que nos tocó.</p>
-    <div class="desborde"><table style="font-size:1em">
-      <thead><tr><th>Qué se evaluó</th><th class="n">Accuracy</th><th class="n">Recall</th></tr></thead>
-      <tbody>
-        <tr class="f"><td>Un «modelo» que siempre dice auténtico</td><td class="n">${pct(base0)}</td><td class="n">${pct(0)}</td></tr>
-        <tr class="f"><td><strong>Nuestro perceptrón, prueba del 20 %</strong></td><td class="n"><strong>${pct(ACC)}</strong></td><td class="n"><strong>${pct(REC)}</strong></td></tr>
-        <tr class="f"><td>El proceso repetido con 5 particiones distintas (de la peor a la mejor)</td><td class="n">${pct(cv.accuracy.min)} a ${pct(cv.accuracy.max)}</td><td class="n">${pct(cv.recall.min)} a ${pct(cv.recall.max)}</td></tr>
-      </tbody></table></div>
-    <p class="f">El modelo supera por mucho a la línea base y se mantiene alto en todas las particiones. No fue suerte, aunque los decimales sí cambian de una partición a otra: el recall exacto no está garantizado.</p>`;
 })();
 
 /* ============ GERENCIA ============ */
