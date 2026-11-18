@@ -254,7 +254,6 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
     <div class="ejemplos">
       <div class="ejemplos-cab">
         <h3>O elige una base de ejemplo</h3>
-        <button class="btn sec chico" id="azar-base" type="button">Elegir una al azar</button>
       </div>
       <div class="bases" id="bases"></div>
     </div>
@@ -2667,11 +2666,6 @@ function usarBase(id){
   cargar(b.texto, b.archivo, b.opciones());
 }
 document.querySelectorAll("#bases .base").forEach(el => el.addEventListener("click", () => usarBase(el.dataset.base)));
-/* «Elegir una al azar»: entre todas las tarjetas visibles (billetes y agregadas) */
-$("azar-base").addEventListener("click", () => {
-  const t = [...document.querySelectorAll("#bases .base, #agregadas .base")];
-  if (t.length) t[Math.floor(Math.random() * t.length)].click();
-});
 let baseActual = null;
 function marcarBase(id){
   baseActual = id;
