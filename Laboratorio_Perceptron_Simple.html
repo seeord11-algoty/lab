@@ -238,8 +238,11 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
       <div class="demo">
         <button class="btn" id="demo" type="button">Usar la base de billetes</button>
         <small>Banknote Authentication (UCI): 1.372 billetes, la misma del Colab.</small>
-        <button class="btn sec" id="demo2" type="button" style="margin-top:6px">Probar con soportes de pago</button>
-        <small>Base inventada para la demostración: 600 comprobantes de transferencia, 194 falsos.</small>
+        <div id="bloque-demo2" style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn sec" id="demo2" type="button" style="margin-top:6px">Probar con soportes de pago</button>
+          <small>Base inventada para la demostración: 600 comprobantes de transferencia, 194 falsos.</small>
+          <button class="btn sec chico" id="quitar-demo2" type="button">Eliminar esta base</button>
+        </div>
       </div>
     </div>
     <p class="privado">Todo se calcula en tu navegador. El archivo no se sube a ningún servidor.</p>
@@ -2648,6 +2651,13 @@ function quitarDatos(){
   $("titulo").scrollIntoView({ block: "start" });
 }
 $("quitar").addEventListener("click", quitarDatos);
+/* elimina el botón de la base de soportes: para volver a usarla hay que subir el archivo soportes_pago.csv */
+$("quitar-demo2").addEventListener("click", () => {
+  if (S && S.demo && S.demo.objetivo === "es_falso") quitarDatos();
+  $("bloque-demo2").remove();
+  $("msg-carga").innerHTML = `<p class="privado" role="status">Se eliminó la base de soportes de pago. Para usarla otra vez, súbela como archivo (soportes_pago.csv).</p>`;
+  $("demo").focus();
+});
 
 function pintarDatos(){
   const sepTxt = S.sepNombre + (S.comaDecimal ? ", decimales con coma" : "");
