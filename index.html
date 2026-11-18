@@ -278,7 +278,8 @@ body.expo .met2 .metrica .cifra{font-size:2.7rem}
 body.expo #pz-grid{max-height:118px;width:auto;margin:0 auto}
 body.expo #cv-rango{max-height:170px;width:auto;margin:0 auto}
 body.expo .robot{width:120px}
-body.expo #vivo-curva{max-height:136px;width:auto;margin:0 auto}
+body.expo #vivo-curva{max-height:180px;width:auto;margin:0 auto}
+#vivo-estado{font-size:1.02em;line-height:1.35}
 body.expo .f{opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease,visibility 0s .3s}
 body.expo .f.visto{opacity:1;visibility:visible;transform:none;transition:opacity .3s ease,transform .3s ease}
 body.expo tr.f:not(.visto) td,body.expo thead.f:not(.visto) th{border-color:transparent}
@@ -686,24 +687,14 @@ body:not(.expo) #b-rotulo{flex:1}
         <div class="leyenda" id="ley-vivo"></div>
       </div>
       <div class="panel">
-        <div class="fila" role="group" aria-label="Medidas que usa el perceptrón">
-          <button class="btn sec" type="button" data-modo="4" aria-pressed="true">Con las 4 medidas</button>
-          <button class="btn sec" type="button" data-modo="2" aria-pressed="false">Solo con 2 medidas</button>
+        <div class="fila">
+          <button class="btn" id="vivo-play" type="button">Entrenar</button>
           <button class="btn sec" id="vivo-reset" type="button">Reiniciar</button>
         </div>
-        <div class="fila">
-          <button class="btn" id="vivo-play" type="button">Reproducir</button>
-          <button class="btn sec" id="vivo-1" type="button">Época siguiente</button>
-          <button class="btn sec" id="vivo-barajar" type="button">Barajar y entrenar de nuevo</button>
-        </div>
-        <div class="fila" style="flex-wrap:nowrap">
-          <label for="vivo-vel" style="white-space:nowrap">Velocidad</label>
-          <input type="range" id="vivo-vel" min="1" max="5" step="1" value="3">
-          <span class="nota" id="vivo-velv" style="white-space:nowrap"></span>
-        </div>
-        <p style="font-size:.88em" aria-live="polite"><span class="epoca-n">Época <span id="vivo-ep">0</span></span> · Correcciones: <span class="dato" id="vivo-err"></span> · Mal clasificados: <span class="dato" id="vivo-mal"></span> · Aciertos en prueba: <span class="dato" id="vivo-acc"></span></p>
+        <p id="vivo-estado" aria-live="polite"></p>
         <svg id="vivo-curva" viewBox="0 0 420 170" role="img" aria-label="Correcciones por época"></svg>
-        <p class="nota" id="vivo-nota" aria-live="polite"></p>
+        <p class="nota">Las correcciones bajan rápido y después suben y bajan sin llegar a cero: siempre queda algún billete del lado equivocado.</p>
+        <div class="resumen" id="vivo-fin" aria-live="polite" hidden></div>
       </div>
     </div>
   </div>
@@ -1713,90 +1704,63 @@ mostrarBillete(TEST[1]);
 })();
 
 /* ============ APRENDE: datos reales en vivo ============ */
+/* los 1.097 billetes con las 4 medidas escaladas, siempre en el mismo orden, η = 1 */
 (function () {
   const X4 = D.train.map(r => r.slice(0, 4)), X2 = D.train.map(r => [r[0], r[1]]), Y = D.train.map(r => r[4]);
   const T4 = TEST.map(t => escalar(t.x)), TY = TEST.map(t => t.real);
+  const MAX = 40, COLAB = D.epochs, RITMO = 200;
   const pl = Plano($("#vivo-plano"), { x0: -3.2, x1: 3.2, y0: -3.2, y1: 3.2, tx: [-3, -2, -1, 0, 1, 2, 3], ty: [-3, -2, -1, 0, 1, 2, 3], ex: "varianza (escalada)", ey: "asimetría (escalada)" });
   X2.forEach((p, i) => marca(pl.gPts, pl.X(p[0]), pl.Y(p[1]), Y[i], 2.6, { "stroke-width": 0.6, opacity: 0.8 }));
-  leyenda("#ley-vivo", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>mal clasificado por el modelo actual</span>`);
-  const NOTAS = {
-    4: "Con las cuatro medidas las correcciones bajan rápido en las primeras épocas y después suben y bajan sin llegar a cero: siempre queda algún billete del lado equivocado. La frontera no se puede dibujar porque vive en cuatro dimensiones; los aros marcan los billetes que el modelo actual clasifica mal.",
-    2: "Con solo dos medidas las nubes se mezclan en el centro. El perceptrón corrige muchísimo en cada época y no mejora: ninguna recta las separa. Por eso el modelo final usa las cuatro medidas."
-  };
-  let modo = 4, w, b, hist, previa = null, orden = Y.map((_, i) => i), barajado = false;
-  const datos = () => modo === 4 ? X4 : X2;
+  leyenda("#ley-vivo", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>aro: el modelo lo clasifica mal ahora</span>`);
+  let w, b, hist, timer = null;
+  const aciertos = () => T4.filter((x, i) => (zLineal(x, w, b) >= 0 ? 1 : 0) === TY[i]).length;
+  /* curva de correcciones por época, con el eje x fijo de 1 a 40 */
   function curva() {
     const s = $("#vivo-curva"); s.innerHTML = "";
     const m = { l: 40, r: 16, t: 14, b: 34 }, W0 = 420, H0 = 170;
-    const todas = previa ? hist.concat(previa) : hist;
-    const n = Math.max(10, hist.length, previa ? previa.length : 0), top = Math.ceil(Math.max(60, ...todas) * 1.1 / 20) * 20;
-    const Xs = k => m.l + (k - 1) / (n - 1) * (W0 - m.l - m.r), Ys = v => H0 - m.b - v / top * (H0 - m.t - m.b);
+    const top = Math.ceil(Math.max(60, ...hist) * 1.1 / 20) * 20;
+    const Xs = k => m.l + (k - 1) / (MAX - 1) * (W0 - m.l - m.r), Ys = v => H0 - m.b - v / top * (H0 - m.t - m.b);
     [0, top / 2, top].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Ys(v), y2: Ys(v), class: "eje" }, s); sv("text", { x: m.l - 6, y: Ys(v) + 4, "text-anchor": "end" }, s).textContent = v; });
     sv("text", { x: (W0 + m.l) / 2, y: H0 - 4, "text-anchor": "middle" }, s).textContent = "Correcciones en cada época";
-    sv("text", { x: m.l, y: H0 - m.b + 15, "text-anchor": "middle" }, s).textContent = "1";
-    sv("text", { x: W0 - m.r, y: H0 - m.b + 15, "text-anchor": "end" }, s).textContent = n;
-    /* el camino del orden anterior queda de fondo para comparar */
-    if (previa && previa.length) {
-      sv("polyline", { points: previa.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--tinta-2)", "stroke-width": 1.5, "stroke-dasharray": "4 4", opacity: 0.7 }, s);
-      sv("text", { x: W0 - m.r, y: m.t + 14, "text-anchor": "end" }, s).textContent = "- - - con el orden anterior";
-    }
-    if (!hist.length) { sv("text", { x: (W0 + m.l) / 2, y: H0 / 2, "text-anchor": "middle" }, s).textContent = "Pulsa «Reproducir» para empezar"; return; }
+    [1, 10, 20, 30, MAX].forEach(k => sv("text", { x: Xs(k), y: H0 - m.b + 15, "text-anchor": "middle" }, s).textContent = k);
+    /* dónde se detuvo el modelo del Colab */
+    sv("line", { x1: Xs(COLAB), x2: Xs(COLAB), y1: m.t, y2: H0 - m.b, stroke: "var(--tinta-2)", "stroke-width": 1.5, "stroke-dasharray": "4 4" }, s);
+    sv("text", { x: Xs(COLAB) + 5, y: m.t + 10 }, s).textContent = `aquí paró el Colab (${COLAB} épocas)`;
+    if (!hist.length) return;
     sv("polyline", { points: hist.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2 }, s);
-    hist.forEach((v, k) => sv("circle", { cx: Xs(k + 1), cy: Ys(v), r: k === hist.length - 1 ? 5 : 3.5, class: "grab-f aro", "data-tip": `Época ${k + 1}: ${v} correcciones` }, s));
-    sv("text", { x: Math.min(Xs(hist.length) + 8, W0 - 34), y: Ys(hist[hist.length - 1]) - 9, class: "tinta-f" }, s).textContent = hist[hist.length - 1];
+    hist.forEach((v, k) => sv("circle", { cx: Xs(k + 1), cy: Ys(v), r: k === hist.length - 1 ? 5 : 3, class: "grab-f aro", "data-tip": `Época ${k + 1}: ${v} correcciones` }, s));
+    sv("text", { x: Math.min(Xs(hist.length) + 8, W0 - 30), y: Ys(hist[hist.length - 1]) - 9, class: "tinta-f" }, s).textContent = hist[hist.length - 1];
   }
   function pintar() {
-    pl.gSobre.innerHTML = "";
-    if (modo === 2) pl.frontera(w, b); else pl.limpiar();
+    pl.gSobre.innerHTML = ""; pl.limpiar();
     curva();
-    $("#vivo-ep").textContent = hist.length; $("#vivo-nota").textContent = NOTAS[modo];
-    if (!hist.length) { ["err", "mal", "acc"].forEach(k => $("#vivo-" + k).textContent = "sin entrenar"); return; }
-    const X = datos(); let mal = 0;
-    X.forEach((x, i) => { if ((zLineal(x, w, b) >= 0 ? 1 : 0) !== Y[i]) { mal++; sv("circle", { cx: pl.X(X2[i][0]), cy: pl.Y(X2[i][1]), r: 5.5, class: "resalte", "stroke-width": 1.5 }, pl.gSobre); } });
-    const ok = T4.filter((x, i) => (zLineal(x, w, b) >= 0 ? 1 : 0) === TY[i]).length;
-    $("#vivo-err").textContent = hist[hist.length - 1]; $("#vivo-mal").textContent = `${mal} de ${fmt(X.length, 0)}`;
-    $("#vivo-acc").textContent = `${ok} de ${T4.length} (${pct(ok / T4.length, 1)})`;
+    $("#vivo-play").disabled = hist.length >= MAX;
+    if (!hist.length) { $("#vivo-estado").textContent = "Pulsa «Entrenar»: los pesos arrancan en cero."; return; }
+    X4.forEach((x, i) => { if ((zLineal(x, w, b) >= 0 ? 1 : 0) !== Y[i]) sv("circle", { cx: pl.X(X2[i][0]), cy: pl.Y(X2[i][1]), r: 5.5, class: "resalte", "stroke-width": 1.5 }, pl.gSobre); });
+    const ok = aciertos();
+    $("#vivo-estado").innerHTML = `<span class="epoca-n">Época ${hist.length} de ${MAX}</span> · correcciones en esta época: <span class="dato">${hist[hist.length - 1]}</span> · aciertos en la prueba: <span class="dato">${ok} de ${T4.length} (${pct(ok / T4.length, 1)})</span>`;
   }
-  /* una época recorre los billetes en el orden vigente (el original o el barajado) */
-  function entrenar(n) {
-    const X = datos(), Xo = orden.map(i => X[i]), Yo = orden.map(i => Y[i]);
-    for (let k = 0; k < n && hist.length < 60; k++) { const r = entrenarEpoca(Xo, Yo, w, b); b = r.b; hist.push(r.err); }
-    pintar();
+  /* al llegar a la época 40, la conclusión se arma con lo que pasó */
+  function conclusion() {
+    const ok = aciertos(), min = Math.min(...hist);
+    $("#vivo-fin").innerHTML = (min > 0 ? "<strong>Nunca llega a 0 correcciones: los datos no se separan perfectamente con una recta.</strong>" : `<strong>Llegó a 0 correcciones en la época ${hist.indexOf(0) + 1}.</strong>`)
+      + `<span>Aun así acierta ${ok} de ${T4.length} billetes de prueba (${pct(ok / T4.length, 1).replace(" ", "&nbsp;")}).</span>`
+      + "<span>En el Colab: con solo 2 medidas acierta 85,09&nbsp;%; con las 4, 98,55&nbsp;%. Por eso usamos las 4.</span>";
+    $("#vivo-fin").hidden = false;
   }
-  /* reproducir: una época por tic hasta que no corrija nada o lleve 40 épocas seguidas */
-  const MAX_SEGUIDAS = 40, RITMOS = [900, 600, 300, 150, 60];
-  let timer = null, seguidas = 0;
-  const ritmo = () => RITMOS[+$("#vivo-vel").value - 1];
-  function parar(motivo) {
-    if (timer) { clearInterval(timer); timer = null; }
-    $("#vivo-play").textContent = "Reproducir";
-    if (motivo) $("#vivo-nota").textContent = motivo;
-  }
+  function parar() { if (timer) { clearInterval(timer); timer = null; } $("#vivo-play").textContent = "Entrenar"; }
   function tic() {
-    if (hist.length >= 60) return parar("Llegó al tope de 60 épocas de esta demostración: pulsa Reiniciar para volver a empezar.");
-    entrenar(1); seguidas++;
-    const ult = hist[hist.length - 1], otro = barajado ? " Con otro orden el camino cambia, pero igual aprende." : "";
-    if (ult === 0) parar(`Paró en la época ${hist.length}: recorrió todos los billetes sin corregir ninguno.` + otro);
-    else if (seguidas >= MAX_SEGUIDAS) parar(`Paró tras ${MAX_SEGUIDAS} épocas sin llegar a cero correcciones (quedaron ${ult} en la última): siempre queda algún billete del lado equivocado.` + otro);
+    const r = entrenarEpoca(X4, Y, w, b); b = r.b; hist.push(r.err);
+    pintar();
+    if (hist.length >= MAX) { parar(); pintar(); conclusion(); }
   }
-  function reproducir() { seguidas = 0; $("#vivo-play").textContent = "Pausar"; timer = setInterval(tic, ritmo()); }
   $("#vivo-play").onclick = () => {
-    if (timer) return parar(`En pausa en la época ${hist.length}.`);
-    if (hist.length >= 60) cero();
-    reproducir();
+    if (timer) return parar();
+    if (hist.length >= MAX) return;
+    $("#vivo-play").textContent = "Pausar"; timer = setInterval(tic, RITMO);
   };
-  const vel = $("#vivo-vel");
-  function ponerVel() { $("#vivo-velv").textContent = `1 época cada ${fmt(ritmo() / 1000)} s`; if (timer) { clearInterval(timer); timer = setInterval(tic, ritmo()); } }
-  vel.addEventListener("input", ponerVel); ponerVel();
-  function cero() { parar(); w = modo === 4 ? [0, 0, 0, 0] : [0, 0]; b = 0; hist = []; pintar(); }
-  function reset() { previa = null; barajado = false; orden = Y.map((_, i) => i); cero(); }
-  $("#vivo-barajar").onclick = () => {
-    previa = hist.slice(); barajado = true;
-    for (let i = orden.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [orden[i], orden[j]] = [orden[j], orden[i]]; }
-    cero(); reproducir();
-  };
-  $$("[data-modo]").forEach(bt => bt.onclick = () => { modo = +bt.dataset.modo; $$("[data-modo]").forEach(o => o.setAttribute("aria-pressed", o === bt)); reset(); });
-  $("#vivo-1").onclick = () => { parar(); entrenar(1); }; $("#vivo-reset").onclick = reset;
+  function reset() { parar(); w = [0, 0, 0, 0]; b = 0; hist = []; $("#vivo-fin").hidden = true; pintar(); }
+  $("#vivo-reset").onclick = reset;
   reset();
 })();
 
