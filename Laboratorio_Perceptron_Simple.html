@@ -2502,7 +2502,7 @@ const falta = s => FALTA.has(String(s).trim().toLowerCase());
 let S = null;   // datos cargados
 let R = null;   // resultado del entrenamiento
 
-function partir(linea, sep){
+function partir(linea, sep, recortar = true){
   if (sep === null) return linea.trim().split(/\s+/);
   const out = []; let cur = "", q = false;
   for (let i = 0; i < linea.length; i++){
@@ -2515,8 +2515,10 @@ function partir(linea, sep){
     else cur += ch;
   }
   out.push(cur);
-  return out.map(s => s.trim());
+  return recortar ? out.map(s => s.trim()) : out;
 }
+// Como lo ve pandas con skipinitialspace=True: sin espacios al inicio, pero sí al final.
+const partirCrudo = (linea, sep) => partir(linea, sep, false).map(s => s.replace(/^\s+/, ""));
 function detectarSeparador(lineas){
   let mejor = null, puntaje = 0;
   for (const c of [",", ";", "\t", "|"]){
@@ -2535,7 +2537,11 @@ function detectarSeparador(lineas){
 function aNumero(s, comaDecimal){
   s = String(s).trim();
   if (falta(s)) return NaN;
-  if (comaDecimal && s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  if (comaDecimal){
+    // Excel en español: 2.345.678,90 o 1.500 (punto de miles y coma decimal)
+    if (/^[-+]?\d{1,3}(\.\d{3})+(,\d*)?$/.test(s)) s = s.replace(/\./g, "").replace(",", ".");
+    else if (s.includes(",")) s = s.replace(",", ".");
+  }
   if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return NaN;
   return Number(s);
 }
@@ -2572,10 +2578,16 @@ function leerTexto(texto, nombreArchivo, opciones = {}){
   while (nombres.length < ncol) nombres.push(`columna ${nombres.length + 1}`);
   const vistos = {};
   nombres = nombres.slice(0, ncol).map(n => { if (vistos[n]){ vistos[n]++; return `${n} (${vistos[n]})`; } vistos[n] = 1; return n; });
+  // ¿pandas leería el encabezado con otros nombres? (repetidos, vacíos o con espacios junto al separador)
+  let renombrar = false;
+  if (encabezado && !opciones.nombres){
+    const crudos = sep === null ? lineas[0].trim().split(/\s+/) : partirCrudo(lineas[0], sep);
+    renombrar = crudos.length !== nombres.length || crudos.some((c, j) => c !== nombres[j]);
+  }
   if (encabezado) filas = filas.slice(1);
   const n = filas.length;
   const cols = nombres.map((nombre, j) => perfilar(nombre, filas.map(f => (f[j] ?? "").trim()), comaDecimal));
-  return { archivo: nombreArchivo, sep, sepNombre, comaDecimal, encabezado, nombres, cols, n, filas, desc: opciones.desc || {}, clases: opciones.clases || null, demo: opciones.demo || null };
+  return { archivo: nombreArchivo, sep, sepNombre, comaDecimal, encabezado, nombres, cols, n, filas, desc: opciones.desc || {}, clases: opciones.clases || null, demo: opciones.demo || null, renombrar, codificacion: opciones.codificacion || "utf-8" };
 }
 
 function perfilar(nombre, raw, comaDecimal){
@@ -2640,12 +2652,14 @@ function leerArchivo(f){
   if (/\.(xlsx?|ods|json|parquet)$/i.test(f.name)){ mostrarError("msg-carga", `«${f.name}» no es texto plano. Guárdalo como CSV desde Excel o Sheets y súbelo de nuevo.`); return; }
   const lector = new FileReader();
   lector.onload = () => {
-    const texto = String(lector.result);
+    let texto, codificacion = "utf-8";
+    try { texto = new TextDecoder("utf-8", { fatal: true }).decode(lector.result); }
+    catch (e){ texto = new TextDecoder("windows-1252").decode(lector.result); codificacion = "cp1252"; }
     // Si el archivo es una de las bases de ejemplo, carga con su misma partición exacta.
-    if (cargar(texto, f.name, opcionesDe(texto))) agregarBase(f.name, texto, S.n, S.cols.length);
+    if (cargar(texto, f.name, Object.assign({}, opcionesDe(texto) || {}, { codificacion }))) agregarBase(f.name, texto, S.n, S.cols.length, codificacion);
   };
   lector.onerror = () => mostrarError("msg-carga", "No se pudo leer el archivo. Intenta de nuevo o guárdalo otra vez como CSV.");
-  lector.readAsText(f);
+  lector.readAsArrayBuffer(f);
 }
 function opcionesSoportes(){ return { desc: Object.assign({}, SOPORTES_DESC), demo: { objetivo: "es_falso", split: SOPORTES_SPLIT, fuente: "python" },
   clases: { objetivo: "es_falso", positiva: "sí", n1: "falso", n0: "real" } }; }
@@ -2689,8 +2703,8 @@ function pintarAgregadas(){
     : `<p class="sin-agregadas">Todavía no has agregado bases. Súbelas en la zona de arriba.</p>`;
   document.querySelectorAll(".base").forEach(el => el.classList.toggle("elegida", el.dataset.base === baseActual));
 }
-function agregarBase(nombre, texto, n, ncol){
-  const a = { nombre, texto, n, ncol }, k = AGREGADAS.findIndex(x => x.nombre === nombre);
+function agregarBase(nombre, texto, n, ncol, codificacion = "utf-8"){
+  const a = { nombre, texto, n, ncol, codificacion }, k = AGREGADAS.findIndex(x => x.nombre === nombre);
   if (k >= 0) AGREGADAS[k] = a; else AGREGADAS.push(a);
   guardarAgregadas();
   baseActual = idAgregada(nombre);
@@ -2718,7 +2732,7 @@ $("agregadas").addEventListener("click", e => {
   const t = e.target.closest(".base"); if (!t) return;
   const a = AGREGADAS[+t.dataset.k]; if (!a) return;
   marcarBase(idAgregada(a.nombre));
-  cargar(a.texto, a.nombre, opcionesDe(a.texto));
+  cargar(a.texto, a.nombre, Object.assign({}, opcionesDe(a.texto) || {}, { codificacion: a.codificacion || "utf-8" }));
 });
 pintarAgregadas();
 
@@ -2729,6 +2743,12 @@ function pintarDatos(){
   $("vista").innerHTML = `<thead><tr>${S.nombres.map(n => `<th>${esc(corto(n, 28))}</th>`).join("")}</tr></thead><tbody>${muestra.map(f => `<tr>${S.nombres.map((_, j) => `<td>${esc(corto(f[j] ?? "", 28))}</td>`).join("")}</tr>`).join("")}</tbody>`;
 }
 
+const PISTAS_OBJETIVO = new Set(["y", "target", "label", "class", "clase", "objetivo", "etiqueta", "resultado", "outcome", "survived", "churn",
+  "fraud", "fraude", "fraudulento", "default", "mora", "spam", "falso", "falsa", "fake", "diagnosis", "diagnostico", "abandono", "aprobado", "exited"]);
+function pareceObjetivo(nombre){
+  return nombre.replace(/([a-z])([A-Z])/g, "$1 $2").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .split(/[^a-z0-9]+/).some(t => PISTAS_OBJETIVO.has(t));
+}
 function pintarConfig(){
   const sel = $("objetivo");
   const posibles = S.cols.map((c, j) => ({ c, j })).filter(o => o.c.objetivoPosible);
@@ -2740,7 +2760,9 @@ function pintarConfig(){
   $("entrenar").disabled = false; mostrarError("msg-config", "");
   sel.innerHTML = posibles.map(o => `<option value="${o.j}">${esc(o.c.nombre)} (${o.c.unicos} valores)</option>`).join("");
   let j = posibles[posibles.length - 1].j;
+  const pista = posibles.filter(o => pareceObjetivo(o.c.nombre));
   if (S.clases){ const k = S.nombres.indexOf(S.clases.objetivo); if (k >= 0) j = k; }
+  else if (pista.length) j = pista[pista.length - 1].j;
   else if (S.cols[S.cols.length - 1].objetivoPosible) j = S.cols.length - 1;
   sel.value = String(j);
   alCambiarObjetivo();
@@ -3245,12 +3267,15 @@ function pintarCodigo(){
     ? "El mismo proceso con scikit-learn, listo para pegar en una celda. Con esta base y estos ajustes da exactamente las mismas cifras que esta página."
     : "El mismo proceso con scikit-learn, listo para pegar en una celda. El entrenamiento es el mismo, pero scikit-learn parte los datos con su propio generador aleatorio, así que las cifras pueden variar un poco frente a esta página.";
   const num = R.feats.filter(j => S.cols[j].esNum).map(j => S.cols[j].nombre), cat = R.feats.filter(j => !S.cols[j].esNum).map(j => S.cols[j].nombre);
-  const T = R.T, sepPy = S.sep === null ? 'r"\\s+"' : pyStr(S.sep);
+  const T = R.T, sepPy = S.sep === null ? 'r"\\s+"' : pyStr(S.sep), lista = a => `[${a.map(pyStr).join(", ")}]`;
   const lect = [`sep=${sepPy}`];
-  if (!S.encabezado) lect.push("header=None", `names=[${S.nombres.map(pyStr).join(", ")}]`);
-  if (S.comaDecimal) lect.push('decimal=","');
-  lect.push(`na_values=["?", "NA", "n/a", "-"]`);
-  const posPy = T.esNum ? String(Number(R.pos)) : pyStr(R.pos);
+  if (S.codificacion && S.codificacion !== "utf-8") lect.push(`encoding="${S.codificacion}"`);
+  if (!S.encabezado) lect.push("header=None", `names=${lista(S.nombres)}`);
+  else if (S.renombrar) lect.push("header=0", `names=${lista(S.nombres)}`);
+  if (S.sep !== null) lect.push("skipinitialspace=True");
+  if (S.comaDecimal) lect.push('decimal=","', 'thousands="."');
+  lect.push(`na_values=[" ", "?", "-", "none", "missing"]`);
+  const objPy = pyStr(T.nombre);
   const lineas = [
     "import pandas as pd",
     "from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate",
@@ -3262,11 +3287,17 @@ function pintarCodigo(){
     "from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score",
     "",
     `df = pd.read_csv(${pyStr(S.archivo)}, ${lect.join(", ")})`,
-    `df = df.dropna(subset=[${pyStr(T.nombre)}])`,
+    T.esNum ? `df[${objPy}] = pd.to_numeric(df[${objPy}], errors="coerce")` : null,
+    `df = df.dropna(subset=[${objPy}])`,
+    "",
+    num.length ? `num = ${lista(num)}` : null,
+    cat.length ? `cat = ${lista(cat)}` : null,
+    num.length ? 'df[num] = df[num].apply(pd.to_numeric, errors="coerce")   # lo que no sea número queda vacío' : null,
+    cat.length ? 'df[cat] = df[cat].fillna("(vacío)").astype(str)          # en texto, el vacío es una categoría más' : null,
     "",
     `# 1 = ${R.n1}, 0 = ${R.n0}`,
-    `y = (df[${pyStr(T.nombre)}] == ${posPy}).astype(int)`,
-    `X = df[[${[...num, ...cat].map(pyStr).join(", ")}]]`,
+    T.esNum ? `y = (df[${objPy}] == ${String(Number(R.pos))}).astype(int)` : `y = (df[${objPy}].astype(str).str.strip() == ${pyStr(R.pos)}).astype(int)`,
+    `X = df[${num.length && cat.length ? "num + cat" : num.length ? "num" : "cat"}]`,
     "",
     `X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=${R.prop}, stratify=y, random_state=${R.semilla})`,
     "",
@@ -3275,8 +3306,8 @@ function pintarCodigo(){
   if (cat.length){
     lineas.push(
       "prep = ColumnTransformer([",
-      `    ("num", make_pipeline(SimpleImputer(strategy="median"), StandardScaler()), [${num.map(pyStr).join(", ")}]),`,
-      `    ("cat", make_pipeline(SimpleImputer(strategy="constant", fill_value="(vacío)"), OneHotEncoder(handle_unknown="ignore")), [${cat.map(pyStr).join(", ")}]),`,
+      num.length ? '    ("num", make_pipeline(SimpleImputer(strategy="median"), StandardScaler()), num),' : null,
+      '    ("cat", OneHotEncoder(handle_unknown="ignore"), cat),',
       "])",
       `modelo = make_pipeline(prep, ${perc})`);
   } else lineas.push(`modelo = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), ${perc})`);
