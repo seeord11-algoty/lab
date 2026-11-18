@@ -194,7 +194,12 @@ table.apretada th,table.apretada td{padding:4px 10px}
 .rc-pasos .cuenta{font-family:var(--f-codigo);font-size:.9em}
 .rc-pasos .linea{display:block}
 #rc-antes td,#rc-antes th{padding:3px 8px}
-.btn.chico{font-size:.8rem;padding:5px 10px}
+.fichas{position:absolute;right:0;bottom:0;display:flex;gap:8px}
+.ficha{min-width:54px;height:54px;padding:0 10px;display:flex;align-items:center;justify-content:center;background:var(--lamina);border:1px solid var(--linea);border-radius:6px;font:500 28px/1 var(--f-codigo);color:var(--tinta);cursor:pointer}
+.ficha:hover,.ficha.on{border-color:var(--grabado);box-shadow:inset 0 0 0 1.5px var(--grabado);background:color-mix(in srgb,var(--grabado) 16%,var(--lamina))}
+.sim{border-radius:3px;transition:background .15s ease}
+.sim.on{background:color-mix(in srgb,var(--grabado) 35%,transparent);box-shadow:0 0 0 2px var(--grabado)}
+.eta-fija{align-self:flex-start;font-size:.8em}
 .celda{transition:transform .15s ease,box-shadow .15s ease}
 .celda[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--tinta);transform:scale(1.03)}
 .banco-dice{border-left:4px solid var(--grabado);background:var(--hundido);padding:8px 12px;border-radius:0 4px 4px 0;font-weight:600}
@@ -292,6 +297,7 @@ body:not(.expo) #b-rotulo{flex:1}
   body:not(.expo) .receta{grid-template-columns:3.6em minmax(0,1fr)}
   body:not(.expo) .receta>span:last-child{grid-column:1/-1}
   body:not(.expo) .robot-eta,body:not(.expo) .tres{grid-template-columns:minmax(0,1fr)}
+  body:not(.expo) .fichas{position:static;flex-wrap:wrap;margin-top:8px}
   body:not(.expo) .cv-fila{grid-template-columns:4.4em minmax(0,1fr)}
   body:not(.expo) .cv-fila>span:last-child{grid-column:1/-1}
   body:not(.expo) .rasgos{grid-template-columns:minmax(0,1fr)}
@@ -600,8 +606,11 @@ body:not(.expo) #b-rotulo{flex:1}
 <section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Solo corrige cuando se equivoca</h2></header>
   <div class="cuerpo" style="gap:7px">
-    <p class="entrada" style="font-size:1.06em">Si acierta, no toca nada. Si falla, corrige los pesos.</p>
-    <pre aria-label="Regla de aprendizaje" style="flex:none;overflow:hidden;white-space:pre-wrap;padding:8px 14px">w ← w + η · (y − ŷ) · x        b ← b + η · (y − ŷ)</pre>
+    <div style="position:relative">
+      <p class="entrada" style="font-size:1.06em">Si acierta, no toca nada. Si falla, corrige los pesos.</p>
+      <div class="fichas" role="group" aria-label="Símbolos de la fórmula"><button class="ficha" type="button" data-sim="w" aria-pressed="false">w</button><button class="ficha" type="button" data-sim="x" aria-pressed="false">x</button><button class="ficha" type="button" data-sim="b" aria-pressed="false">b</button><button class="ficha" type="button" data-sim="eta" aria-pressed="false">η</button><button class="ficha" type="button" data-sim="y" aria-pressed="false">y</button><button class="ficha" type="button" data-sim="yh" aria-pressed="false">ŷ</button><button class="ficha" type="button" data-sim="flecha" aria-pressed="false">←</button></div>
+    </div>
+    <pre aria-label="Regla de aprendizaje" style="flex:none;overflow:hidden;white-space:pre-wrap;padding:8px 14px"><span class="sim" data-s="w">w</span> <span class="sim" data-s="flecha">←</span> <span class="sim" data-s="w">w</span> + <span class="sim" data-s="eta">η</span> · (<span class="sim" data-s="y">y</span> − <span class="sim" data-s="yh">ŷ</span>) · <span class="sim" data-s="x">x</span>        <span class="sim" data-s="b">b</span> <span class="sim" data-s="flecha">←</span> <span class="sim" data-s="b">b</span> + <span class="sim" data-s="eta">η</span> · (<span class="sim" data-s="y">y</span> − <span class="sim" data-s="yh">ŷ</span>)</pre>
     <p style="font-weight:600">Peso nuevo = peso viejo + tamaño del paso × error × entrada</p>
     <p class="nota">y = lo real (1 falsificado, 0 auténtico) · ŷ = lo que dijo el modelo · y − ŷ = el error · η = tamaño del paso</p>
     <div class="dos" style="grid-template-columns:minmax(0,.94fr) minmax(0,1.18fr);gap:18px">
@@ -612,12 +621,7 @@ body:not(.expo) #b-rotulo{flex:1}
           <tbody></tbody>
         </table>
         <p style="font-size:.8em">Si acierta, el error es 0 y todo se multiplica por 0: por eso solo corrige cuando se equivoca.</p>
-        <div class="fila" role="group" aria-label="Tamaño del paso η" style="gap:6px">
-          <button class="btn sec chico" type="button" data-eta="0.5" aria-pressed="false">η = 0,5</button>
-          <button class="btn sec chico" type="button" data-eta="1" aria-pressed="true">η = 1</button>
-          <button class="btn sec chico" type="button" data-eta="2" aria-pressed="false">η = 2</button>
-        </div>
-        <p class="nota" style="font-size:.74em">η es el tamaño del paso: con η&nbsp;=&nbsp;2 el puntaje se mueve el doble; con η&nbsp;=&nbsp;0,5, la mitad.</p>
+        <span class="pastilla eta-fija">η = 1</span>
       </div>
       <div class="panel" style="gap:6px;padding:12px 16px">
         <p id="rc-titulo" style="font-size:.9em"></p>
@@ -1473,7 +1477,8 @@ mostrarBillete(TEST[1]);
   const err = e => e > 0 ? "+1" : e < 0 ? "−1" : "0";
   const cuentaZ = (w, b, x) => `${P(w[0])}·${P(x[0])} + ${P(w[1])}·${P(x[1])} + ${P(b)}`;
   const zDe = (w, b, x) => w[0] * x[0] + w[1] * x[1] + b;
-  let caso = "alarma", eta = 1;
+  const eta = 1;
+  let caso = "alarma";
   /* la tabla de casos: el error de cada fila sale de la cuenta, no del texto */
   $("#rc-casos tbody").innerHTML = CASOS.map(c => {
     const e = c.y - (zDe(W0, B0, c.x) >= 0 ? 1 : 0);
@@ -1484,7 +1489,6 @@ mostrarBillete(TEST[1]);
     const z = zDe(W0, B0, x), pred = z >= 0 ? 1 : 0, e = c.y - pred;
     const w1 = W0.map((v, j) => v + eta * e * x[j]), b1 = B0 + eta * e, z1 = zDe(w1, b1, x), pred1 = z1 >= 0 ? 1 : 0;
     $$("#rc-casos tbody tr").forEach(tr => tr.setAttribute("aria-selected", tr.dataset.caso === caso));
-    $$("[data-eta]").forEach(bt => bt.setAttribute("aria-pressed", +bt.dataset.eta === eta));
     $("#rc-titulo").innerHTML = `<strong>${c.nombre}:</strong> billete x₁ = ${n(x[0])}, x₂ = ${n(x[1])}, era <strong class="${c.y ? "c-fal" : "c-aut"}">${NOMBRE[c.y].toUpperCase()}</strong>.`;
     const L = [
       `<strong>Calcula:</strong> <span class="cuenta">z = ${cuentaZ(W0, B0, x)} = ${n(z)} → dice ${NOMBRE[pred]}</span>`,
@@ -1507,7 +1511,17 @@ mostrarBillete(TEST[1]);
       + `<tr><td><strong>Después</strong></td>${despues.map((v, k) => `<td class="n">${v !== antes[k] ? `<mark class="cambio">${n(v)}</mark>` : `<strong>${n(v)}</strong>`}</td>`).join("")}</tr>`;
   }
   $$("#rc-casos tbody tr").forEach(tr => tr.onclick = () => { caso = tr.dataset.caso; pintar(); });
-  $$("[data-eta]").forEach(bt => bt.onclick = () => { eta = +bt.dataset.eta; pintar(); });
+  /* fichas: al pasar el cursor se resalta el símbolo en la fórmula; un toque lo deja fijo y otro lo quita */
+  let fijo = null;
+  const resaltar = k => {
+    $$(".ficha").forEach(f => { f.classList.toggle("on", f.dataset.sim === k); f.setAttribute("aria-pressed", f.dataset.sim === fijo); });
+    $$(".sim").forEach(e => e.classList.toggle("on", e.dataset.s === k));
+  };
+  $$(".ficha").forEach(f => {
+    f.addEventListener("pointerenter", () => resaltar(f.dataset.sim));
+    f.addEventListener("pointerleave", () => resaltar(fijo));
+    f.addEventListener("click", () => { fijo = fijo === f.dataset.sim ? null : f.dataset.sim; resaltar(fijo); });
+  });
   pintar();
 })();
 
