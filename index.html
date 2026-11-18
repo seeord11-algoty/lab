@@ -280,6 +280,11 @@ body.expo #cv-rango{max-height:170px;width:auto;margin:0 auto}
 body.expo .robot{width:120px}
 body.expo #vivo-curva{max-height:180px;width:auto;margin:0 auto}
 #vivo-estado{font-size:1.02em;line-height:1.35}
+.particion{display:flex;height:22px;border-radius:4px;overflow:hidden;border:1px solid var(--linea)}
+.particion i{display:block;height:100%}
+.particion .ent{background:var(--grabado)}
+.particion .pru{background:repeating-linear-gradient(45deg,var(--hundido) 0 6px,color-mix(in srgb,var(--falso) 30%,var(--hundido)) 6px 12px)}
+.particion-rot{display:flex;justify-content:space-between;gap:10px;font-size:.84em;font-weight:600}
 body.expo .f{opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease,visibility 0s .3s}
 body.expo .f.visto{opacity:1;visibility:visible;transform:none;transition:opacity .3s ease,transform .3s ease}
 body.expo tr.f:not(.visto) td,body.expo thead.f:not(.visto) th{border-color:transparent}
@@ -686,15 +691,21 @@ body:not(.expo) #b-rotulo{flex:1}
         <svg class="plano" id="vivo-plano" viewBox="0 0 420 340" role="img" aria-label="Billetes de entrenamiento según varianza y asimetría escaladas; los aros marcan los que el modelo actual clasifica mal"></svg>
         <div class="leyenda" id="ley-vivo"></div>
       </div>
-      <div class="panel">
-        <div class="fila">
-          <button class="btn" id="vivo-play" type="button">Entrenar</button>
-          <button class="btn sec" id="vivo-reset" type="button">Reiniciar</button>
+      <div class="panel" style="gap:8px">
+        <div class="fila" style="justify-content:space-between">
+          <span class="nota" id="vivo-paso" style="font-weight:600"></span>
+          <button class="btn sec" id="vivo-reset" type="button" style="font-size:.78rem;padding:4px 10px">Reiniciar</button>
+        </div>
+        <h3 id="vivo-titulo"></h3>
+        <div class="pila" id="vivo-split" style="gap:4px" hidden>
+          <div class="particion" aria-hidden="true"><i class="ent" id="vivo-ent"></i><i class="pru" style="flex:1"></i></div>
+          <div class="particion-rot"><span id="vivo-ent-t"></span><span id="vivo-pru-t"></span></div>
         </div>
         <p id="vivo-estado" aria-live="polite"></p>
         <svg id="vivo-curva" viewBox="0 0 420 170" role="img" aria-label="Correcciones por época"></svg>
-        <p class="nota">Las correcciones bajan rápido y después suben y bajan sin llegar a cero: siempre queda algún billete del lado equivocado.</p>
+        <p id="vivo-texto" aria-live="polite" style="font-size:.92em"></p>
         <div class="resumen" id="vivo-fin" aria-live="polite" hidden></div>
+        <div hidden id="vivo-pasos"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
       </div>
     </div>
   </div>
@@ -1704,64 +1715,104 @@ mostrarBillete(TEST[1]);
 })();
 
 /* ============ APRENDE: datos reales en vivo ============ */
-/* los 1.097 billetes con las 4 medidas escaladas, siempre en el mismo orden, η = 1 */
+/* los 1.097 billetes con las 4 medidas escaladas, siempre en el mismo orden, η = 1.
+   Avanza con los toques de Siguiente: 6 elementos .f ocultos marcan en qué paso va. */
 (function () {
   const X4 = D.train.map(r => r.slice(0, 4)), X2 = D.train.map(r => [r[0], r[1]]), Y = D.train.map(r => r[4]);
   const T4 = TEST.map(t => escalar(t.x)), TY = TEST.map(t => t.real);
-  const MAX = 40, COLAB = D.epochs, RITMO = 200;
+  const MAX = 40, COLAB = D.epochs, NT = X4.length, NP = T4.length;
   const pl = Plano($("#vivo-plano"), { x0: -3.2, x1: 3.2, y0: -3.2, y1: 3.2, tx: [-3, -2, -1, 0, 1, 2, 3], ty: [-3, -2, -1, 0, 1, 2, 3], ex: "varianza (escalada)", ey: "asimetría (escalada)" });
   X2.forEach((p, i) => marca(pl.gPts, pl.X(p[0]), pl.Y(p[1]), Y[i], 2.6, { "stroke-width": 0.6, opacity: 0.8 }));
   leyenda("#ley-vivo", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>aro: el modelo lo clasifica mal ahora</span>`);
-  let w, b, hist, timer = null;
-  const aciertos = () => T4.filter((x, i) => (zLineal(x, w, b) >= 0 ? 1 : 0) === TY[i]).length;
-  /* curva de correcciones por época, con el eje x fijo de 1 a 40 */
-  function curva() {
+  /* el entrenamiento es siempre igual: se calcula una vez y se guardan los pesos de cada época */
+  const PESOS = [{ w: [0, 0, 0, 0], b: 0 }], HIST = [];
+  { const w = [0, 0, 0, 0]; let b = 0;
+    for (let e = 1; e <= MAX; e++) { const r = entrenarEpoca(X4, Y, w, b); b = r.b; HIST.push(r.err); PESOS.push({ w: [...w], b }); } }
+  const aciertos = e => T4.filter((x, i) => (zLineal(x, PESOS[e].w, PESOS[e].b) >= 0 ? 1 : 0) === TY[i]).length;
+  const pctN = (a, t) => pct(a / t, 1).replace(" ", "&nbsp;");
+  /* la partición 80/20 */
+  $("#vivo-ent").style.width = (D.n_train / D.n_total * 100) + "%";
+  $("#vivo-ent-t").textContent = `${fmt(D.n_train, 0)} para entrenar (${fmt(D.n_train / D.n_total * 100, 0)} %)`;
+  $("#vivo-pru-t").textContent = `${D.n_test} para la prueba (${fmt(D.n_test / D.n_total * 100, 0)} %)`;
+  /* qué muestra cada paso: época a la que llega y textos */
+  const PASOS = [
+    { ep: 0, titulo: "", texto: "" },
+    { ep: 0, titulo: "Separamos los datos", texto: `Con el ${fmt(D.n_train / D.n_total * 100, 0)} % aprende. El ${fmt(D.n_test / D.n_total * 100, 0)} % lo guardamos: no lo ve mientras aprende.` },
+    { ep: 1, titulo: `Aprende con el ${fmt(D.n_train / D.n_total * 100, 0)} %: época 1`, texto: `Una época es una pasada por los ${fmt(NT, 0)} billetes. Cada vez que se equivoca, corrige los pesos.` },
+    { ep: 2, titulo: "Época 2", texto: "" },
+    { ep: COLAB, titulo: `Hasta la época ${COLAB}`, texto: "Después ya casi no mejora. En el Colab, scikit-learn paró aquí porque dejó de mejorar." },
+    { ep: MAX, titulo: `Hasta la época ${MAX}`, texto: "" },
+    { ep: MAX, titulo: `Lo calificamos con el ${fmt(D.n_test / D.n_total * 100, 0)} %`, texto: "" }
+  ];
+  PASOS[3].texto = HIST[1] * 2 < HIST[0] ? "En la segunda corrige menos de la mitad: aprende rápido." : "En la segunda ya corrige menos: aprende rápido.";
+  PASOS[5].texto = Math.min(...HIST) > 0 ? "Aunque lo dejemos seguir, nunca llega a 0 correcciones: los datos no se separan perfecto con una recta."
+    : `Llega a 0 correcciones en la época ${HIST.indexOf(0) + 1}.`;
+  /* curva de correcciones por época, eje x fijo de 1 a 40 */
+  function curva(ep, colab) {
     const s = $("#vivo-curva"); s.innerHTML = "";
     const m = { l: 40, r: 16, t: 14, b: 34 }, W0 = 420, H0 = 170;
-    const top = Math.ceil(Math.max(60, ...hist) * 1.1 / 20) * 20;
+    const top = Math.ceil(Math.max(60, ...HIST) * 1.1 / 20) * 20;
     const Xs = k => m.l + (k - 1) / (MAX - 1) * (W0 - m.l - m.r), Ys = v => H0 - m.b - v / top * (H0 - m.t - m.b);
     [0, top / 2, top].forEach(v => { sv("line", { x1: m.l, x2: W0 - m.r, y1: Ys(v), y2: Ys(v), class: "eje" }, s); sv("text", { x: m.l - 6, y: Ys(v) + 4, "text-anchor": "end" }, s).textContent = v; });
     sv("text", { x: (W0 + m.l) / 2, y: H0 - 4, "text-anchor": "middle" }, s).textContent = "Correcciones en cada época";
     [1, 10, 20, 30, MAX].forEach(k => sv("text", { x: Xs(k), y: H0 - m.b + 15, "text-anchor": "middle" }, s).textContent = k);
-    /* dónde se detuvo el modelo del Colab */
-    sv("line", { x1: Xs(COLAB), x2: Xs(COLAB), y1: m.t, y2: H0 - m.b, stroke: "var(--tinta-2)", "stroke-width": 1.5, "stroke-dasharray": "4 4" }, s);
-    sv("text", { x: Xs(COLAB) + 5, y: m.t + 10 }, s).textContent = `aquí paró el Colab (${COLAB} épocas)`;
-    if (!hist.length) return;
-    sv("polyline", { points: hist.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2 }, s);
-    hist.forEach((v, k) => sv("circle", { cx: Xs(k + 1), cy: Ys(v), r: k === hist.length - 1 ? 5 : 3, class: "grab-f aro", "data-tip": `Época ${k + 1}: ${v} correcciones` }, s));
-    sv("text", { x: Math.min(Xs(hist.length) + 8, W0 - 30), y: Ys(hist[hist.length - 1]) - 9, class: "tinta-f" }, s).textContent = hist[hist.length - 1];
+    if (colab) {
+      sv("line", { x1: Xs(COLAB), x2: Xs(COLAB), y1: m.t, y2: H0 - m.b, stroke: "var(--tinta-2)", "stroke-width": 1.5, "stroke-dasharray": "4 4" }, s);
+      sv("text", { x: Xs(COLAB) + 5, y: m.t + 10 }, s).textContent = `aquí paró el Colab (${COLAB} épocas)`;
+    }
+    if (!ep) return;
+    const h = HIST.slice(0, ep);
+    sv("polyline", { points: h.map((v, k) => `${Xs(k + 1)},${Ys(v)}`).join(" "), fill: "none", stroke: "var(--grabado)", "stroke-width": 2 }, s);
+    h.forEach((v, k) => sv("circle", { cx: Xs(k + 1), cy: Ys(v), r: k === h.length - 1 ? 5 : 3, class: "grab-f aro", "data-tip": `Época ${k + 1}: ${v} correcciones` }, s));
+    sv("text", { x: Math.min(Xs(h.length) + 8, W0 - 30), y: Ys(h[h.length - 1]) - 9, class: "tinta-f" }, s).textContent = h[h.length - 1];
   }
-  function pintar() {
+  /* pinta el estado tras «ep» épocas dentro del paso «k» */
+  function pintar(k, ep) {
+    const P = PASOS[k], { w, b } = PESOS[ep];
     pl.gSobre.innerHTML = ""; pl.limpiar();
-    curva();
-    $("#vivo-play").disabled = hist.length >= MAX;
-    if (!hist.length) { $("#vivo-estado").textContent = "Pulsa «Entrenar»: los pesos arrancan en cero."; return; }
-    X4.forEach((x, i) => { if ((zLineal(x, w, b) >= 0 ? 1 : 0) !== Y[i]) sv("circle", { cx: pl.X(X2[i][0]), cy: pl.Y(X2[i][1]), r: 5.5, class: "resalte", "stroke-width": 1.5 }, pl.gSobre); });
-    const ok = aciertos();
-    $("#vivo-estado").innerHTML = `<span class="epoca-n">Época ${hist.length} de ${MAX}</span> · correcciones en esta época: <span class="dato">${hist[hist.length - 1]}</span> · aciertos en la prueba: <span class="dato">${ok} de ${T4.length} (${pct(ok / T4.length, 1)})</span>`;
+    if (ep) X4.forEach((x, i) => { if ((zLineal(x, w, b) >= 0 ? 1 : 0) !== Y[i]) sv("circle", { cx: pl.X(X2[i][0]), cy: pl.Y(X2[i][1]), r: 5.5, class: "resalte", "stroke-width": 1.5 }, pl.gSobre); });
+    curva(ep, k >= 4);
+    $("#vivo-paso").textContent = k ? `Paso ${k} de 6` : "Pulsa Siguiente para empezar";
+    $("#vivo-titulo").textContent = P.titulo; $("#vivo-titulo").hidden = !P.titulo;
+    $("#vivo-split").hidden = k < 1;
+    /* los aciertos de la prueba no aparecen hasta el paso 6 */
+    $("#vivo-estado").innerHTML = ep ? `<span class="epoca-n">Época ${ep}</span> · correcciones: <span class="dato">${HIST[ep - 1]}</span>` : "Pesos en cero. Todavía no ha aprendido nada.";
+    $("#vivo-texto").textContent = P.texto; $("#vivo-texto").hidden = !P.texto;
+    const fin = $("#vivo-fin");
+    if (k === 6) {
+      const ok9 = aciertos(COLAB), ok40 = aciertos(MAX);
+      fin.innerHTML = `<strong>Prueba con ${NP} billetes que nunca vio: acierta ${ok40} (${pctN(ok40, NP)}).</strong>
+        <span>Con ${COLAB} épocas: ${ok9} de ${NP}. Con ${MAX} épocas: ${ok40} de ${NP}.</span>
+        <span>${ok40 > ok9 ? "Más épocas lo mejoran un poco." : "Más épocas no lo mejoran."}</span>
+        <span class="nota" style="font-size:.86em">En el Colab: 98,55&nbsp;% con las 4 medidas; 85,09&nbsp;% con solo 2. Por eso usamos las 4.</span>`;
+    }
+    fin.hidden = k !== 6;
   }
-  /* al llegar a la época 40, la conclusión se arma con lo que pasó */
-  function conclusion() {
-    const ok = aciertos(), min = Math.min(...hist);
-    $("#vivo-fin").innerHTML = (min > 0 ? "<strong>Nunca llega a 0 correcciones: los datos no se separan perfectamente con una recta.</strong>" : `<strong>Llegó a 0 correcciones en la época ${hist.indexOf(0) + 1}.</strong>`)
-      + `<span>Aun así acierta ${ok} de ${T4.length} billetes de prueba (${pct(ok / T4.length, 1).replace(" ", "&nbsp;")}).</span>`
-      + "<span>En el Colab: con solo 2 medidas acierta 85,09&nbsp;%; con las 4, 98,55&nbsp;%. Por eso usamos las 4.</span>";
-    $("#vivo-fin").hidden = false;
+  /* anima de la época «desde» a «hasta» dentro del paso «k» */
+  let timer = null, actual = 0;
+  const parar = () => { if (timer) { clearInterval(timer); timer = null; } };
+  const quieto = matchMedia("(prefers-reduced-motion: reduce)");
+  function animar(k, desde, hasta, ms) {
+    parar();
+    if (hasta <= desde || quieto.matches) return pintar(k, hasta);
+    let e = desde; pintar(k, e);
+    timer = setInterval(() => { e++; pintar(k, e); if (e >= hasta) parar(); }, ms / (hasta - desde));
   }
-  function parar() { if (timer) { clearInterval(timer); timer = null; } $("#vivo-play").textContent = "Entrenar"; }
-  function tic() {
-    const r = entrenarEpoca(X4, Y, w, b); b = r.b; hist.push(r.err);
-    pintar();
-    if (hist.length >= MAX) { parar(); pintar(); conclusion(); }
+  const DURA = { 2: 500, 3: 500, 4: 2000, 5: 3000 };
+  function ir(k) {
+    const antes = actual; actual = k;
+    if (k === antes + 1 && DURA[k]) animar(k, PASOS[antes].ep, PASOS[k].ep, DURA[k]);
+    else { parar(); pintar(k, PASOS[k].ep); }
   }
-  $("#vivo-play").onclick = () => {
-    if (timer) return parar();
-    if (hist.length >= MAX) return;
-    $("#vivo-play").textContent = "Pausar"; timer = setInterval(tic, RITMO);
-  };
-  function reset() { parar(); w = [0, 0, 0, 0]; b = 0; hist = []; $("#vivo-fin").hidden = true; pintar(); }
-  $("#vivo-reset").onclick = reset;
-  reset();
+  /* cuántos pasos van vistos; en modo lectura se muestra el estado final */
+  const marcas = $$("#vivo-pasos .f");
+  const leer = () => ir(document.body.classList.contains("expo") ? marcas.filter(f => f.classList.contains("visto")).length : 6);
+  const ob = new MutationObserver(leer);
+  marcas.forEach(f => ob.observe(f, { attributes: true, attributeFilter: ["class"] }));
+  ob.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  /* Reiniciar: vuelve al inicio, sin pasos vistos */
+  $("#vivo-reset").onclick = () => marcas.forEach(f => f.classList.remove("visto"));
+  actual = 0; pintar(0, 0); leer();
 })();
 
 /* ============ LIMITES ============ */
