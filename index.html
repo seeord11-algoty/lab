@@ -280,7 +280,12 @@ body.expo .cuerpo.a3{font-size:1.32em}
 body.expo .portada .cuerpo{display:grid}
 body.expo .metrica .cifra{font-size:3.3rem}
 body.expo .met2 .metrica .cifra{font-size:2.7rem}
-body.expo #pz-grid{max-height:118px;width:auto;margin:0 auto}
+body.expo #pz-grid{max-height:150px;width:auto;margin:0 auto}
+#pz-grid .b>*{transition:opacity .5s ease}
+#pz-res .barra i{transition:width .6s ease}
+.gana{display:inline-block;margin:4px 0 0 calc(5.2em + 10px);font-size:.8em;font-weight:700;color:var(--falso);border:1.5px solid var(--falso);border-radius:99px;padding:0 8px}
+.aporte.destaca{background:color-mix(in srgb,var(--falso) 14%,transparent);border-radius:4px;box-shadow:0 0 0 2px var(--falso)}
+#pz-fin{transition:opacity .35s ease}
 body.expo #cv-rango{max-height:170px;width:auto;margin:0 auto}
 body.expo .robot{width:120px}
 body.expo #vivo-curva{max-height:180px;width:auto;margin:0 auto}
@@ -866,21 +871,15 @@ body:not(.expo) #b-rotulo{flex:1}
   <div class="cuerpo centro" style="gap:12px">
     <p class="entrada">Un «modelo perezoso» que siempre dice auténtico acierta sin mirar el billete. ¿Cuánto? Depende de cuántos falsos haya.</p>
     <div class="dos">
-      <div class="panel" style="gap:9px">
-        <div>
-          <label for="pz-p">Billetes falsos en la caja: <span class="dato" id="pz-pv"></span></label>
-          <input type="range" id="pz-p" min="1" max="60" step="1">
-        </div>
+      <div class="panel" style="gap:10px">
+        <p id="pz-esc" aria-live="polite" style="font-weight:700"></p>
         <svg id="pz-grid" viewBox="0 0 400 104" role="img" aria-label="Cien billetes: los falsificados llevan un aro porque el modelo perezoso los deja pasar a todos"></svg>
         <div class="leyenda" id="pz-ley"></div>
-        <div class="fila">
-          <button class="btn sec" id="pz-real" type="button">Volver a la proporción real</button>
-          <button class="btn sec" id="pz-raro" type="button">Solo 1 falso de cada 100</button>
-        </div>
       </div>
       <div class="panel" id="pz-res" aria-live="polite" style="gap:7px"></div>
     </div>
-    <p class="f">Entre menos falsos hay, más «acierta» el perezoso sin detectar ninguno. Por eso el accuracy se lee junto con el recall y la precision.</p>
+    <div class="resumen" id="pz-fin" aria-live="polite" style="font-size:1em"></div>
+    <div hidden id="pz-pasos"><i class="f"></i><i class="f"></i></div>
   </div>
 </section>
 
@@ -1977,33 +1976,58 @@ function alVer(elems, cb) {
   obT.observe(document.body, { attributes: true, attributeFilter: ["class"] });
   leerT();
 
-  /* el modelo perezoso frente al perceptrón, según cuántos falsos haya */
-  const P_REAL = FALSOS / TOTAL, ESP = VN / AUTENT;
-  const ps = $("#pz-p"), grid = $("#pz-grid");
-  let p = P_REAL;
-  leyenda("#pz-ley", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>falso que el perezoso deja pasar</span>`);
-  const barraM = (n, v) => `<div class="aporte" style="grid-template-columns:5.2em minmax(0,1fr) 4.8em"><span>${n}</span><div class="barra"><i style="width:${v * 100}%"></i></div><span class="dato" style="text-align:right">${pct(v)}</span></div>`;
-  function perezoso() {
-    const real = p === P_REAL, nF = Math.round(p * 100), mil = Math.round(p * 1000);
-    $("#pz-pv").textContent = real ? `${pct(p)} (la proporción real de la prueba)` : `${fmt(p * 100, 0)} %`;
-    grid.innerHTML = "";
-    /* 100 billetes en 20 columnas; los falsos se reparten con una permutación fija para que no queden en bloque */
-    for (let j = 0; j < 100; j++) {
-      const f = (j * 37) % 100 < nF, x = 10 + (j % 20) * 20, y = 11 + Math.floor(j / 20) * 20.5;
-      marca(grid, x, y, f ? 1 : 0, 5);
-      if (f) sv("circle", { cx: x, cy: y, r: 8.6, class: "resalte", "stroke-width": 1.5 }, grid);
-    }
-    const accN = p * REC + (1 - p) * ESP;
-    $("#pz-res").innerHTML = `<h3>El perezoso: siempre dice «auténtico»</h3>${barraM("Accuracy", 1 - p)}${barraM("Recall", 0)}
-      <h3 style="margin-top:6px">Nuestro perceptrón</h3>${barraM("Accuracy", accN)}${barraM("Recall", REC)}
-      <p class="nota">${real ? "Cifras reales de la prueba." : "Perceptrón estimado: si mantiene las tasas de acierto que tuvo en la prueba."}</p>
-      <p style="font-size:.92em"><strong>De cada 1.000 billetes, ${mil} son falsos.</strong> El perezoso deja pasar los ${mil}. El perceptrón, ${mil * (1 - REC) < 1 ? "menos de 1" : "unos " + Math.round(mil * (1 - REC))}.</p>`;
-    $("#pz-real").disabled = real;
+  /* el modelo perezoso frente al perceptrón en dos escenarios; avanza con los toques de Siguiente */
+  const P_REAL = FALSOS / TOTAL, ESP = VN / AUTENT, P_RARO = 0.01, grid = $("#pz-grid");
+  const ESC = [
+    { p: P_REAL, titulo: `Escenario 1. Nuestra prueba: ${Math.round(P_REAL * 100)} de cada 100 billetes son falsos`, nota: "Cifras reales de la prueba." },
+    { p: P_RARO, titulo: `Escenario 2. Si solo ${Math.round(P_RARO * 100)} de cada 100 fuera falso, como en la vida real`, nota: "Estimación: supone que el perceptrón mantiene sus tasas de acierto de la prueba." }
+  ];
+  /* porcentaje sin decimales cuando es entero (99 %, 0 %) */
+  const pc = v => Math.abs(v * 100 - Math.round(v * 100)) < 1e-9 ? fmt(v * 100, 0) + " %" : pct(v);
+  $("#pz-ley").innerHTML = `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="m-aut"/></svg>Auténtico</span>
+    <span><svg viewBox="0 0 14 14"><path d="M7 1L13 12H1Z" class="m-fal"/></svg>Falsificado</span>
+    <span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>falso que el perezoso deja pasar</span>`;
+  /* 100 billetes en 20 columnas; cada uno tiene las dos formas y se muestra la que toca, con transición */
+  const billetes = Array.from({ length: 100 }, (_, j) => {
+    const x = 10 + (j % 20) * 20, y = 11 + Math.floor(j / 20) * 20.5, g = sv("g", { class: "b" }, grid);
+    return { orden: (j * 37) % 100, aut: marca(g, x, y, 0, 5), fal: marca(g, x, y, 1, 5), aro: sv("circle", { cx: x, cy: y, r: 8.6, class: "resalte", "stroke-width": 1.5 }, g) };
+  });
+  const barraM = (n, v, extra = "", destaca = false) => `<div class="aporte${destaca ? " destaca" : ""}" style="grid-template-columns:5.2em minmax(0,1fr) 4.8em"><span>${n}</span><div class="barra"><i style="width:${v * 100}%"></i></div><span class="dato" style="text-align:right">${pc(v)}</span></div>${extra}`;
+  function escenario(k) {
+    const e = ESC[k], nF = Math.round(e.p * 100);
+    $("#pz-esc").textContent = e.titulo;
+    billetes.forEach(b => { const f = b.orden < nF; b.aut.style.opacity = f ? 0 : 1; b.fal.style.opacity = f ? 1 : 0; b.aro.style.opacity = f ? 1 : 0; });
+    const accP = 1 - e.p, accN = e.p * REC + (1 - e.p) * ESP, gana = accP > accN;
+    /* se reemplazan solo los anchos para que las barras se muevan */
+    if (!$("#pz-res .barra")) $("#pz-res").innerHTML = `<h3>El perezoso: siempre dice «auténtico»</h3><div id="pz-a1"></div><div id="pz-r1"></div>
+      <h3 style="margin-top:6px">Nuestro perceptrón</h3><div id="pz-a2"></div><div id="pz-r2"></div><p class="nota" id="pz-nota" style="min-height:2.7em"></p>`;
+    const poner = (id, n, v, destaca, extra) => {
+      const c = $(id); if (!$(".barra", c)) c.innerHTML = barraM(n, 0);
+      $(".aporte", c).classList.toggle("destaca", destaca);
+      $(".barra i", c).style.width = v * 100 + "%"; $(".dato", c).textContent = pc(v);
+      c.querySelectorAll(".gana").forEach(x => x.remove());
+      if (extra) c.insertAdjacentHTML("beforeend", extra);
+    };
+    /* la etiqueta siempre ocupa su lugar, así nada salta al cambiar de escenario */
+    poner("#pz-a1", "Accuracy", accP, gana, `<span class="gana" style="visibility:${gana ? "visible" : "hidden"}">¡El perezoso «gana»!</span>`);
+    poner("#pz-r1", "Recall", 0, false);
+    poner("#pz-a2", "Accuracy", accN, false);
+    poner("#pz-r2", "Recall", REC, false);
+    $("#pz-nota").textContent = e.nota;
+    $("#pz-nota").style.fontSize = k ? ".8em" : "";
   }
-  ps.oninput = () => { p = +ps.value / 100; perezoso(); };
-  $("#pz-real").onclick = () => { p = P_REAL; ps.value = Math.round(p * 100); perezoso(); };
-  $("#pz-raro").onclick = () => { p = 0.01; ps.value = 1; perezoso(); };
-  ps.value = Math.round(p * 100); perezoso();
+  $("#pz-fin").innerHTML = `<strong>El accuracy puede engañar: un modelo que no detecta nada saca ${pc(1 - P_RARO)}.</strong><span>Por eso se lee junto con el recall.</span>`;
+  /* pasos: 0 escenario 1, 1 escenario 2, 2 conclusión */
+  function pasoPz(k) {
+    escenario(k >= 1 ? 1 : 0);
+    $("#pz-fin").style.visibility = k >= 2 ? "visible" : "hidden"; $("#pz-fin").style.opacity = k >= 2 ? 1 : 0;
+  }
+  const marcasP = $$("#pz-pasos .f");
+  const leerP = () => pasoPz(document.body.classList.contains("expo") ? marcasP.filter(f => f.classList.contains("visto")).length : 2);
+  const obP = new MutationObserver(leerP);
+  marcasP.forEach(f => obP.observe(f, { attributes: true, attributeFilter: ["class"] }));
+  obP.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  leerP();
 
   /* ¿fue suerte?: validación cruzada en 5 vueltas; el archivo trae el mínimo, el promedio y el máximo de las cinco */
   const base0 = AUTENT / TOTAL, cv = D.cv, K = 5;
