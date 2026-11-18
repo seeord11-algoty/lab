@@ -227,6 +227,11 @@ button.metrica[aria-pressed="true"]{background:var(--hundido);border-top-color:v
 .tres>div{border-top:3px solid var(--grabado);padding-top:6px;font-size:.82em;color:var(--tinta-2);display:flex;flex-direction:column;gap:2px}
 .tres .cifra{font-size:1.8rem;color:var(--tinta)}
 .resalte.atrapado{stroke:var(--grabado);stroke-width:3.5}
+#tira .banda{transition:opacity .45s ease}
+#tira .resalte{transition:stroke .45s ease}
+#tira .etq{font-size:13px;font-weight:700;fill:var(--tinta);paint-order:stroke;stroke:var(--lamina);stroke-width:4px;stroke-linejoin:round}
+#tira .guia{stroke:var(--tinta-2);stroke-width:1}
+#tira-res{transition:opacity .35s ease}
 .cv-fila{display:grid;grid-template-columns:4.4em minmax(0,1fr) 9em;gap:10px;align-items:center;font-size:.84em;padding:3px 4px;border-radius:4px}
 .cv-fila.turno{background:var(--hundido);box-shadow:0 0 0 2px var(--tinta)}
 .cv-bloques{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
@@ -289,7 +294,7 @@ body.expo .f{opacity:0;visibility:hidden;transform:translateY(10px);transition:o
 body.expo .f.visto{opacity:1;visibility:visible;transform:none;transition:opacity .3s ease,transform .3s ease}
 body.expo tr.f:not(.visto) td,body.expo thead.f:not(.visto) th{border-color:transparent}
 body.expo .plano{max-height:372px;width:auto;margin:0 auto}
-body.expo #tira{max-height:236px;width:auto;margin:0 auto}
+body.expo #tira{max-height:282px;width:auto;margin:0 auto}
 body.expo #anatomia{max-height:330px;width:auto;margin:0 auto}
 body.expo .lect{display:none}
 
@@ -842,23 +847,16 @@ body:not(.expo) #b-rotulo{flex:1}
 <section class="lamina" data-parte="resultados">
   <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Los errores quedaron pegados a la frontera</h2></header>
   <div class="cuerpo">
-    <p style="font-size:.9em">Cada marca es un billete de prueba según su puntaje z: a la izquierda de cero dice auténtico; a la derecha, falsificado. Los 4 errores llevan un aro.</p>
-    <div class="panel">
+    <p style="font-size:.95em">Cada marca es un billete de prueba según su puntaje z. Cerca de 0, el modelo duda. Los 4 errores llevan un aro.</p>
+    <div class="panel" style="gap:10px">
       <div class="desborde"><svg id="tira" viewBox="0 0 860 250" role="img" aria-label="Distribución de los puntajes de los billetes de prueba cerca de la frontera"></svg></div>
       <div class="leyenda" id="ley-tira"></div>
-      <div>
-        <div class="fila" style="justify-content:space-between;gap:6px 10px">
-          <label for="duda">Zona de duda: revisión manual entre −<span id="duda-v"></span> y +<span id="duda-v2"></span></label>
-          <span class="fila" style="gap:8px">
-            <button class="btn sec" type="button" data-duda="0">Sin zona</button>
-            <button class="btn sec" type="button" data-duda="real">La nuestra: 1,892</button>
-            <button class="btn sec" type="button" data-duda="todos">Atrapar los 4 errores</button>
-          </span>
-        </div>
-        <input type="range" id="duda" min="0" max="6" step="0.01">
+      <div id="tira-res" aria-live="polite" class="pila" style="gap:6px">
+        <div class="tres" style="grid-template-columns:repeat(2,minmax(0,1fr))" id="duda-res"></div>
+        <p id="duda-frase" style="font-weight:600"></p>
+        <p class="nota" id="duda-nota" style="font-size:.8em"></p>
       </div>
-      <div class="tres" id="duda-res" aria-live="polite"></div>
-      <p class="nota" style="font-size:.76em">El ancho 1,892 se fijó solo con datos de entrenamiento (el 5 % más cercano a la frontera). Habría que confirmarlo con más billetes.</p>
+      <div hidden id="tira-pasos"><i class="f"></i><i class="f"></i></div>
     </div>
   </div>
 </section>
@@ -1922,44 +1920,62 @@ function alVer(elems, cb) {
   alVer($$("[data-met]"), n => { sel = n ? n - 1 : null; metricas(); });
   metricas();
 
-  /* tira de puntajes */
-  const s = $("#tira"), W0 = 860, H0 = 250, m = { l: 20, r: 20, b: 44 }, LIM = 10, ANCHO = 0.5;
+  /* tira de puntajes: la zona de duda (ancho fijo) aparece en el toque 1 y las cifras en el toque 2 */
+  const s = $("#tira"), W0 = 860, H0 = 250, m = { l: 20, r: 20, b: 44 }, LIM = 10, ANCHO = 0.5, A = D.duda_p5;
   const Xz = z => m.l + (z + LIM) / (2 * LIM) * (W0 - m.l - m.r), base = H0 - m.b;
-  const banda = sv("rect", { y: 8, height: base - 8, fill: "var(--tinta)", opacity: 0.09 }, s);
+  const banda = sv("rect", { x: Xz(-A), width: Xz(A) - Xz(-A), y: 8, height: base - 8, fill: "var(--tinta)", opacity: 0, class: "banda" }, s);
+  const bandaT = sv("text", { x: Xz(0), y: 22, "text-anchor": "middle", class: "etq banda", opacity: 0 }, s);
+  bandaT.textContent = "zona de duda: revisión manual";
   sv("line", { x1: m.l, x2: W0 - m.r, y1: base, y2: base, class: "eje" }, s);
-  sv("line", { x1: Xz(0), x2: Xz(0), y1: 8, y2: base, class: "frontera", "stroke-width": 1.5 }, s);
+  sv("line", { x1: Xz(0), x2: Xz(0), y1: 30, y2: base, class: "frontera", "stroke-width": 1.5 }, s);
   for (let z = -10; z <= 10; z += 2) sv("text", { x: Xz(z), y: base + 16, "text-anchor": "middle" }, s).textContent = signo(z, 0);
   sv("text", { x: Xz(0), y: H0 - 6, "text-anchor": "middle" }, s).textContent = "Puntaje z (frontera en 0)";
+  sv("text", { x: m.l, y: H0 - 6, style: "fill:var(--autentico);font-weight:700" }, s).textContent = "← dice auténtico";
+  sv("text", { x: W0 - m.r, y: H0 - 6, "text-anchor": "end", style: "fill:var(--falso);font-weight:700" }, s).textContent = "dice falsificado →";
   const cerca = TEST.filter(t => Math.abs(t.z) < LIM), izq = TEST.filter(t => t.z <= -LIM).length, der = TEST.filter(t => t.z >= LIM).length;
-  sv("text", { x: m.l, y: 22 }, s).textContent = `← ${izq} billetes más, auténticos claros`;
-  sv("text", { x: W0 - m.r, y: 22, "text-anchor": "end" }, s).textContent = `${der} billetes más, falsificados claros →`;
+  sv("text", { x: m.l, y: 22 }, s).textContent = `← ${izq} auténticos más, lejos de la frontera`;
+  sv("text", { x: W0 - m.r, y: 22, "text-anchor": "end" }, s).textContent = `${der} falsificados más, lejos de la frontera →`;
   const pilas = {}, aros = [];
   cerca.sort((a, b) => a.z - b.z).forEach(t => {
     const k = Math.floor((t.z + LIM) / ANCHO); pilas[k] = (pilas[k] || 0) + 1;
     const x = Xz(-LIM + (k + 0.5) * ANCHO), y = base - 9 - (pilas[k] - 1) * 11, err = t.real !== t.pred;
     marca(s, x, y, t.real, 4.2, { "data-tip": `Billete n.º ${t.i + 1}: era ${NOMBRE[t.real]}, el modelo dijo ${NOMBRE[t.pred]}${err ? " (error)" : ""}. z = ${signo(t.z)}` });
-    if (err) aros.push({ t, el: sv("circle", { cx: x, cy: y, r: 8.5, class: "resalte", "pointer-events": "none" }, s) });
+    if (err) aros.push({ t, x, y, el: sv("circle", { cx: x, cy: y, r: 8.5, class: "resalte", "pointer-events": "none" }, s) });
   });
-  leyenda("#ley-tira", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>error fuera de la zona</span><span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" class="resalte atrapado"/></svg>error atrapado por la zona</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" fill="var(--tinta)" opacity=".2"/></svg>zona de duda</span>`);
-  const sl = $("#duda"), errs = TEST.filter(t => t.real !== t.pred);
-  /* el ancho más angosto que deja los cuatro errores dentro de la zona */
-  const TODOS = Math.ceil((Math.max(...errs.map(t => Math.abs(t.z))) + 0.005) * 100) / 100;
-  let a = D.duda_p5;
-  function duda() {
-    banda.setAttribute("x", Xz(-a)); banda.setAttribute("width", Xz(a) - Xz(-a));
-    const txt = fmt(a, a === D.duda_p5 ? 3 : 2);
-    $("#duda-v").textContent = txt; $("#duda-v2").textContent = txt;
-    const en = TEST.filter(t => Math.abs(t.z) < a), fuera = errs.filter(t => Math.abs(t.z) >= a), dentro = errs.length - fuera.length;
-    aros.forEach(o => o.el.classList.toggle("atrapado", Math.abs(o.t.z) < a));
-    const fa = fuera.filter(t => !t.real).length, fq = fuera.length - fa;
-    const cuales = fuera.length === 1 ? `${fq ? "un falso que pasó" : "una falsa alarma"} (z = ${signo(fuera[0].z)})` : [fa ? cuantos(fa, "falsa alarma", "falsas alarmas") : "", fq ? cuantos(fq, "falso que pasó", "falsos que pasaron") : ""].filter(Boolean).join(" y ");
-    $("#duda-res").innerHTML = `<div><span class="cifra">${en.length} de ${TOTAL}</span><span>billetes a revisión manual (${pct(en.length / TOTAL, 1)})</span></div>
-      <div><span class="cifra">${dentro} de ${errs.length}</span><span>errores que atraparía la revisión</span></div>
-      <div><span class="cifra">${fuera.length}</span><span>${fuera.length ? "sin control: " + cuales : "errores sin control"}</span></div>`;
+  /* etiquetas de los errores: el falso que pasó a la izquierda, las falsas alarmas a la derecha, cada una en su altura y con línea guía */
+  const izqE = aros.filter(o => o.t.real === 1), derE = aros.filter(o => o.t.real === 0).sort((a, b) => a.t.z - b.t.z);
+  const etiqueta = (o, x, y, anc) => {
+    sv("line", { x1: o.x + (anc === "end" ? -8 : 8) * 0.7, y1: o.y - 6, x2: x, y2: y - 4, class: "guia" }, s);
+    sv("text", { x: x + (anc === "end" ? -3 : 3), y, "text-anchor": anc, class: "etq" }, s).textContent = o.t.real ? `FN (falso que pasó), z = ${signo(o.t.z)}` : `FP, z = ${signo(o.t.z)}`;
+  };
+  izqE.forEach((o, k) => etiqueta(o, Xz(-2.6), 64 + k * 24, "end"));
+  derE.forEach((o, k) => etiqueta(o, Xz(3.2) + k * 4, 52 + k * 24, "start"));
+  $("#ley-tira").innerHTML = `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="m-aut"/></svg>Auténtico</span>
+    <span><svg viewBox="0 0 14 14"><path d="M7 1L13 12H1Z" class="m-fal"/></svg>Falsificado</span>
+    <span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>aro: error del modelo</span>
+    <span><svg viewBox="0 0 14 14"><rect width="14" height="14" fill="var(--tinta)" opacity=".2"/></svg>gris: zona de duda (revisión manual)</span>`;
+  /* cifras del toque 2, calculadas con la zona fija */
+  const errs = TEST.filter(t => t.real !== t.pred), en = TEST.filter(t => Math.abs(t.z) < A);
+  const dentro = errs.filter(t => Math.abs(t.z) < A), fuera = errs.filter(t => Math.abs(t.z) >= A);
+  const fnDentro = dentro.some(t => t.real === 1);
+  $("#duda-res").innerHTML = `<div><span class="cifra">${en.length} de ${TOTAL}</span><span>billetes a revisión manual (${pct(en.length / TOTAL, 1)})</span></div>
+    <div><span class="cifra">${dentro.length} de ${errs.length}</span><span>errores atrapados${fnDentro ? ", incluido el falso que pasó" : ""}</span></div>`;
+  $("#duda-frase").textContent = fuera.length === 0 ? "No queda ningún error sin revisar."
+    : fuera.length === 1 ? `Solo queda sin revisar ${fuera[0].real ? "un falso que pasó" : "una falsa alarma"} (z = ${signo(fuera[0].z)})${fuera[0].real ? "." : ", que no le cuesta plata al banco."}`
+      : `Quedan sin revisar ${fuera.length} errores.`;
+  $("#duda-nota").textContent = `${fmt(A, 3)} es el 5 % de billetes de entrenamiento más cercanos a la frontera.`;
+  /* pasos: 0 sin zona, 1 con zona y aros atrapados, 2 con las cifras */
+  function pasoTira(k) {
+    banda.setAttribute("opacity", k >= 1 ? 0.12 : 0); bandaT.setAttribute("opacity", k >= 1 ? 1 : 0);
+    aros.forEach(o => o.el.classList.toggle("atrapado", k >= 1 && Math.abs(o.t.z) < A));
+    $("#tira-res").style.visibility = k >= 2 ? "visible" : "hidden"; $("#tira-res").style.opacity = k >= 2 ? 1 : 0;
   }
-  sl.oninput = () => { a = +sl.value; duda(); };
-  $$("[data-duda]").forEach(bt => bt.onclick = () => { const k = bt.dataset.duda; a = k === "real" ? D.duda_p5 : k === "todos" ? TODOS : 0; sl.value = a; duda(); });
-  sl.value = a; duda();
+  const marcasT = $$("#tira-pasos .f");
+  const leerT = () => pasoTira(document.body.classList.contains("expo") ? marcasT.filter(f => f.classList.contains("visto")).length : 2);
+  const obT = new MutationObserver(leerT);
+  marcasT.forEach(f => obT.observe(f, { attributes: true, attributeFilter: ["class"] }));
+  obT.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  leerT();
 
   /* el modelo perezoso frente al perceptrón, según cuántos falsos haya */
   const P_REAL = FALSOS / TOTAL, ESP = VN / AUTENT;
