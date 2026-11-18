@@ -171,6 +171,12 @@ table.apretada th,table.apretada td{padding:4px 10px}
 .co-cuenta .cuenta{font-family:var(--f-codigo);font-size:.92em}
 .resumen{border:2px solid var(--grabado);border-radius:6px;background:color-mix(in srgb,var(--grabado) 10%,var(--lamina));padding:7px 14px;display:flex;flex-direction:column;gap:2px;font-size:.84em;line-height:1.4}
 .resumen[hidden]{display:none}
+#co-izq [hidden],#co-der [hidden]{display:none!important}
+.congelado{border:1.5px dashed var(--tinta-2);border-radius:4px;padding:4px 10px;font-size:.84em;font-weight:600;color:var(--tinta)}
+#co-tabla td,#co-tabla th{padding:5px 8px}
+#co-tabla td.ok{color:var(--grabado);font-weight:700;font-size:1.15em}
+#co-tabla td.mal{color:var(--falso);font-weight:700;font-size:1.15em}
+#co-prox{font-size:.86em;min-height:2.9em}
 .resumen .regla-txt{font-family:var(--f-codigo);font-size:.86em;font-weight:500;white-space:nowrap}
 .aporte .pista i{transition:width .35s ease,left .35s ease}
 
@@ -548,14 +554,27 @@ body:not(.expo) #b-rotulo{flex:1}
 <section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Entrena tú un filtro de correos</h2></header>
   <div class="cuerpo" style="gap:10px">
-    <p style="font-size:.95em">Un perceptrón revisa 10 correos uno por uno. Arranca con todo en cero. Si acierta, no cambia nada; si falla, corrige los pesos. ¿Cuántas rondas necesita para no fallar?</p>
+    <p style="font-size:.95em">Un perceptrón revisa 10 correos para aprender. Arranca con todo en cero: si acierta no cambia nada, si falla corrige los pesos. Después lo probamos con 5 correos que nunca vio.</p>
     <div class="dos" style="gap:22px">
-      <div class="panel" style="gap:10px">
-        <div class="correo" id="co-carta"></div>
-        <div class="co-cuenta" id="co-msg" aria-live="polite" style="min-height:5.2em"></div>
+      <div class="panel" id="co-izq" style="gap:10px">
+        <div class="pila" id="co-f1" style="gap:10px">
+          <div class="correo" id="co-carta"></div>
+          <div class="co-cuenta" id="co-msg" aria-live="polite" style="min-height:5.2em"></div>
+        </div>
+        <div class="pila" id="co-f2" style="gap:8px" hidden>
+          <h3>Prueba: 5 correos que nunca vio</h3>
+          <p id="co-prox" aria-live="polite"></p>
+          <table id="co-tabla" style="font-size:.84em">
+            <thead><tr><th>Correo</th><th class="n">z</th><th>Dice</th><th>Era</th><th>✓/✗</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
         <div class="fila">
           <button class="btn" id="co-sig" type="button">Revisar correo</button>
+          <button class="btn" id="co-probar" type="button" hidden>Probar con 5 correos nuevos</button>
           <button class="btn sec" id="co-auto" type="button">Entrenar solo</button>
+          <button class="btn" id="co-nuevo" type="button" hidden>Revisar correo nuevo</button>
+          <button class="btn sec" id="co-todos" type="button" hidden>Probar los 5</button>
           <button class="btn sec" id="co-reset" type="button">Reiniciar</button>
         </div>
         <div class="marcador" style="flex-direction:column;gap:2px">
@@ -563,14 +582,16 @@ body:not(.expo) #b-rotulo{flex:1}
           <span class="nota" id="co-rondas"></span>
         </div>
       </div>
-      <div class="pila" style="gap:8px">
+      <div class="pila" id="co-der" style="gap:8px">
         <div class="panel" style="gap:6px">
           <h3>Pesos del filtro, en vivo</h3>
           <div id="co-pesos" class="pila" style="gap:3px"></div>
           <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-aut"/></svg>empuja hacia normal</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-fal"/></svg>empuja hacia spam</span></div>
+          <p class="congelado" id="co-congelado" hidden>Pesos congelados: en la prueba solo se califica.</p>
         </div>
         <div class="resumen" id="co-resumen" aria-live="polite" hidden></div>
-        <p class="nota f">Es la misma regla que con los billetes. La diferencia: aquí las características se pueden leer.</p>
+        <div class="resumen" id="co-conclusion" aria-live="polite" hidden></div>
+        <p class="nota f">Igual que con los billetes: aprende con unos ejemplos (entrenamiento) y se califica con otros que nunca vio (prueba). En la prueba ya no corrige nada.</p>
       </div>
     </div>
   </div>
@@ -1260,7 +1281,6 @@ mostrarBillete(TEST[1]);
   const RASGOS = ["Dice «gratis» o «premio»", "Muchos signos «¡!»", "Remitente desconocido", "Pide datos o un enlace"];
   const CORTO = ["«Gratis» o «premio»", "Muchos «¡!»", "Remitente desconocido", "Pide datos o enlace"];
   const EN_REGLA = ["gratis", "¡!", "remitente", "datos"];
-  const DELATA = ["«gratis» o «premio»", "muchos ¡!", "remitente desconocido", "pedir datos o un enlace"];
   const TIPO = ["normal", "spam"], SUB = ["₁", "₂", "₃", "₄"];
   /* correos inventados; y = 1 es spam */
   const CORREOS = [
@@ -1275,7 +1295,15 @@ mostrarBillete(TEST[1]);
     { de: "ganador2026@sorteos-mundiales.net", asunto: "¡¡Premio garantizado para ti!!", x: [1, 1, 1, 0], y: 1 },
     { de: "practicante.nuevo@correo.com", asunto: "Hola, soy el nuevo practicante del área", x: [0, 0, 1, 0], y: 0 }
   ];
-  const TOPE = 4, N = CORREOS.length;
+  /* prueba: 5 correos que el modelo nunca ve mientras aprende */
+  const PRUEBA = [
+    { de: "docente.calculo@universidad.edu.co", asunto: "Recordatorio: parcial de cálculo el viernes", corto: "Parcial de cálculo", x: [0, 0, 0, 0], y: 0 },
+    { de: "bienestar@universidad.edu.co", asunto: "Almuerzo gratis en la cafetería por el día del estudiante", corto: "Almuerzo gratis", x: [1, 0, 0, 0], y: 0 },
+    { de: "envios@entrega-rapida.top", asunto: "¡¡URGENTE!! Tu paquete está retenido: paga el envío en el enlace", corto: "Paquete retenido", x: [0, 1, 1, 1], y: 1 },
+    { de: "registro@universidad.edu.co", asunto: "Tu certificado de notas: descárgalo en el enlace", corto: "Certificado de notas", x: [0, 0, 0, 1], y: 0 },
+    { de: "andres.compa@correo.com (un contacto conocido)", asunto: "¡¡Gana un celular GRATIS!! Entra al enlace", corto: "Celular GRATIS", x: [1, 1, 0, 1], y: 1 }
+  ];
+  const TOPE = 4, N = CORREOS.length, NP = PRUEBA.length;
   const fila = (id, nombre) => `<div class="aporte peso" id="${id}" style="grid-template-columns:12.6em minmax(0,1fr) 5.4em"><span style="white-space:nowrap">${nombre}</span><div class="pista"><i></i></div><span class="dato" style="text-align:right;white-space:nowrap"></span></div>`;
   $("#co-pesos").innerHTML = CORTO.map((r, j) => fila("cp-" + j, `w${SUB[j]} ${r}`)).join("") + fila("cp-b", "Sesgo b");
   const lista = a => a.length > 1 ? a.slice(0, -1).join(", ") + " y " + a[a.length - 1] : a[0];
@@ -1303,26 +1331,70 @@ mostrarBillete(TEST[1]);
       <ul class="rasgos">${RASGOS.map((r, j) => `<li class="${c.x[j] ? "si" : ""}"><b>x${SUB[j]} = ${c.x[j]}</b>${r}</li>`).join("")}</ul>`
       : `<span class="nota">Bandeja con ${N} correos</span><span class="asunto">Pulsa «Revisar correo» para ver el primero.</span>`;
   }
+  /* qué botones se ven según la fase: entrenando, entrenamiento terminado o prueba */
   function pintarMando() {
-    $("#co-sig").disabled = s.fin;
-    $("#co-progreso").innerHTML = `Ronda <span class="dato">${s.ronda}</span> · correo <span class="dato">${s.visto} de ${N}</span> · correcciones: <span class="dato">${s.corr}</span>`;
-    $("#co-rondas").textContent = s.rondas.length ? s.rondas.map((n, r) => `Ronda ${r + 1}: ${n}`).join(" · ") : "Todavía no termina ninguna ronda.";
+    const prueba = s.fase === 2;
+    $("#co-sig").hidden = s.fin || prueba; $("#co-auto").hidden = s.fin || prueba;
+    $("#co-probar").hidden = !s.fin || prueba;
+    $("#co-nuevo").hidden = !prueba; $("#co-todos").hidden = !prueba;
+    $("#co-nuevo").disabled = $("#co-todos").disabled = s.p >= NP;
+    $("#co-f1").hidden = prueba; $("#co-f2").hidden = !prueba; $("#co-congelado").hidden = !prueba;
+    const rondas = s.rondas.length ? s.rondas.map((n, r) => `Ronda ${r + 1}: ${n}`).join(" · ") : "Todavía no termina ninguna ronda.";
+    if (prueba) {
+      $("#co-progreso").innerHTML = `Prueba · correo <span class="dato">${s.p} de ${NP}</span> · aciertos: <span class="dato">${s.okP}</span>`;
+      $("#co-rondas").textContent = "Entrenamiento: " + rondas;
+    } else {
+      $("#co-progreso").innerHTML = `Entrenamiento · ronda <span class="dato">${s.ronda}</span> · correo <span class="dato">${s.visto} de ${N}</span> · correcciones: <span class="dato">${s.corr}</span>`;
+      $("#co-rondas").textContent = rondas;
+    }
+  }
+  /* ---------- fase 2: prueba con correos que nunca vio; los pesos no se tocan ---------- */
+  const marcaTipo = y => `<span class="pastilla ${y ? "c-fal" : "c-aut"}">${TIPO[y]}</span>`;
+  function pintarProx() {
+    const t = PRUEBA[s.p];
+    $("#co-prox").hidden = !t;
+    if (!t) return;
+    const senales = t.x.map((v, j) => v ? EN_REGLA[j] : null).filter(Boolean);
+    $("#co-prox").innerHTML = `<strong>Siguiente:</strong> «${t.asunto}» · de ${t.de} · señales: ${senales.length ? lista(senales) : "ninguna"}`;
+  }
+  function probarUno() {
+    if (s.p >= NP) return;
+    const t = PRUEBA[s.p], z = zLineal(t.x, s.w, s.b), pred = z >= 0 ? 1 : 0, ok = pred === t.y;
+    if (ok) s.okP++;
+    $("#co-tabla tbody").insertAdjacentHTML("beforeend", `<tr><td>${s.p + 1}. ${t.corto}</td><td class="n"><strong>${signo(z, 0)}</strong></td><td>${marcaTipo(pred)}</td><td>${marcaTipo(t.y)}</td><td class="${ok ? "ok" : "mal"}">${ok ? "✓" : "✗"}</td></tr>`);
+    s.p++;
+    pintarPesos(null, t.x); pintarProx(); pintarMando();
+    if (s.p === NP) conclusion();
+  }
+  /* la conclusión compara con el modelo sin entrenar y busca el correo más pegado a la frontera */
+  function conclusion() {
+    const pr = t => zLineal(t.x, s.w, s.b) >= 0 ? 1 : 0;
+    const sinEntrenar = PRUEBA.filter(t => (zLineal(t.x, [0, 0, 0, 0], 0) >= 0 ? 1 : 0) === t.y).length;
+    const cerca = PRUEBA.map((t, k) => ({ t, k, z: zLineal(t.x, s.w, s.b) })).sort((a, b) => Math.abs(a.z) - Math.abs(b.z))[0];
+    const acerto = pr(cerca.t) === cerca.t.y;
+    const como = cerca.t.y === 1 && !cerca.t.x[2] ? `viene de un contacto conocido y aun así ${acerto ? "lo atrapó" : "se le pasó"}` : (acerto ? "lo acertó" : "lo falló");
+    $("#co-conclusion").innerHTML = `<span>Sin entrenar (todo en cero) le dice spam a todo: habría acertado ${sinEntrenar} de ${NP}.</span>
+      <strong>Entrenado acertó ${s.okP} de ${NP} correos que nunca vio.</strong>
+      <span>El correo ${cerca.k + 1} ${como}, pero con z = ${signo(cerca.z, 0)}: muy cerca de la frontera.</span>`;
+    $("#co-conclusion").hidden = false; $("#co-resumen").hidden = true;
+  }
+  function empezarPrueba() {
+    parar(); s.fase = 2; s.p = 0; s.okP = 0;
+    $("#co-tabla tbody").innerHTML = ""; $("#co-conclusion").hidden = true; $("#co-resumen").hidden = false;
+    pintarPesos(); pintarProx(); pintarMando();
   }
   /* el resumen se arma con el estado real del modelo */
   function resumen() {
     const pesos = s.w.map((v, j) => ({ v, j })).filter(p => p.v !== 0);
     const regla = pesos.map((p, k) => (k === 0 ? (p.v < 0 ? "−" : "") : (p.v < 0 ? " − " : " + ")) + fmt(Math.abs(p.v), 0) + "·" + EN_REGLA[p.j]).join("")
       + (s.b ? (s.b < 0 ? " − " : " + ") + fmt(Math.abs(s.b), 0) : "");
-    const max = Math.max(...s.w), top = s.w.map((v, j) => v === max ? DELATA[j] : null).filter(Boolean);
     $("#co-resumen").innerHTML = `<strong>Aprendió en ${cuantos(s.rondas.length, "ronda", "rondas")} con ${cuantos(s.corr, "corrección", "correcciones")}.</strong>
-      <span>Regla aprendida: <span class="regla-txt">z = ${regla}</span></span>
-      ${s.b < 0 ? `<span>Necesita ${cuantos(-s.b, "punto", "puntos")} de sospecha para decir spam.</span>` : ""}
-      <span>Lo que más delata al spam: ${lista(top)} (peso ${fmt(max, 0)}).</span>`;
+      <span>Regla aprendida: <span class="regla-txt">z = ${regla}</span></span>`;
     $("#co-resumen").hidden = false;
   }
   /* un clic: muestra el correo, la cuenta con los pesos de antes, si acertó y qué corrige */
   function revisar() {
-    if (s.fin) return parar();
+    if (s.fin || s.fase === 2) return parar();
     if (s.k === N) { s.k = 0; s.ronda++; s.errRonda = 0; }
     const k = s.k, c = CORREOS[k], antes = { w: [...s.w], b: s.b };
     const z = zLineal(c.x, s.w, s.b), pred = z >= 0 ? 1 : 0, e = c.y - pred;
@@ -1349,13 +1421,16 @@ mostrarBillete(TEST[1]);
   function parar() { if (timer) { clearInterval(timer); timer = null; } $("#co-auto").textContent = "Entrenar solo"; }
   function reset() {
     parar();
-    s = { w: [0, 0, 0, 0], b: 0, k: 0, visto: 0, ronda: 1, errRonda: 0, corr: 0, rondas: [], fin: false };
+    s = { w: [0, 0, 0, 0], b: 0, k: 0, visto: 0, ronda: 1, errRonda: 0, corr: 0, rondas: [], fin: false, fase: 1, p: 0, okP: 0 };
     $("#co-msg").innerHTML = "<div>Pesos y sesgo en cero: z da 0 y dice spam a todo.</div>";
-    $("#co-resumen").hidden = true;
+    $("#co-resumen").hidden = true; $("#co-conclusion").hidden = true; $("#co-tabla tbody").innerHTML = "";
     pintarCarta(null); pintarPesos(); pintarMando();
   }
   $("#co-sig").onclick = () => { parar(); revisar(); };
   $("#co-reset").onclick = reset;
+  $("#co-probar").onclick = empezarPrueba;
+  $("#co-nuevo").onclick = probarUno;
+  $("#co-todos").onclick = () => { while (s.p < NP) probarUno(); };
   $("#co-auto").onclick = () => {
     if (timer) return parar();
     if (s.fin) reset();
