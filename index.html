@@ -184,7 +184,8 @@ table.apretada th,table.apretada td{padding:4px 10px}
 
 /* los 3 casos de la regla */
 #rc-casos tbody tr{cursor:pointer}
-#rc-casos td,#rc-casos th{padding:4px 9px}
+#rc-casos td,#rc-casos th{padding:1px 7px;line-height:1.2}
+#rc-casos .paren{display:block;font-size:.76em;font-weight:400;color:var(--tinta-2);line-height:1.1;white-space:nowrap}
 #rc-casos tbody tr:hover td{background:var(--hundido)}
 #rc-casos tbody tr[aria-selected="true"] td{background:color-mix(in srgb,var(--grabado) 16%,var(--lamina));font-weight:700}
 #rc-casos tbody tr[aria-selected="true"] td:first-child{box-shadow:inset 4px 0 0 var(--grabado)}
@@ -202,6 +203,7 @@ table.apretada th,table.apretada td{padding:4px 10px}
 .eta-fija{align-self:flex-start;font-size:.8em}
 #rc-graf text{font-size:12.5px}
 #rc-graf .rot{fill:var(--tinta);font-weight:700}
+#rc-graf .halo{paint-order:stroke;stroke:var(--lamina);stroke-width:3.5px;stroke-linejoin:round}
 .celda{transition:transform .15s ease,box-shadow .15s ease}
 .celda[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--tinta);transform:scale(1.03)}
 .banco-dice{border-left:4px solid var(--grabado);background:var(--hundido);padding:8px 12px;border-radius:0 4px 4px 0;font-weight:600}
@@ -615,11 +617,11 @@ body:not(.expo) #b-rotulo{flex:1}
     <pre aria-label="Regla de aprendizaje" style="flex:none;overflow:hidden;white-space:pre-wrap;padding:8px 14px"><span class="sim" data-s="w">w</span> <span class="sim" data-s="flecha">←</span> <span class="sim" data-s="w">w</span> + <span class="sim" data-s="eta">η</span> · (<span class="sim" data-s="y">y</span> − <span class="sim" data-s="yh">ŷ</span>) · <span class="sim" data-s="x">x</span>        <span class="sim" data-s="b">b</span> <span class="sim" data-s="flecha">←</span> <span class="sim" data-s="b">b</span> + <span class="sim" data-s="eta">η</span> · (<span class="sim" data-s="y">y</span> − <span class="sim" data-s="yh">ŷ</span>)</pre>
     <p style="font-weight:600">Peso nuevo = peso viejo + tamaño del paso × error × entrada</p>
     <p class="nota">y = lo real (1 falsificado, 0 auténtico) · ŷ = lo que dijo el modelo · y − ŷ = el error · η = tamaño del paso</p>
-    <div class="dos" style="grid-template-columns:minmax(0,.94fr) minmax(0,1.18fr);gap:18px">
+    <div class="dos" style="grid-template-columns:minmax(0,1.06fr) minmax(0,1.06fr);gap:18px">
       <div class="panel" style="gap:4px;padding:10px 16px">
         <h3>Los 3 casos</h3>
         <table id="rc-casos" style="font-size:.8em">
-          <thead><tr><th>Caso</th><th class="n">y − ŷ</th><th>Qué hace</th></tr></thead>
+          <thead><tr><th>Caso</th><th class="n">y − ŷ<span class="paren">(real − lo que dijo)</span></th><th>Qué hace</th></tr></thead>
           <tbody></tbody>
         </table>
         <p style="font-size:.8em">Si acierta, el error es 0 y todo se multiplica por 0: por eso solo corrige cuando se equivoca.</p>
@@ -627,7 +629,7 @@ body:not(.expo) #b-rotulo{flex:1}
           <h3 style="font-size:.9em">El puntaje de este billete</h3>
           <span class="pastilla eta-fija">η = 1</span>
         </div>
-        <svg id="rc-graf" viewBox="0 0 460 72" role="img" aria-label="Puntaje z del billete antes y después de corregir, sobre un eje de −6 a 6 con la frontera en 0"></svg>
+        <svg id="rc-graf" viewBox="0 0 540 58" role="img" aria-label="Puntaje z del billete antes y después de corregir, sobre un eje de −6 a 6 con la frontera en 0"></svg>
       </div>
       <div class="panel" style="gap:6px;padding:12px 16px">
         <p id="rc-titulo" style="font-size:.9em"></p>
@@ -1474,9 +1476,9 @@ mostrarBillete(TEST[1]);
 (function () {
   const W0 = [1, -2], B0 = 0, SUB = ["₁", "₂"];
   const CASOS = [
-    { id: "acerto", nombre: "Acertó", x: [2, -1], y: 1, que: "No cambia nada" },
-    { id: "falso", nombre: "Se le pasó un falso", x: [-2, 1], y: 1, que: "Suma las entradas a los pesos" },
-    { id: "alarma", nombre: "Falsa alarma", x: [2, -1], y: 0, que: "Resta las entradas a los pesos" }
+    { id: "acerto", nombre: "Acertó", x: [2, -1], y: 1, que: "No cambia nada", por: "dijo lo mismo que era", resta: "1 − 1 o 0 − 0", efecto: "" },
+    { id: "falso", nombre: "Se le pasó un falso", x: [-2, 1], y: 1, que: "Suma las entradas a los pesos", por: "era falso y dijo auténtico", resta: "1 − 0", efecto: "el puntaje sube" },
+    { id: "alarma", nombre: "Falsa alarma", x: [2, -1], y: 0, que: "Resta las entradas a los pesos", por: "era auténtico y dijo falso", resta: "0 − 1", efecto: "el puntaje baja" }
   ];
   const n = v => signo(v, Number.isInteger(v) ? 0 : 1);
   const P = v => v < 0 ? `(${n(v)})` : n(v);
@@ -1488,11 +1490,12 @@ mostrarBillete(TEST[1]);
   /* la tabla de casos: el error de cada fila sale de la cuenta, no del texto */
   $("#rc-casos tbody").innerHTML = CASOS.map(c => {
     const e = c.y - (zDe(W0, B0, c.x) >= 0 ? 1 : 0);
-    return `<tr data-caso="${c.id}" aria-selected="false"><td><button class="fila-btn" type="button">${c.nombre}</button></td><td class="n">${err(e)}</td><td>${c.que}</td></tr>`;
+    const paren = t => t ? `<span class="paren">(${t})</span>` : "";
+    return `<tr data-caso="${c.id}" aria-selected="false"><td><button class="fila-btn" type="button">${c.nombre}</button>${paren(c.por)}</td><td class="n">${err(e)}${paren(c.resta)}</td><td>${c.que}${paren(c.efecto)}</td></tr>`;
   }).join("");
   /* gráfico del puntaje: dónde queda el billete antes y después de corregir */
-  const G = $("#rc-graf"), LIM = 6, Y = 25, EJE = 42;
-  const GX = z => 16 + (Math.max(-LIM, Math.min(LIM, z)) + LIM) / (2 * LIM) * 428;
+  const G = $("#rc-graf"), LIM = 6, Y = 24, EJE = 39;
+  const GX = z => 16 + (Math.max(-LIM, Math.min(LIM, z)) + LIM) / (2 * LIM) * 508;
   const quieto = matchMedia("(prefers-reduced-motion: reduce)");
   let anim = null;
   function grafico(z0, z1, e, bien) {
@@ -1506,12 +1509,12 @@ mostrarBillete(TEST[1]);
     sv("line", { x1: GX(-LIM), x2: GX(LIM), y1: EJE, y2: EJE, class: "eje" }, G);
     for (let t = -LIM; t <= LIM; t += 2) {
       sv("line", { x1: GX(t), x2: GX(t), y1: EJE, y2: EJE + 4, class: "eje" }, G);
-      sv("text", { x: GX(t), y: EJE + 14, "text-anchor": "middle" }, G).textContent = signo(t, 0);
+      sv("text", { x: GX(t), y: EJE + 12, "text-anchor": "middle" }, G).textContent = signo(t, 0);
     }
     sv("line", { x1: GX(0), x2: GX(0), y1: 13, y2: EJE, class: "frontera", "stroke-width": 1.5 }, G);
     if (e === 0) {
       sv("circle", { cx: GX(z0), cy: Y, r: 6.5, class: "tinta-f" }, G);
-      sv("text", { x: GX(LIM), y: 70, "text-anchor": "end", class: "rot" }, G).textContent = "no se mueve: ya estaba del lado correcto";
+      sv("text", { x: GX(z0) - 12, y: Y + 4, "text-anchor": "end", class: "rot halo" }, G).textContent = "no se mueve: ya estaba del lado correcto";
       return;
     }
     const color = z1 >= 0 ? "var(--falso)" : "var(--autentico)", dir = z1 > z0 ? 1 : -1;
@@ -1520,16 +1523,16 @@ mostrarBillete(TEST[1]);
     const cambio = sv("text", { y: Y + 12, "text-anchor": "middle", class: "rot" }, G);
     cambio.textContent = (z1 - z0 > 0 ? "+" : "−") + n(Math.abs(z1 - z0));
     sv("circle", { cx: GX(z0), cy: Y, r: 6, fill: "var(--lamina)", stroke: "var(--tinta-2)", "stroke-width": 2 }, G);
-    sv("text", { x: GX(z0), y: 70, "text-anchor": "middle" }, G).textContent = `antes: ${n(z0)}`;
+    sv("text", { x: GX(z0) - dir * 11, y: Y + 4, "text-anchor": dir > 0 ? "end" : "start", class: "halo" }, G).textContent = `antes: ${n(z0)}`;
     const punto = sv("circle", { cy: Y, r: 6.5, class: "tinta-f" }, G);
-    const etiq = sv("text", { y: 70, "text-anchor": "middle", class: "rot" }, G);
+    const etiq = sv("text", { y: Y + 4, "text-anchor": dir > 0 ? "start" : "end", class: "rot halo" }, G);
     etiq.textContent = `después: ${n(z1)} ${bien ? "✓" : "✗"}`;
     /* el punto viaja del antes al después en 0,6 s; sin animación si se pidió reducir movimiento */
     const ir = t => {
       const z = z0 + (z1 - z0) * t, xa = GX(z0) + dir * 8, xb = GX(z) - dir * 9;
       flecha.setAttribute("x1", xa); flecha.setAttribute("x2", Math.abs(xb - xa) > 2 && (xb - xa) * dir > 0 ? xb : xa);
       punta.setAttribute("d", (GX(z) - GX(z0)) * dir > 14 ? `M${GX(z) - dir * 8} ${Y}l${-dir * 9} -5.5v11z` : "");
-      punto.setAttribute("cx", GX(z)); etiq.setAttribute("x", GX(z));
+      punto.setAttribute("cx", GX(z)); etiq.setAttribute("x", GX(z) + dir * 11);
       cambio.setAttribute("x", (GX(z0) + GX(z)) / 2); cambio.style.opacity = t;
     };
     if (quieto.matches) return ir(1);
