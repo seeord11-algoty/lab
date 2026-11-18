@@ -165,6 +165,13 @@ table.apretada th,table.apretada td{padding:4px 10px}
 .rasgos li.si b{color:var(--grabado);font-weight:700}
 .marcador{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88em;border-top:1px dashed var(--linea);padding-top:8px}
 .aporte.apagado{opacity:.42}
+.aporte.peso{border-radius:4px;padding:2px 4px;transition:background .4s ease,box-shadow .4s ease}
+.aporte.peso.cambiado{background:color-mix(in srgb,var(--falso) 20%,transparent);box-shadow:0 0 0 2px var(--falso)}
+.co-cuenta{display:flex;flex-direction:column;gap:4px;font-size:.9em}
+.co-cuenta .cuenta{font-family:var(--f-codigo);font-size:.92em}
+.resumen{border:2px solid var(--grabado);border-radius:6px;background:color-mix(in srgb,var(--grabado) 10%,var(--lamina));padding:7px 14px;display:flex;flex-direction:column;gap:2px;font-size:.84em;line-height:1.4}
+.resumen[hidden]{display:none}
+.resumen .regla-txt{font-family:var(--f-codigo);font-size:.86em;font-weight:500;white-space:nowrap}
 .aporte .pista i{transition:width .35s ease,left .35s ease}
 
 /* quiz */
@@ -541,31 +548,29 @@ body:not(.expo) #b-rotulo{flex:1}
 <section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Entrena tú un filtro de correos</h2></header>
   <div class="cuerpo" style="gap:10px">
-    <p style="font-size:.92em">Un perceptrón real arranca con los pesos en cero y revisa 10 correos, uno por uno. Antes de cada revisión, apuesten: ¿spam o normal? Luego miren qué dice él y cómo se corrige cuando falla.</p>
+    <p style="font-size:.95em">Un perceptrón revisa 10 correos uno por uno. Arranca con todo en cero. Si acierta, no cambia nada; si falla, corrige los pesos. ¿Cuántas rondas necesita para no fallar?</p>
     <div class="dos" style="gap:22px">
-      <div class="panel" style="gap:9px">
-        <div class="correo" id="co-carta" aria-live="polite"></div>
-        <div class="fila" role="group" aria-label="Apuesta del público">
-          <span style="font-weight:600;font-size:.88em">¿Qué dice el público?</span>
-          <button class="btn sec" type="button" data-apuesta="1">Spam</button>
-          <button class="btn sec" type="button" data-apuesta="0">Normal</button>
-        </div>
-        <p id="co-msg" aria-live="polite" style="font-size:.86em;min-height:5.4em"></p>
+      <div class="panel" style="gap:10px">
+        <div class="correo" id="co-carta"></div>
+        <div class="co-cuenta" id="co-msg" aria-live="polite" style="min-height:5.2em"></div>
         <div class="fila">
-          <button class="btn" id="co-sig" type="button">Siguiente correo</button>
+          <button class="btn" id="co-sig" type="button">Revisar correo</button>
           <button class="btn sec" id="co-auto" type="button">Entrenar solo</button>
           <button class="btn sec" id="co-reset" type="button">Reiniciar</button>
         </div>
-        <p class="marcador" id="co-marcador" aria-live="polite"></p>
-      </div>
-      <div class="pila" style="gap:10px">
-        <div class="panel" style="gap:7px">
-          <h3>Pesos del filtro, en vivo</h3>
-          <div id="co-pesos" class="pila" style="gap:5px"></div>
-          <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-aut"/></svg>empuja hacia normal</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-fal"/></svg>empuja hacia spam</span></div>
-          <p class="nota" id="co-z"></p>
+        <div class="marcador" style="flex-direction:column;gap:2px">
+          <span id="co-progreso" aria-live="polite"></span>
+          <span class="nota" id="co-rondas"></span>
         </div>
-        <p class="nota f">Es la misma regla de aprendizaje que con los billetes: si acierta no toca nada; si falla, suma o resta las entradas a los pesos. La diferencia es que aquí las características se pueden leer, y al final se ve cuáles delatan al spam.</p>
+      </div>
+      <div class="pila" style="gap:8px">
+        <div class="panel" style="gap:6px">
+          <h3>Pesos del filtro, en vivo</h3>
+          <div id="co-pesos" class="pila" style="gap:3px"></div>
+          <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-aut"/></svg>empuja hacia normal</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="m-fal"/></svg>empuja hacia spam</span></div>
+        </div>
+        <div class="resumen" id="co-resumen" aria-live="polite" hidden></div>
+        <p class="nota f">Es la misma regla que con los billetes. La diferencia: aquí las características se pueden leer.</p>
       </div>
     </div>
   </div>
@@ -1250,10 +1255,12 @@ mostrarBillete(TEST[1]);
   reset();
 })();
 
-/* ============ APRENDE: filtro de correos que entrena el público ============ */
+/* ============ APRENDE: filtro de correos ============ */
 (function () {
   const RASGOS = ["Dice «gratis» o «premio»", "Muchos signos «¡!»", "Remitente desconocido", "Pide datos o un enlace"];
   const CORTO = ["«Gratis» o «premio»", "Muchos «¡!»", "Remitente desconocido", "Pide datos o enlace"];
+  const EN_REGLA = ["gratis", "¡!", "remitente", "datos"];
+  const DELATA = ["«gratis» o «premio»", "muchos ¡!", "remitente desconocido", "pedir datos o un enlace"];
   const TIPO = ["normal", "spam"], SUB = ["₁", "₂", "₃", "₄"];
   /* correos inventados; y = 1 es spam */
   const CORREOS = [
@@ -1268,82 +1275,91 @@ mostrarBillete(TEST[1]);
     { de: "ganador2026@sorteos-mundiales.net", asunto: "¡¡Premio garantizado para ti!!", x: [1, 1, 1, 0], y: 1 },
     { de: "practicante.nuevo@correo.com", asunto: "Hola, soy el nuevo practicante del área", x: [0, 0, 1, 0], y: 0 }
   ];
-  const TOPE = 4;
-  $("#co-pesos").innerHTML = CORTO.map((r, j) => `<div class="aporte peso" id="cp-${j}" style="grid-template-columns:11em minmax(0,1fr) 2.6em"><span>w${SUB[j]} ${r}</span><div class="pista"><i></i></div><span class="dato" style="text-align:right"></span></div>`).join("")
-    + `<div class="aporte peso" id="cp-b" style="grid-template-columns:11em minmax(0,1fr) 2.6em"><span>Sesgo b</span><div class="pista"><i></i></div><span class="dato" style="text-align:right"></span></div>`;
-  function barra(fila, v) {
-    const el = $("i", fila), a = Math.min(Math.abs(v), TOPE) / TOPE * 50;
+  const TOPE = 4, N = CORREOS.length;
+  const fila = (id, nombre) => `<div class="aporte peso" id="${id}" style="grid-template-columns:12.6em minmax(0,1fr) 5.4em"><span style="white-space:nowrap">${nombre}</span><div class="pista"><i></i></div><span class="dato" style="text-align:right;white-space:nowrap"></span></div>`;
+  $("#co-pesos").innerHTML = CORTO.map((r, j) => fila("cp-" + j, `w${SUB[j]} ${r}`)).join("") + fila("cp-b", "Sesgo b");
+  const lista = a => a.length > 1 ? a.slice(0, -1).join(", ") + " y " + a[a.length - 1] : a[0];
+  /* suma con signos legibles: «1 + 2 − 3» */
+  const suma = vs => vs.map((v, k) => k === 0 ? signo(v, 0) : (v < 0 ? "− " : "+ ") + fmt(Math.abs(v), 0)).join(" ");
+  function barra(f, antes, v) {
+    const el = $("i", f), a = Math.min(Math.abs(v), TOPE) / TOPE * 50;
     el.style.width = a + "%"; el.style.left = (v < 0 ? 50 - a : 50) + "%";
     el.style.background = v < 0 ? "var(--autentico)" : "var(--falso)";
-    $(".dato", fila).textContent = signo(v, 0);
+    $(".dato", f).textContent = antes === v ? signo(v, 0) : `${signo(antes, 0)} → ${signo(v, 0)}`;
+    f.classList.toggle("cambiado", antes !== v);
   }
-  let s, timer = null;
-  const zDe = c => zLineal(c.x, s.w, s.b);
-  function pintarPesos() {
-    const c = CORREOS[s.i];
-    s.w.forEach((v, j) => { const f = $("#cp-" + j); barra(f, v); f.classList.toggle("apagado", !c.x[j]); });
-    barra($("#cp-b"), s.b);
-    const act = c.x.map((v, j) => v ? j : -1).filter(j => j >= 0);
-    $("#co-z").textContent = `Para este correo: z = ${act.map(j => "w" + SUB[j]).concat("b").join(" + ")} = ${act.map(j => signo(s.w[j], 0)).concat(signo(s.b, 0)).join(" + ").replace(/\+ −/g, "− ")} = ${signo(zDe(c), 0)}. Si z ≥ 0 dice spam.`;
+  let s, timer = null, brillo = null;
+  /* pinta los pesos; con los de antes, resalta un momento los que cambiaron */
+  function pintarPesos(antes, x) {
+    const aw = antes ? antes.w : s.w, ab = antes ? antes.b : s.b;
+    s.w.forEach((v, j) => { const f = $("#cp-" + j); barra(f, aw[j], v); f.classList.toggle("apagado", !!x && !x[j]); });
+    barra($("#cp-b"), ab, s.b);
+    clearTimeout(brillo);
+    brillo = setTimeout(() => $$("#co-pesos .cambiado").forEach(f => f.classList.remove("cambiado")), 1200);
   }
-  function pintarCarta() {
-    const c = CORREOS[s.i];
-    $("#co-carta").innerHTML = `<span class="nota">Correo ${s.i + 1} de ${CORREOS.length} · ronda ${s.ronda}</span>
+  function pintarCarta(c, k) {
+    $("#co-carta").innerHTML = c ? `<span class="nota">Ronda ${s.ronda} · correo ${k + 1} de ${N}</span>
       <span class="de">De: ${c.de}</span><span class="asunto">${c.asunto}</span>
-      <ul class="rasgos">${RASGOS.map((r, j) => `<li class="${c.x[j] ? "si" : ""}"><b>x${SUB[j]} = ${c.x[j]}</b>${r}</li>`).join("")}</ul>`;
+      <ul class="rasgos">${RASGOS.map((r, j) => `<li class="${c.x[j] ? "si" : ""}"><b>x${SUB[j]} = ${c.x[j]}</b>${r}</li>`).join("")}</ul>`
+      : `<span class="nota">Bandeja con ${N} correos</span><span class="asunto">Pulsa «Revisar correo» para ver el primero.</span>`;
   }
   function pintarMando() {
-    $$("[data-apuesta]").forEach(b => b.disabled = !s.pend || s.fin);
-    $("#co-sig").textContent = s.pend && !s.fin ? "Revisar sin apostar" : "Siguiente correo";
     $("#co-sig").disabled = s.fin;
-    const pub = s.apuestas ? `Público: <span class="dato">${s.pub} de ${s.apuestas}</span> · Perceptrón en esos mismos correos: <span class="dato">${s.percEnApuestas} de ${s.apuestas}</span>` : "Público: todavía sin apuestas";
-    $("#co-marcador").innerHTML = `${pub} · Correcciones: <span class="dato">${s.corr}</span>`;
+    $("#co-progreso").innerHTML = `Ronda <span class="dato">${s.ronda}</span> · correo <span class="dato">${s.visto} de ${N}</span> · correcciones: <span class="dato">${s.corr}</span>`;
+    $("#co-rondas").textContent = s.rondas.length ? s.rondas.map((n, r) => `Ronda ${r + 1}: ${n}`).join(" · ") : "Todavía no termina ninguna ronda.";
   }
-  function revisar(apuesta) {
-    const c = CORREOS[s.i], z = zDe(c), pred = z >= 0 ? 1 : 0, e = c.y - pred;
-    let msg = "";
-    if (apuesta !== null) {
-      s.apuestas++; if (apuesta === c.y) s.pub++; if (pred === c.y) s.percEnApuestas++;
-      msg += `Ustedes dijeron ${TIPO[apuesta]}: <strong>${apuesta === c.y ? "acertaron" : "fallaron"}</strong>. `;
-    }
-    msg += `El perceptrón calcula z = ${signo(z, 0)} y dice <span class="pastilla ${pred ? "c-fal" : "c-aut"}">${TIPO[pred]}</span>; era <span class="pastilla ${c.y ? "c-fal" : "c-aut"}">${TIPO[c.y]}</span>. `;
-    if (e === 0) msg += "Acierta: no toca los pesos.";
-    else {
-      const act = c.x.map((v, j) => v ? "w" + SUB[j] : "").filter(Boolean);
-      s.w = s.w.map((v, j) => v + e * c.x[j]); s.b += e; s.corr++; s.errRonda++;
-      msg += `<strong>Se equivoca</strong> (error ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "le suma 1" : "le resta 1"} a ${act.length ? act.join(", ") + " y al sesgo" : "al sesgo"}.`;
-    }
-    s.pend = false;
-    if (s.i === CORREOS.length - 1 && s.errRonda === 0) {
-      s.fin = true; parar();
-      msg += ` <strong>Ronda ${s.ronda} completa sin errores: el filtro aprendió con ${cuantos(s.corr, "corrección", "correcciones")}.</strong> Lo que más delata al spam es lo que tiene el peso más alto.`;
-    } else if (s.i === CORREOS.length - 1) msg += ` Fin de la ronda ${s.ronda} con ${cuantos(s.errRonda, "corrección", "correcciones")}: vuelve a revisarlos.`;
-    $("#co-msg").innerHTML = msg;
-    pintarPesos(); pintarMando();
+  /* el resumen se arma con el estado real del modelo */
+  function resumen() {
+    const pesos = s.w.map((v, j) => ({ v, j })).filter(p => p.v !== 0);
+    const regla = pesos.map((p, k) => (k === 0 ? (p.v < 0 ? "−" : "") : (p.v < 0 ? " − " : " + ")) + fmt(Math.abs(p.v), 0) + "·" + EN_REGLA[p.j]).join("")
+      + (s.b ? (s.b < 0 ? " − " : " + ") + fmt(Math.abs(s.b), 0) : "");
+    const max = Math.max(...s.w), top = s.w.map((v, j) => v === max ? DELATA[j] : null).filter(Boolean);
+    $("#co-resumen").innerHTML = `<strong>Aprendió en ${cuantos(s.rondas.length, "ronda", "rondas")} con ${cuantos(s.corr, "corrección", "correcciones")}.</strong>
+      <span>Regla aprendida: <span class="regla-txt">z = ${regla}</span></span>
+      ${s.b < 0 ? `<span>Necesita ${cuantos(-s.b, "punto", "puntos")} de sospecha para decir spam.</span>` : ""}
+      <span>Lo que más delata al spam: ${lista(top)} (peso ${fmt(max, 0)}).</span>`;
+    $("#co-resumen").hidden = false;
   }
-  function siguiente() {
+  /* un clic: muestra el correo, la cuenta con los pesos de antes, si acertó y qué corrige */
+  function revisar() {
     if (s.fin) return parar();
-    if (s.pend) return revisar(null);
-    s.i++;
-    if (s.i === CORREOS.length) { s.i = 0; s.ronda++; s.errRonda = 0; }
-    s.pend = true;
-    $("#co-msg").innerHTML = "¿Spam o normal? Apuesten antes de revisar.";
-    pintarCarta(); pintarPesos(); pintarMando();
+    if (s.k === N) { s.k = 0; s.ronda++; s.errRonda = 0; }
+    const k = s.k, c = CORREOS[k], antes = { w: [...s.w], b: s.b };
+    const z = zLineal(c.x, s.w, s.b), pred = z >= 0 ? 1 : 0, e = c.y - pred;
+    const act = c.x.map((v, j) => v ? j : -1).filter(j => j >= 0);
+    const nombres = act.map(j => "w" + SUB[j]).concat("b").join(" + ");
+    const cuenta = act.length ? `${nombres} = ${suma(act.map(j => s.w[j]).concat(s.b))} = ` : "b = ";
+    const L = [`<span class="cuenta">z = ${cuenta}<strong>${signo(z, 0)}</strong></span> <span>→ dice <span class="pastilla ${pred ? "c-fal" : "c-aut"}">${TIPO[pred]}</span></span>`];
+    pintarCarta(c, k);
+    if (e === 0) L.push(`Era ${TIPO[c.y]}: <strong class="c-aut">acertó</strong>.`, "No cambia nada.");
+    else {
+      s.w = s.w.map((v, j) => v + e * c.x[j]); s.b += e; s.corr++; s.errRonda++;
+      const ws = act.map(j => "w" + SUB[j]);
+      L.push(`Era ${TIPO[c.y]}: <strong class="c-fal">se equivocó</strong>.`, `<strong>${e > 0 ? "Suma" : "Resta"} 1 ${ws.length ? "a " + ws.join(", ") + " y al sesgo" : "al sesgo"}.</strong>`);
+    }
+    s.visto = k + 1; s.k++;
+    if (s.k === N) {
+      s.rondas.push(s.errRonda);
+      if (s.errRonda === 0) { s.fin = true; parar(); L.push(`<strong>Ronda ${s.ronda} sin errores: terminó de aprender.</strong>`); resumen(); }
+      else L.push(`<strong>Fin de la ronda ${s.ronda}: ${cuantos(s.errRonda, "corrección", "correcciones")}.</strong> Vuelve a empezar.`);
+    }
+    $("#co-msg").innerHTML = L.map(t => `<div>${t}</div>`).join("");
+    pintarPesos(antes, c.x); pintarMando();
   }
-  function parar() { if (timer) { clearInterval(timer); timer = null; $("#co-auto").textContent = "Entrenar solo"; } }
+  function parar() { if (timer) { clearInterval(timer); timer = null; } $("#co-auto").textContent = "Entrenar solo"; }
   function reset() {
     parar();
-    s = { w: [0, 0, 0, 0], b: 0, i: 0, ronda: 1, errRonda: 0, corr: 0, pend: true, fin: false, pub: 0, apuestas: 0, percEnApuestas: 0 };
-    $("#co-msg").innerHTML = "Pesos y sesgo en cero: con todo en cero z da 0 y el filtro le dice spam a cualquier correo. ¿Spam o normal? Apuesten antes de revisar.";
-    pintarCarta(); pintarPesos(); pintarMando();
+    s = { w: [0, 0, 0, 0], b: 0, k: 0, visto: 0, ronda: 1, errRonda: 0, corr: 0, rondas: [], fin: false };
+    $("#co-msg").innerHTML = "<div>Pesos y sesgo en cero: z da 0 y dice spam a todo.</div>";
+    $("#co-resumen").hidden = true;
+    pintarCarta(null); pintarPesos(); pintarMando();
   }
-  $$("[data-apuesta]").forEach(b => b.onclick = () => { parar(); if (s.pend && !s.fin) revisar(+b.dataset.apuesta); });
-  $("#co-sig").onclick = () => { parar(); siguiente(); };
+  $("#co-sig").onclick = () => { parar(); revisar(); };
   $("#co-reset").onclick = reset;
   $("#co-auto").onclick = () => {
     if (timer) return parar();
     if (s.fin) reset();
-    $("#co-auto").textContent = "Pausar"; timer = setInterval(siguiente, 700);
+    $("#co-auto").textContent = "Pausar"; timer = setInterval(revisar, 250);
   };
   reset();
 })();
