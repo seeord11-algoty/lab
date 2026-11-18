@@ -239,6 +239,10 @@ button.metrica[aria-pressed="true"]{background:var(--hundido);border-top-color:v
 .cv-bloques i.prueba{background:var(--grabado);border-color:var(--grabado)}
 #cv-rango text{font-size:12.5px}
 #cv-rango .rot{fill:var(--tinta);font-weight:700}
+#cv-tabla td,#cv-tabla th{padding:3px 10px}
+#cv-tabla tr.actual td{background:color-mix(in srgb,var(--grabado) 16%,var(--lamina));font-weight:700}
+#cv-tabla tr.resumen-f td{font-weight:700;border-top:1.5px solid var(--tinta-2)}
+#cv-tabla tr.resumen-f+tr.resumen-f td{border-top:0}
 mark.cambio{background:color-mix(in srgb,var(--falso) 30%,transparent);color:inherit;padding:0 4px;border-radius:3px;font-weight:700}
 .calculo{display:flex;flex-direction:column;gap:3px;font-size:.88em}
 #mini-calc{display:flex;flex-direction:column;gap:6px;font-size:.88em}
@@ -286,7 +290,7 @@ body.expo #pz-grid{max-height:150px;width:auto;margin:0 auto}
 .gana{display:inline-block;margin:4px 0 0 calc(5.2em + 10px);font-size:.8em;font-weight:700;color:var(--falso);border:1.5px solid var(--falso);border-radius:99px;padding:0 8px}
 .aporte.destaca{background:color-mix(in srgb,var(--falso) 14%,transparent);border-radius:4px;box-shadow:0 0 0 2px var(--falso)}
 #pz-fin{transition:opacity .35s ease}
-body.expo #cv-rango{max-height:170px;width:auto;margin:0 auto}
+body.expo #cv-rango{max-height:162px;width:auto;margin:0 auto}
 body.expo .robot{width:120px}
 body.expo #vivo-curva{max-height:180px;width:auto;margin:0 auto}
 #vivo-estado{font-size:1.02em;line-height:1.35}
@@ -2029,59 +2033,86 @@ function alVer(elems, cb) {
   obP.observe(document.body, { attributes: true, attributeFilter: ["class"] });
   leerP();
 
-  /* ¿fue suerte?: validación cruzada en 5 vueltas; el archivo trae el mínimo, el promedio y el máximo de las cinco */
-  const base0 = AUTENT / TOTAL, cv = D.cv, K = 5;
-  $("#suerte").innerHTML = `<p class="entrada">¿El buen resultado depende de la partición que nos tocó? Repetimos todo el proceso 5 veces, cambiando cada vez el bloque de prueba.</p>
-    <div class="dos">
-      <div class="panel" style="gap:7px">
-        <h3>Validación cruzada: 5 vueltas</h3>
-        ${Array.from({ length: K }, (_, v) => `<div class="cv-fila f"><span><strong>Vuelta ${v + 1}</strong></span><div class="cv-bloques">${Array.from({ length: K }, (_, k) => `<i class="${k === v ? "prueba" : ""}"></i>`).join("")}</div><span class="nota">prueba con el bloque ${v + 1}</span></div>`).join("")}
-        <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" fill="var(--hundido)" stroke="var(--linea)"/></svg>entrena</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="grab-f"/></svg>prueba (no lo ve al entrenar)</span></div>
-        <div class="fila"><button class="btn sec" id="cv-play" type="button">Reproducir las 5 vueltas</button></div>
-      </div>
-      <div class="pila" style="gap:10px">
-        <div class="panel f" id="cv-panel" style="gap:4px;padding:10px 14px">
-          <h3>Resultado de las 5 vueltas</h3>
-          <svg id="cv-rango" viewBox="0 0 460 150" role="img" aria-label="Rango de accuracy y de recall en las cinco vueltas: mínimo, promedio y máximo"></svg>
+  /* ¿fue suerte?: validación cruzada en 5 vueltas, una vuelta por toque de Siguiente */
+  /* resultados por vuelta del Colab: StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
+     con el escalador y el perceptrón dentro de un pipeline */
+  const VUELTAS = [
+    { n: 275, ok: 273, acc: 0.9927, rec: 0.9836, fp: 0, fn: 2 },
+    { n: 275, ok: 268, acc: 0.9745, rec: 0.9426, fp: 0, fn: 7 },
+    { n: 274, ok: 268, acc: 0.9781, rec: 1, fp: 6, fn: 0 },
+    { n: 274, ok: 271, acc: 0.9891, rec: 1, fp: 3, fn: 0 },
+    { n: 274, ok: 271, acc: 0.9891, rec: 0.9918, fp: 2, fn: 1 }
+  ];
+  const K = VUELTAS.length, FALSOS_V = Math.round((D.train_c1 + D.test_c1) / K), base0 = AUTENT / TOTAL;
+  const resumir = c => { const v = VUELTAS.map(x => x[c]); return { min: Math.min(...v), mean: v.reduce((a, b) => a + b, 0) / K, max: Math.max(...v) }; };
+  const R = { acc: resumir("acc"), rec: resumir("rec") };
+  const pcv = v => Math.abs(v * 100 - Math.round(v * 100)) < 1e-9 ? fmt(v * 100, 0) + " %" : pct(v);
+  const errores = (v, k) => {
+    const fn = v.fn ? `se le ${v.fn === 1 ? "pasó" : "pasaron"} ${v.fn} de ${FALSOS_V} falsos` : "", fp = v.fp ? cuantos(v.fp, "falsa alarma", "falsas alarmas") : "";
+    return `Vuelta ${k + 1}: ` + (v.fn && v.fp ? `${fn} y dio ${fp}` : v.fn ? `${fn}, sin falsas alarmas` : `${fp}, no se le pasó ningún falso`) + ".";
+  };
+  $("#suerte").innerHTML = `<p class="entrada" id="cv-texto" aria-live="polite" style="font-size:1.05em"></p>
+    <div class="dos" style="grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)">
+      <div class="pila" style="gap:12px">
+        <div class="panel" style="gap:7px">
+          <h3>Validación cruzada: 5 vueltas</h3>
+          ${VUELTAS.map((_, v) => `<div class="cv-fila"><span><strong>Vuelta ${v + 1}</strong></span><div class="cv-bloques">${VUELTAS.map((_, b) => `<i class="${b === v ? "prueba" : ""}"></i>`).join("")}</div><span class="nota">prueba con el bloque ${v + 1}</span></div>`).join("")}
+          <div class="leyenda"><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" fill="var(--hundido)" stroke="var(--linea)"/></svg>entrena</span><span><svg viewBox="0 0 14 14"><rect width="14" height="14" rx="2" class="grab-f"/></svg>prueba (no lo ve al entrenar)</span></div>
         </div>
-        <div class="desborde f"><table style="font-size:.84em">
-          <thead><tr><th>Comparación</th><th class="n">Accuracy</th><th class="n">Recall</th></tr></thead>
-          <tbody>
-            <tr><td>Un «modelo» que siempre dice auténtico</td><td class="n">${pct(base0)}</td><td class="n">${pct(0)}</td></tr>
-            <tr><td><strong>Nuestra prueba del 20 %</strong></td><td class="n"><strong>${pct(ACC)}</strong></td><td class="n"><strong>${pct(REC)}</strong></td></tr>
-          </tbody></table></div>
+        <div class="resumen" id="cv-fin" aria-live="polite" style="font-size:.9em"></div>
+      </div>
+      <div class="panel" style="gap:6px;padding:12px 16px">
+        <table id="cv-tabla" style="font-size:.84em">
+          <thead><tr><th>Vuelta</th><th class="n">Aciertos</th><th class="n">Accuracy</th><th class="n">Recall</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p id="cv-err" aria-live="polite" style="font-size:.88em;font-weight:600;min-height:1.4em"></p>
+        <svg id="cv-rango" viewBox="0 0 460 142" role="img" aria-label="Accuracy y recall de cada vuelta en una escala de 93 % a 100 %"></svg>
       </div>
     </div>
-    <p class="f" style="font-size:.95em">Se mantiene alto en las 5 vueltas y muy por encima de la línea base. No fue suerte, aunque los decimales cambian de una partición a otra: el recall exacto no está garantizado.</p>`;
-  (function rango() {
-    const g = $("#cv-rango"), A = 0.93, B = 1, X = v => 96 + (v - A) / (B - A) * 340;
-    [["Accuracy", cv.accuracy, ACC, 36], ["Recall", cv.recall, REC, 98]].forEach(([n, r, nuestra, y]) => {
-      sv("text", { x: 2, y: y + 5, class: "rot" }, g).textContent = n;
-      sv("line", { x1: X(A), x2: X(B), y1: y, y2: y, class: "eje" }, g);
-      sv("rect", { x: X(r.min), y: y - 9, width: X(r.max) - X(r.min), height: 18, rx: 3, class: "grab-f", opacity: 0.3 }, g);
-      [r.min, r.max].forEach(v => sv("line", { x1: X(v), x2: X(v), y1: y - 12, y2: y + 12, stroke: "var(--grabado)", "stroke-width": 2.5 }, g));
-      sv("line", { x1: X(r.mean), x2: X(r.mean), y1: y - 14, y2: y + 14, class: "frontera", "stroke-width": 3 }, g);
-      marca(g, X(nuestra), y, 0, 5, { class: "tinta-f aro", "data-tip": `Nuestra prueba del 20 %: ${pct(nuestra)}` });
-      sv("text", { x: (X(A) + X(B)) / 2, y: y + 30, "text-anchor": "middle", class: "rot" }, g).textContent = `mín. ${pct(r.min)} · promedio ${pct(r.mean)} · máx. ${pct(r.max)}`;
+    <div hidden id="cv-pasos">${'<i class="f"></i>'.repeat(K + 2)}</div>`;
+  $("#cv-fin").innerHTML = `<strong>No fue suerte: en las ${K} vueltas el accuracy estuvo entre ${pcv(R.acc.min)} y ${pcv(R.acc.max)}, muy por encima del modelo perezoso (${pct(base0)}).</strong>
+    <span>El recall varía más (de ${pcv(R.rec.min)} a ${pcv(R.rec.max)}): con unos ${FALSOS_V} falsos por vuelta, cada falso que se escapa cuenta casi 1 punto.</span>`;
+  /* gráfico: una fila para accuracy y otra para recall, escala de 93 % a 100 % */
+  const G = $("#cv-rango"), A0 = 0.93, A1 = 1, GX = v => 96 + (v - A0) / (A1 - A0) * 346, FILAS = [["Accuracy", "acc", ACC, 40], ["Recall", "rec", REC, 96]];
+  function grafico(n, nuestra) {
+    G.innerHTML = "";
+    for (let t = 93; t <= 100; t++) sv("text", { x: GX(t / 100), y: 12, "text-anchor": "middle" }, G).textContent = t === 100 ? "100 %" : t;
+    FILAS.forEach(([nom, c, prueba, y]) => {
+      sv("text", { x: 2, y: y + 5, class: "rot" }, G).textContent = nom;
+      sv("line", { x1: GX(A0), x2: GX(A1), y1: y, y2: y, class: "eje" }, G);
+      /* vueltas con el mismo valor comparten etiqueta («4·5») */
+      const grupos = {};
+      VUELTAS.slice(0, n).forEach((v, k) => { (grupos[v[c]] = grupos[v[c]] || []).push(k + 1); });
+      Object.entries(grupos).forEach(([val, ks]) => {
+        sv("circle", { cx: GX(+val), cy: y, r: 6, class: "grab-f aro", "data-tip": `Vuelta ${ks.join(" y ")}: ${pcv(+val)}` }, G);
+        sv("text", { x: GX(+val), y: y - 11, "text-anchor": "middle", class: "rot" }, G).textContent = ks.join("·");
+      });
+      if (nuestra) sv("path", { d: `M${GX(prueba)} ${y + 7}l7 7l-7 7l-7 -7z`, fill: "var(--falso)", "data-tip": `Nuestra prueba del 20 %: ${pct(prueba)}` }, G);
     });
-    sv("text", { x: X(A), y: 11 }, g).textContent = "93 %";
-    sv("text", { x: X(B), y: 11, "text-anchor": "end" }, g).textContent = "100 %";
-    sv("circle", { cx: 100, cy: 142, r: 5, class: "tinta-f" }, g);
-    sv("text", { x: 110, y: 146 }, g).textContent = "nuestra prueba del 20 %, dentro del rango";
-  })();
-  /* animación: cada bloque se turna como prueba y al final aparece el rango */
-  let cvT = null;
-  $("#cv-play").onclick = () => {
-    const filas = $$("#suerte .cv-fila"), panel = $("#cv-panel");
-    clearInterval(cvT); let v = 0;
-    if (document.body.classList.contains("expo")) { filas.forEach(f => f.classList.remove("visto")); panel.classList.remove("visto"); }
-    const turno = () => {
-      filas.forEach((f, k) => f.classList.toggle("turno", k === v));
-      if (v < K) { filas[v].classList.add("visto"); v++; return; }
-      clearInterval(cvT); panel.classList.add("visto");
-    };
-    turno(); cvT = setInterval(turno, 800);
-  };
+    sv("circle", { cx: 100, cy: 135, r: 5, class: "grab-f" }, G);
+    sv("text", { x: 110, y: 139 }, G).textContent = "una vuelta (su número arriba)";
+    if (nuestra) { sv("path", { d: "M300 129l6 6l-6 6l-6 -6z", fill: "var(--falso)" }, G); sv("text", { x: 312, y: 139 }, G).textContent = "nuestra prueba del 20 %"; }
+  }
+  /* pasos: 0 inicio, 1 a 5 una vuelta cada uno, 6 resumen, 7 conclusión */
+  function pasoCv(k) {
+    const n = Math.min(k, K), act = k >= 1 && k <= K ? k - 1 : -1;
+    $$("#suerte .cv-fila").forEach((f, v) => f.classList.toggle("turno", v === act));
+    const filas = VUELTAS.slice(0, n).map((v, i) => `<tr class="${i === act ? "actual" : ""}"><td>Vuelta ${i + 1}</td><td class="n">${v.ok} de ${v.n}</td><td class="n">${pcv(v.acc)}</td><td class="n">${pcv(v.rec)}</td></tr>`);
+    if (k > K) [["Mínimo", "min"], ["Promedio", "mean"], ["Máximo", "max"]].forEach(([nom, c]) => filas.push(`<tr class="resumen-f"><td>${nom}</td><td class="n"></td><td class="n">${pcv(R.acc[c])}</td><td class="n">${pcv(R.rec[c])}</td></tr>`));
+    $("#cv-tabla tbody").innerHTML = filas.join("");
+    $("#cv-err").textContent = act >= 0 ? errores(VUELTAS[act], act) : "";
+    grafico(n, k > K);
+    $("#cv-texto").textContent = k > K ? `Nuestra prueba del 20 % (${pct(ACC)} y ${pct(REC)}) cae dentro del rango de las ${K} vueltas.`
+      : `Partimos los ${fmt(D.n_total, 0)} billetes en ${K} bloques. En cada vuelta, un bloque es la prueba y los otros ${K - 1} entrenan.`;
+    $("#cv-fin").style.visibility = k === K + 2 ? "visible" : "hidden";
+  }
+  const marcasC = $$("#cv-pasos .f");
+  const leerC = () => pasoCv(document.body.classList.contains("expo") ? marcasC.filter(f => f.classList.contains("visto")).length : K + 2);
+  const obC = new MutationObserver(leerC);
+  marcasC.forEach(f => obC.observe(f, { attributes: true, attributeFilter: ["class"] }));
+  obC.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  leerC();
 })();
 
 /* ============ GERENCIA ============ */
