@@ -236,6 +236,9 @@ button.metrica[aria-pressed="true"]{background:var(--hundido);border-top-color:v
 #cv-rango .rot{fill:var(--tinta);font-weight:700}
 mark.cambio{background:color-mix(in srgb,var(--falso) 30%,transparent);color:inherit;padding:0 4px;border-radius:3px;font-weight:700}
 .calculo{display:flex;flex-direction:column;gap:3px;font-size:.88em}
+#mini-calc{display:flex;flex-direction:column;gap:6px;font-size:.88em}
+#mini-calc .rc-grid{font-size:.9em}
+#mini-plano .zona{font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--lamina);stroke-width:3px}
 .calculo .cuenta{font-family:var(--f-codigo);font-size:.9em}
 .epoca-n{font-family:var(--f-titulo);font-weight:700;font-size:1.9rem;line-height:1;font-variant-numeric:tabular-nums}
 /* ---------- Barra de mando ---------- */
@@ -652,31 +655,23 @@ body:not(.expo) #b-rotulo{flex:1}
 <section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Ejemplo a mano con 6 billetes reales</h2></header>
   <div class="cuerpo">
+    <p style="font-size:.95em">6 billetes reales con dos medidas: varianza (x₁) y asimetría (x₂). Arranca con todo en cero.</p>
     <div class="dos">
       <div class="panel">
         <svg class="plano" id="mini-plano" viewBox="0 0 420 340" role="img" aria-label="Plano con los seis billetes y la frontera de decisión actual"></svg>
         <div class="leyenda" id="ley-mini"></div>
       </div>
-      <div class="panel">
+      <div class="panel" style="gap:9px">
         <div class="fila">
           <button class="btn" id="mini-paso" type="button">Siguiente billete</button>
-          <button class="btn sec" id="mini-auto" type="button">Reproducir solo</button>
+          <button class="btn sec" id="mini-fin" type="button" hidden>Ir hasta el final</button>
           <button class="btn sec" id="mini-reset" type="button">Reiniciar</button>
         </div>
-        <div class="fila" style="border-top:1px dashed var(--linea);padding-top:8px">
-          <button class="btn sec" id="mini-predice" type="button" aria-pressed="false">Predice tú</button>
-          <button class="btn" type="button" data-mini="0" hidden>¿Acertará?</button>
-          <button class="btn" type="button" data-mini="1" hidden>¿Corregirá?</button>
-          <span class="nota" id="mini-pub" aria-live="polite"></span>
-        </div>
-        <p style="font-size:.92em">Época <span class="dato" id="mini-epoca"></span>. Pesos w = <span class="dato" id="mini-w"></span>, sesgo b = <span class="dato" id="mini-b"></span>. Correcciones: <span class="dato" id="mini-corr"></span>.</p>
-        <div class="calculo" id="mini-msg" aria-live="polite" style="min-height:7.6em"></div>
-        <div class="desborde" style="max-height:118px;overflow-y:auto">
-        <table>
-          <thead><tr><th class="n">Época</th><th class="n">Billete</th><th class="n">z</th><th>Dijo</th><th>Era</th><th>Acción</th></tr></thead>
-          <tbody id="mini-log"></tbody>
-        </table>
-        </div>
+        <p class="marcador" id="mini-estado" aria-live="polite" style="display:block"></p>
+        <p id="mini-billete" style="font-weight:600"></p>
+        <div id="mini-calc" aria-live="polite"></div>
+        <p class="nota" id="mini-epocas"></p>
+        <p id="mini-final" aria-live="polite" style="font-weight:700;font-size:.92em"></p>
       </div>
     </div>
   </div>
@@ -1616,62 +1611,104 @@ mostrarBillete(TEST[1]);
     sv("text", { x: pl.X(p[0]) + 11, y: pl.Y(p[1]) - 8 }, pl.gPts).textContent = i + 1;
   });
   leyenda("#ley-mini", `<span><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" class="resalte"/></svg>billete que se está revisando</span>`);
+  const N = XM.length, ETA = 1, SUB = ["₁", "₂"];
+  /* formatos: medidas y pesos con un decimal, sesgo entero, puntaje con dos */
+  const fx = v => signo(v, 1), fw = v => v === 0 ? "0" : signo(v, 1), fb = v => signo(v, 0), fz = v => v === 0 ? "0" : signo(v, 2);
+  const P = (v, f) => v < 0 ? `(${f(v)})` : f(v);
+  const err = e => e > 0 ? "+1" : e < 0 ? "−1" : "0";
+  const correcciones = k => `${k} ${k === 1 ? "corrección" : "correcciones"}`;
+  /* cuadrícula con el estilo de la lámina 11: letras arriba, números abajo */
+  const grid = (filas, cols) => `<div class="rc-grid" style="grid-template-columns:repeat(${cols - 1},auto) minmax(0,1fr)">` + filas.map(f =>
+    f.map(c => Array.isArray(c) ? `<span class="${c[1]}">${c[0]}</span>` : `<span>${c}</span>`).join("") + "<span></span>".repeat(cols - f.length)).join("") + "</div>";
   let s, timer = null;
-  function pintar(msg, cambio) {
+  /* etiquetas de zona: en cada lado de la frontera, el borde del plano más lejos de la línea que no tape un billete */
+  const BORDES = [[-5.7, 10.3, "start"], [0, 10.3, "middle"], [5.7, 10.3, "end"], [-5.7, 0, "start"], [5.7, 0, "end"], [-5.7, -10.3, "start"], [0, -10.3, "middle"], [5.7, -10.3, "end"]];
+  function zonas() {
+    [[0, "dice auténtico", "var(--autentico)"], [1, "dice falsificado", "var(--falso)"]].forEach(([lado, txt, color]) => {
+      /* caja aproximada del texto, en unidades del plano: unas 3,4 de ancho y 1,8 de alto */
+      const caja = ([x, y, anc]) => { const x0 = anc === "start" ? x : anc === "end" ? x - 3.4 : x - 1.7; const y1 = y > 0 ? y : y + 1.8; return [x0 - 0.4, x0 + 3.8, y1 - 2.4, y1 + 0.4]; };
+      const libre = c => { const [a, b, d, e] = caja(c); return !XM.some(([x, y]) => x >= a && x <= b && y >= d && y <= e); };
+      const z = ([x, y]) => s.w[0] * x + s.w[1] * y + s.b;
+      const opciones = BORDES.filter(c => (z(c) >= 0 ? 1 : 0) === lado && libre(c)).sort((a, b) => Math.abs(z(b)) - Math.abs(z(a)));
+      const c = opciones[0]; if (!c) return;
+      const dy = c[1] > 9 ? 12 : c[1] < -9 ? -4 : 4;
+      sv("text", { x: pl.X(c[0]), y: pl.Y(c[1]) + dy, "text-anchor": c[2], class: "zona", style: `fill:${color}` }, pl.gSobre).textContent = txt;
+    });
+  }
+  function pintar(calc) {
     pl.frontera(s.w, s.b); pl.gSobre.innerHTML = "";
     if (s.ult !== null) sv("circle", { cx: pl.X(XM[s.ult][0]), cy: pl.Y(XM[s.ult][1]), r: 15, class: "resalte" }, pl.gSobre);
-    const res = t => cambio ? `<mark class="cambio">${t}</mark>` : t;
-    $("#mini-epoca").textContent = s.epoca; $("#mini-w").innerHTML = res(`(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})`);
-    $("#mini-b").innerHTML = res(signo(s.b, 0)); $("#mini-corr").textContent = s.corr; $("#mini-msg").innerHTML = msg;
-    $("#mini-paso").disabled = s.fin; $("#mini-paso").style.opacity = s.fin ? 0.5 : 1;
-    $("#mini-paso").hidden = predice;
-    $$("[data-mini]").forEach(b => { b.hidden = !predice; b.disabled = s.fin; });
-    $("#mini-predice").setAttribute("aria-pressed", predice);
-    $("#mini-predice").textContent = predice ? "Predice tú: activado" : "Predice tú";
-    $("#mini-pub").textContent = predice ? (pub.n ? `Aciertos del público: ${pub.ok} de ${pub.n}` : "Antes de revisar cada billete, apuesten.") : "";
+    zonas();
+    $("#mini-estado").innerHTML = `Época <span class="dato">${s.epoca}</span> · billete <span class="dato">${s.k} de ${N}</span> · correcciones: <span class="dato">${s.corr}</span>`;
+    if (calc !== undefined) $("#mini-calc").innerHTML = calc;
+    $("#mini-epocas").textContent = s.epocas.map((c, k) => `Época ${k + 1}: ${correcciones(c)}`).join(" · ");
+    $("#mini-paso").disabled = s.fin || !!timer;
+    $("#mini-fin").hidden = s.fin || s.epocas.length === 0;
+    $("#mini-fin").disabled = !!timer;
   }
-  let predice = false, pub = { ok: 0, n: 0 };
   function reset() {
-    pub = { ok: 0, n: 0 };
-    s = { w: [0, 0], b: 0, i: 0, epoca: 1, errEp: 0, corr: 0, fin: false, ult: null };
-    $("#mini-log").innerHTML = "";
-    pintar("<div>Pesos y sesgo en cero. Todavía no hay frontera: con todo en cero el puntaje siempre da 0 y el modelo le dice «falsificado» a cualquier billete.</div><div>Pulsa «Siguiente billete» para revisar el primero.</div>");
+    parar();
+    s = { w: [0, 0], b: 0, k: 0, epoca: 1, errEp: 0, corr: 0, epocas: [], fin: false, ult: null };
+    $("#mini-billete").textContent = ""; $("#mini-final").textContent = "";
+    pintar("<p>Con todo en cero el puntaje siempre da 0, y como 0 ≥ 0 dice falsificado. Pulsa «Siguiente billete».</p>");
   }
-  function paso(apuesta) {
+  /* revisa un billete: cuenta con los pesos de antes y, si falla, la tabla de corrección */
+  function paso() {
     if (s.fin) return;
-    const k = s.i, x = XM[k], y = YM[k], w0 = [...s.w], b0 = s.b;
+    if (s.k === N) { s.k = 0; s.epoca++; s.errEp = 0; }
+    const i = s.k, x = XM[i], y = YM[i], w0 = [...s.w], b0 = s.b;
     const z = w0[0] * x[0] + w0[1] * x[1] + b0, pred = z >= 0 ? 1 : 0, e = y - pred;
-    const L = [];
-    if (apuesta !== undefined) {
-      const ok = apuesta === (e !== 0 ? 1 : 0);
-      pub.n++; if (ok) pub.ok++;
-      L.push(`Apostaron «${apuesta ? "corregirá" : "acertará"}»: <strong class="${ok ? "c-aut" : "c-fal"}">${ok ? "¡bien!" : "no"}</strong>.`);
+    $("#mini-billete").innerHTML = `Billete ${i + 1}: x₁ = ${fx(x[0])} · x₂ = ${fx(x[1])} · era <span class="${y ? "c-fal" : "c-aut"}">${NOMBRE[y]}</span>`;
+    let html = `<div><b>Calcula</b>` + grid([
+      ["z", "=", "w₁ · x₁", "+", "w₂ · x₂", "+", "b"].map(t => [t, "letras"]),
+      ["z", "=", `${P(w0[0], fw)}·${P(x[0], fx)}`, "+", `${P(w0[1], fw)}·${P(x[1], fx)}`, "+", P(b0, fb), "=", [fz(z), "res"], [`→ dice ${NOMBRE[pred]}`, "izq res fin"]]
+    ], 10) + `</div>`;
+    if (e === 0) html += `<p class="c-aut" style="font-weight:700">✓ Acertó: no cambia nada</p>`;
+    else {
+      s.w = [w0[0] + ETA * e * x[0], w0[1] + ETA * e * x[1]]; s.b = b0 + ETA * e; s.errEp++; s.corr++;
+      html += `<p class="c-fal" style="font-weight:700">✗ Se equivocó: era ${NOMBRE[y]} y dijo ${NOMBRE[pred]}, y − ŷ = ${err(e)}</p>`;
+      const viejos = [w0[0], w0[1], b0], nuevos = [s.w[0], s.w[1], s.b], fmts = [fw, fw, fb], xs = [x[0], x[1], null];
+      const filas = [["", "viejo", "+", "η", "×", "(y − ŷ)", "×", "x", "=", "nuevo", ""].map(t => [t, "cab"])];
+      ["w₁", "w₂", "b"].forEach((nom, r) => {
+        const v = fmts[r](nuevos[r]);
+        filas.push([[nom, "izq res"], fmts[r](viejos[r]), "+", String(ETA), "×", `(${err(e)})`, "×", xs[r] === null ? "—" : P(xs[r], fx), "=",
+          [nuevos[r] !== viejos[r] ? `<mark class="cambio">${v}</mark>` : v, "res"], ""]);
+      });
+      html += grid(filas, 11);
     }
-    L.push(`<strong>Billete ${k + 1}</strong>, ${NOMBRE[y]}: x = (${signo(x[0], 1)}; ${signo(x[1], 1)})`);
-    L.push(`<span class="cuenta">z = (${signo(w0[0], 1)})(${signo(x[0], 1)}) + (${signo(w0[1], 1)})(${signo(x[1], 1)}) + (${signo(b0, 0)}) = <strong>${signo(z)}</strong></span>`);
-    if (e !== 0) {
-      s.w = [w0[0] + e * x[0], w0[1] + e * x[1]]; s.b = b0 + e; s.errEp++; s.corr++;
-      L.push(`z ${pred ? "≥" : "<"} 0: dice ${NOMBRE[pred]}. <strong class="c-fal">Se equivoca</strong> (y − ŷ = ${e > 0 ? "+1" : "−1"}): ${e > 0 ? "suma" : "resta"} x a los pesos.`);
-      L.push(`w: (${signo(w0[0], 1)}; ${signo(w0[1], 1)}) → <mark class="cambio">(${signo(s.w[0], 1)}; ${signo(s.w[1], 1)})</mark>, b: ${signo(b0, 0)} → <mark class="cambio">${signo(s.b, 0)}</mark>. La frontera se mueve.`);
-    } else L.push(`z ${pred ? "≥" : "<"} 0: dice ${NOMBRE[pred]}. <strong class="c-aut">Acierta</strong>: los pesos no cambian.`);
-    $("#mini-log").insertAdjacentHTML("afterbegin", `<tr><td class="n">${s.epoca}</td><td class="n">${k + 1}</td><td class="n">${signo(z)}</td><td>${NOMBRE[pred]}</td><td>${NOMBRE[y]}</td><td>${e === 0 ? "nada" : (e > 0 ? "suma x" : "resta x")}</td></tr>`);
-    s.ult = k; s.i++;
-    if (s.i === XM.length) {
-      if (s.errEp === 0) { s.fin = true; L.push(`<strong>Época ${s.epoca} completa sin errores: terminó de aprender con ${s.corr} correcciones.</strong>`); parar(); }
-      else { L.push(`Fin de la época ${s.epoca} con ${cuantos(s.errEp, "corrección", "correcciones")}; empieza otra pasada.`); s.epoca++; s.i = 0; s.errEp = 0; }
+    s.ult = i; s.k++;
+    if (s.k === N) {
+      s.epocas.push(s.errEp);
+      if (s.errEp === 0) {
+        s.fin = true; parar();
+        $("#mini-final").textContent = `Época ${s.epoca} sin errores: aprendió con ${correcciones(s.corr)}. Pesos finales w = (${fw(s.w[0])}; ${fw(s.w[1])}), sesgo b = ${fb(s.b)}. La línea separa los auténticos de los falsificados.`;
+      }
     }
-    pintar(L.map(t => `<div>${t}</div>`).join(""), e !== 0);
+    pintar(html);
   }
-  function parar() { if (timer) { clearInterval(timer); timer = null; $("#mini-auto").textContent = "Reproducir solo"; } }
-  $("#mini-paso").onclick = () => { parar(); paso(); };
-  $$("[data-mini]").forEach(b => b.onclick = () => { parar(); paso(+b.dataset.mini); });
-  $("#mini-predice").onclick = () => { predice = !predice; parar(); pintar($("#mini-msg").innerHTML); };
-  $("#mini-reset").onclick = () => { parar(); reset(); };
-  $("#mini-auto").onclick = () => {
-    if (timer) return parar();
-    if (s.fin) reset();
-    $("#mini-auto").textContent = "Pausar"; timer = setInterval(() => paso(), 1100);
-  };
+  /* «Ir hasta el final»: recorre lo que falta en unos 2 segundos */
+  function parar() { if (timer) { clearInterval(timer); timer = null; } }
+  function irAlFinal() {
+    if (s.fin || timer) return;
+    let falta = 0; { const t = JSON.parse(JSON.stringify(s)); falta = restantes(t); }
+    timer = setInterval(() => { paso(); if (s.fin) { parar(); pintar(); } }, Math.max(80, 2000 / Math.max(1, falta)));
+    pintar();
+  }
+  /* cuenta cuántos billetes faltan por revisar simulando sobre una copia del estado */
+  function restantes(t) {
+    let n = 0;
+    for (let g = 0; g < 600 && !t.fin; g++) {
+      if (t.k === N) { if (t.errEp === 0) break; t.k = 0; t.errEp = 0; }
+      const x = XM[t.k], e = YM[t.k] - (t.w[0] * x[0] + t.w[1] * x[1] + t.b >= 0 ? 1 : 0);
+      if (e) { t.w = [t.w[0] + ETA * e * x[0], t.w[1] + ETA * e * x[1]]; t.b += ETA * e; t.errEp++; }
+      t.k++; n++;
+      if (t.k === N && t.errEp === 0) break;
+    }
+    return n;
+  }
+  $("#mini-paso").onclick = paso;
+  $("#mini-fin").onclick = irAlFinal;
+  $("#mini-reset").onclick = reset;
   reset();
 })();
 
