@@ -209,6 +209,19 @@ td[contenteditable]:focus{outline:2px solid var(--grabado);outline-offset:-2px;b
 /* código */
 pre.codigo{background:var(--hundido);border-radius:8px;padding:16px 18px;overflow-x:auto;font-size:.82rem;line-height:1.55;margin:10px 0 0;tab-size:4}
 .estado{font-size:.92rem;color:var(--tinta-2);min-height:1.4em}
+/* vista previa antes de descargar */
+.previa{width:min(980px,96vw);height:min(92vh,1100px);max-width:none;max-height:none;padding:0;border:1px solid var(--linea);border-radius:12px;background:var(--lamina);color:var(--tinta);flex-direction:column;overflow:hidden}
+.previa[open]{display:flex}
+.previa::backdrop{background:rgba(10,14,30,.6)}
+.previa-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--linea)}
+.previa-cuerpo{flex:1;min-height:0;overflow:auto;background:var(--hundido)}
+.previa-cuerpo iframe{display:block;width:min(816px,calc(100% - 24px));height:80vh;margin:16px auto;border:0;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.3)}
+.previa-tabla{padding:14px 18px;background:var(--lamina);min-height:100%}
+.previa-tabla tr.fallo td{font-weight:700}
+.previa-pie{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;border-top:1px solid var(--linea)}
+.previa-pie .estado{flex:1 1 260px}
+.previa-botones{display:flex;flex-wrap:wrap;gap:10px}
+@media (max-width:600px){.previa{width:100vw;height:100dvh;border-radius:0}}
 
 footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);color:var(--tinta-2);font-size:.9rem}
 
@@ -445,14 +458,24 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
 
     <section class="paso bloque" id="r-exportar">
       <h2><span class="n">15</span> Exportar</h2>
-      <p class="guia">El reporte reúne todo lo de esta página en un documento con tablas, en blanco y negro, listo para imprimir o entregar. Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda.</p>
+      <p class="guia">Primero ves cada archivo y desde ahí lo descargas. El reporte reúne todo lo de esta página en un documento con tablas, en blanco y negro (PDF o Word). Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda (Excel/CSV).</p>
       <div class="acciones" style="margin-top:0">
-        <button class="btn" id="d-pdf" type="button">Descargar reporte (PDF)</button>
-        <button class="btn sec" id="d-word" type="button">Descargar reporte (Word)</button>
-        <button class="btn sec" id="d-pred" type="button">Descargar predicciones (Excel/CSV)</button>
+        <button class="btn" id="v-rep" type="button">Ver reporte</button>
+        <button class="btn sec" id="v-pred" type="button">Ver predicciones</button>
         <button class="btn sec" id="c-rep" type="button">Copiar reporte</button>
         <span class="estado" id="estado-exp" role="status"></span>
       </div>
+      <dialog id="vista-previa" class="previa" aria-labelledby="previa-titulo">
+        <div class="previa-cab">
+          <h3 id="previa-titulo">Vista previa</h3>
+          <button class="btn sec chico" type="button" id="previa-cerrar">Cerrar</button>
+        </div>
+        <div class="previa-cuerpo" id="previa-cuerpo"></div>
+        <div class="previa-pie">
+          <span class="estado" id="previa-nota" role="status"></span>
+          <div class="previa-botones" id="previa-botones"></div>
+        </div>
+      </dialog>
     </section>
   </div>
 </div>
@@ -3365,8 +3388,8 @@ function bajarArchivo(nombre, datos, tipo){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
-async function guardar(nombre, datos, tipo = "text/plain;charset=utf-8"){
-  const est = $("estado-exp");
+async function guardar(nombre, datos, tipo = "text/plain;charset=utf-8", aviso = "estado-exp"){
+  const est = $(aviso);
   try {
     if (descargas) await descargas.save({ filename: nombre, data: datos });   // dentro de Claude
     else bajarArchivo(nombre, datos, tipo);                                     // en cualquier navegador
@@ -3374,25 +3397,54 @@ async function guardar(nombre, datos, tipo = "text/plain;charset=utf-8"){
   } catch (e){ est.textContent = e && e.code === "declined" ? "Descarga cancelada." : "No se pudo descargar aquí. Usa «Copiar reporte»."; }
 }
 const base = () => S.archivo.replace(/\.[^.]+$/, "");
-$("d-pred").addEventListener("click", () => R && guardar(`predicciones_${base()}.csv`, "﻿" + csvPred(), "text/csv;charset=utf-8"));
-$("d-word").addEventListener("click", () => R && guardar(`reporte_perceptron_${base()}.doc`, reporteDoc(true), "application/msword"));
-$("d-pdf").addEventListener("click", () => R && reportePDF());
-/* Reporte en PDF: arma el documento en un marco oculto y abre la ventana de impresión («Guardar como PDF»).
-   Dentro de Claude no se puede imprimir, así que ahí se descarga el documento para abrirlo e imprimirlo. */
-function reportePDF(){
-  const est = $("estado-exp"), html = reporteDoc(false);
-  if (descargas){ guardar(`reporte_perceptron_${base()}.html`, html, "text/html;charset=utf-8"); return; }
-  document.getElementById("marco-reporte")?.remove();
-  const marco = document.createElement("iframe");
-  marco.id = "marco-reporte"; marco.setAttribute("aria-hidden", "true"); marco.tabIndex = -1;
-  marco.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
-  document.body.appendChild(marco);
-  const d = marco.contentDocument; d.open(); d.write(html); d.close();
-  setTimeout(() => {
-    try { marco.contentWindow.focus(); marco.contentWindow.print(); est.textContent = "En la ventana de impresión elige «Guardar como PDF»."; }
-    catch (e){ guardar(`reporte_perceptron_${base()}.html`, html, "text/html;charset=utf-8"); }
-  }, 250);
+/* ---------- vista previa: primero se ve, luego se descarga ---------- */
+const previa = $("vista-previa");
+function abrirPrevia(titulo, contenido, botones, nota){
+  $("previa-titulo").textContent = titulo;
+  $("previa-cuerpo").replaceChildren(contenido);
+  $("previa-nota").textContent = nota;
+  $("previa-botones").replaceChildren(...botones.map(([texto, accion, principal]) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = principal ? "btn chico" : "btn sec chico";
+    b.textContent = texto; b.addEventListener("click", accion); return b;
+  }));
+  previa.showModal();
+  $("previa-cuerpo").scrollTop = 0;
 }
+$("previa-cerrar").addEventListener("click", () => previa.close());
+previa.addEventListener("click", e => { if (e.target === previa) previa.close(); });   // clic fuera de la ventana
+function verReporte(){
+  const html = reporteDoc(false), marco = document.createElement("iframe");
+  marco.title = "Vista previa del reporte";
+  marco.addEventListener("load", () => { try { marco.style.height = marco.contentDocument.documentElement.scrollHeight + 4 + "px"; } catch (e){} });
+  marco.srcdoc = html;
+  abrirPrevia("Vista previa del reporte", marco, [
+    ["Descargar PDF", () => {
+      // Dentro de Claude no se puede imprimir: ahí se descarga el documento para abrirlo e imprimirlo.
+      if (descargas) return guardar(`reporte_perceptron_${base()}.html`, html, "text/html;charset=utf-8", "previa-nota");
+      try { marco.contentWindow.focus(); marco.contentWindow.print(); $("previa-nota").textContent = "En la ventana de impresión elige «Guardar como PDF»."; }
+      catch (e){ guardar(`reporte_perceptron_${base()}.html`, html, "text/html;charset=utf-8", "previa-nota"); }
+    }, true],
+    ["Descargar Word", () => guardar(`reporte_perceptron_${base()}.doc`, reporteDoc(true), "application/msword", "previa-nota")]
+  ], "Así queda el documento. Con «Descargar PDF» se abre la ventana de imprimir: elige «Guardar como PDF».");
+}
+function verPredicciones(){
+  const thr = datosDuda().thr, n = R.fp.length, MAX = 200;
+  let errores = 0, duda = 0;
+  for (let r = 0; r < n; r++){ if (R.yP[r] !== R.yhP[r]) errores++; if (Math.abs(R.zP[r]) < thr) duda++; }
+  const cab = [...S.nombres, "real", "predicho", "z", "zona de duda"];
+  const filas = R.fp.slice(0, MAX).map((i, r) => {
+    const fallo = R.yP[r] !== R.yhP[r];
+    return `<tr${fallo ? ' class="fallo"' : ""}>${S.nombres.map((_, j) => `<td>${esc(corto(S.filas[i][j] ?? "", 28))}</td>`).join("")}<td class="num">${R.yP[r]}</td><td class="num">${R.yhP[r]}${fallo ? " ✗" : ""}</td><td class="num">${fmt(R.zP[r], 3)}</td><td>${Math.abs(R.zP[r]) < thr ? "sí" : "no"}</td></tr>`;
+  }).join("");
+  const caja = document.createElement("div"); caja.className = "previa-tabla";
+  caja.innerHTML = `<p><b>${ent(n)}</b> registros de prueba: <b>${ent(n - errores)}</b> aciertos, <b>${ent(errores)}</b> errores y <b>${ent(duda)}</b> en la zona de duda. En real y predicho, 1 = ${esc(R.n1)} y 0 = ${esc(R.n0)}. Los errores van en negrita y con ✗.</p>
+    <div class="desliza"><table><thead><tr>${cab.map(c => `<th>${esc(corto(c, 28))}</th>`).join("")}</tr></thead><tbody>${filas}</tbody></table></div>`;
+  abrirPrevia("Vista previa de las predicciones", caja, [
+    ["Descargar Excel/CSV", () => guardar(`predicciones_${base()}.csv`, "﻿" + csvPred(), "text/csv;charset=utf-8", "previa-nota"), true]
+  ], n > MAX ? `Se muestran las primeras ${MAX} de ${ent(n)} filas; el archivo trae todas.` : "El archivo trae exactamente estas filas.");
+}
+$("v-rep").addEventListener("click", () => R && verReporte());
+$("v-pred").addEventListener("click", () => R && verPredicciones());
 /* Documento del reporte en blanco y negro, con tablas. paraWord = true lo deja listo para abrir en Word. */
 function reporteDoc(paraWord){
   const m = R.m, d = datosDuda(), hoy = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
@@ -3432,6 +3484,8 @@ table.matriz td{text-align:center;padding:6pt 14pt}
 table.ger th{width:22%;font-weight:bold}
 .formula{font-family:"Courier New",monospace;font-size:9.5pt;border:0.75pt solid #000;padding:6pt;margin:4pt 0 10pt;word-break:break-word}
 .pie{margin-top:18pt;font-size:9pt;border-top:0.75pt solid #000;padding-top:4pt}
+@media screen{body{padding:1.6cm 1.8cm}}
+@media screen and (max-width:600px){body{padding:18px 16px}}
 </style></head><body>
 <h1>Reporte del Perceptrón Simple</h1>
 <p class="meta">Base de datos: <b>${esc(S.archivo)}</b> · Fecha: ${esc(hoy)}<br>Columna objetivo: <b>${esc(R.T.nombre)}</b>. Clase 1 = <b>${esc(R.n1)}</b> (valor ${esc(R.pos)}); clase 0 = <b>${esc(R.n0)}</b>.</p>
