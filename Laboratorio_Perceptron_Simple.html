@@ -68,6 +68,11 @@ code{font-size:.88em}
 .base b{font-size:1.05rem}
 .base span{font-size:.88rem;color:var(--tinta-2)}
 .base .etiqueta{font-size:.78rem;font-weight:600;color:var(--grabado)}
+.agregada{position:relative;display:flex;min-width:0}
+.agregada .base{flex:1;min-width:0;padding-right:96px}
+.agregada .base b{overflow-wrap:anywhere}
+.agregada .quitar-base{position:absolute;top:10px;right:10px;padding:5px 10px;font-size:.85rem}
+.sin-agregadas{grid-column:1/-1;margin:0;color:var(--tinta-2);font-size:.95rem}
 @media (max-width:820px){.bases{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.bases{grid-template-columns:1fr}}
 .soltar{display:flex;flex-direction:column;justify-content:center;gap:4px;border:2px dashed var(--linea);background:var(--lamina);border-radius:8px;padding:26px 24px;cursor:pointer;min-height:132px}
@@ -252,6 +257,10 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
         <button class="btn sec chico" id="azar-base" type="button">Elegir una al azar</button>
       </div>
       <div class="bases" id="bases"></div>
+    </div>
+    <div class="ejemplos">
+      <div class="ejemplos-cab"><h3>Bases agregadas</h3></div>
+      <div class="bases" id="agregadas"></div>
     </div>
     <p class="privado">Todo se calcula en tu navegador. El archivo no se sube a ningún servidor.</p>
     <div id="msg-carga"></div>
@@ -2612,7 +2621,7 @@ function mostrarError(lugar, texto){ $(lugar).innerHTML = texto ? `<div class="a
 function cargar(texto, nombreArchivo, opciones){
   try {
     S = leerTexto(texto, nombreArchivo, opciones);
-  } catch (e){ mostrarError("msg-carga", e.message); return; }
+  } catch (e){ mostrarError("msg-carga", e.message); return false; }
   mostrarError("msg-carga", "");
   R = null;
   $("resultados").hidden = true;
@@ -2620,6 +2629,7 @@ function cargar(texto, nombreArchivo, opciones){
   pintarConfig();
   $("paso-datos").hidden = false; $("paso-config").hidden = false;
   $("paso-datos").scrollIntoView({ block: "start" });
+  return true;
 }
 
 $("archivo").addEventListener("change", e => { const f = e.target.files[0]; if (f) leerArchivo(f); e.target.value = ""; });
@@ -2631,11 +2641,9 @@ function leerArchivo(f){
   if (/\.(xlsx?|ods|json|parquet)$/i.test(f.name)){ mostrarError("msg-carga", `«${f.name}» no es texto plano. Guárdalo como CSV desde Excel o Sheets y súbelo de nuevo.`); return; }
   const lector = new FileReader();
   lector.onload = () => {
-    // Si el archivo es una de las bases de ejemplo, se carga igual que con su botón (misma partición exacta).
-    const t = String(lector.result).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
-    const b = BASES.find(x => x.texto.replace(/\r\n?/g, "\n").trim() === t);
-    document.querySelectorAll(".base").forEach(el => el.classList.toggle("elegida", !!b && el.dataset.base === b.id));
-    cargar(lector.result, f.name, b ? b.opciones() : undefined);
+    const texto = String(lector.result);
+    // Si el archivo es una de las bases de ejemplo, carga con su misma partición exacta.
+    if (cargar(texto, f.name, opcionesDe(texto))) agregarBase(f.name, texto, S.n, S.cols.length);
   };
   lector.onerror = () => mostrarError("msg-carga", "No se pudo leer el archivo. Intenta de nuevo o guárdalo otra vez como CSV.");
   lector.readAsText(f);
@@ -2652,14 +2660,73 @@ const BASES = [
     opciones: () => ({ desc: Object.assign({}, e.desc), demo: { objetivo: e.objetivo, split: e.split, fuente: "python" },
       clases: { objetivo: e.objetivo, positiva: e.positiva, n1: e.n1, n0: e.n0 } }) }))
 ];
-$("bases").innerHTML = BASES.map(b => `<button class="base" type="button" data-base="${b.id}"><span class="etiqueta">${esc(b.etiqueta)}</span><b>${esc(b.titulo)}</b><span>${esc(b.detalle)}</span></button>`).join("");
+$("bases").innerHTML = BASES.filter(b => b.id === "billetes").map(b => `<button class="base" type="button" data-base="${b.id}"><span class="etiqueta">${esc(b.etiqueta)}</span><b>${esc(b.titulo)}</b><span>${esc(b.detalle)}</span></button>`).join("");
 function usarBase(id){
   const b = BASES.find(x => x.id === id); if (!b) return;
-  document.querySelectorAll(".base").forEach(el => el.classList.toggle("elegida", el.dataset.base === id));
+  marcarBase(id);
   cargar(b.texto, b.archivo, b.opciones());
 }
-document.querySelectorAll(".base").forEach(el => el.addEventListener("click", () => usarBase(el.dataset.base)));
-$("azar-base").addEventListener("click", () => usarBase(BASES[Math.floor(Math.random() * BASES.length)].id));
+document.querySelectorAll("#bases .base").forEach(el => el.addEventListener("click", () => usarBase(el.dataset.base)));
+/* «Elegir una al azar»: entre todas las tarjetas visibles (billetes y agregadas) */
+$("azar-base").addEventListener("click", () => {
+  const t = [...document.querySelectorAll("#bases .base, #agregadas .base")];
+  if (t.length) t[Math.floor(Math.random() * t.length)].click();
+});
+let baseActual = null;
+function marcarBase(id){
+  baseActual = id;
+  document.querySelectorAll(".base").forEach(el => el.classList.toggle("elegida", el.dataset.base === id));
+}
+/* Si el texto es igual al de una base de ejemplo, devuelve sus opciones (partición exacta de scikit-learn). */
+function opcionesDe(texto){
+  const t = String(texto).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
+  const b = BASES.find(x => x.texto.replace(/\r\n?/g, "\n").trim() === t);
+  return b ? b.opciones() : undefined;
+}
+
+/* ---------- bases agregadas: las que sube el usuario, guardadas en este navegador ---------- */
+const CLAVE_AGREGADAS = "perceptron-bases-agregadas";
+let AGREGADAS = [];
+try { const g = JSON.parse(localStorage.getItem(CLAVE_AGREGADAS) || "[]"); if (Array.isArray(g)) AGREGADAS = g.filter(x => x && typeof x.nombre === "string" && typeof x.texto === "string"); } catch (e){ AGREGADAS = []; }
+function guardarAgregadas(){ try { localStorage.setItem(CLAVE_AGREGADAS, JSON.stringify(AGREGADAS)); } catch (e){ /* sin almacenamiento o sin espacio: sigue funcionando sin guardar */ } }
+const idAgregada = nombre => "ag:" + nombre;
+function pintarAgregadas(){
+  $("agregadas").innerHTML = AGREGADAS.length ? AGREGADAS.map((a, k) => `<div class="agregada"><button class="base" type="button" data-base="${esc(idAgregada(a.nombre))}" data-k="${k}"><span class="etiqueta">Agregada</span><b>${esc(a.nombre)}</b><span>${ent(a.n)} registros · ${ent(a.ncol)} columnas</span></button><button class="btn sec chico quitar-base" type="button" data-k="${k}" aria-label="Eliminar la base ${esc(a.nombre)}">Eliminar</button></div>`).join("")
+    : `<p class="sin-agregadas">Todavía no has agregado bases. Súbelas en la zona de arriba.</p>`;
+  document.querySelectorAll(".base").forEach(el => el.classList.toggle("elegida", el.dataset.base === baseActual));
+}
+function agregarBase(nombre, texto, n, ncol){
+  const a = { nombre, texto, n, ncol }, k = AGREGADAS.findIndex(x => x.nombre === nombre);
+  if (k >= 0) AGREGADAS[k] = a; else AGREGADAS.push(a);
+  guardarAgregadas();
+  baseActual = idAgregada(nombre);
+  pintarAgregadas();
+}
+function volverAlInicio(){
+  S = null; R = null; baseActual = null;
+  $("resultados").hidden = true; $("paso-datos").hidden = true; $("paso-config").hidden = true;
+  mostrarError("msg-carga", ""); mostrarError("msg-config", ""); $("estado").textContent = "";
+  document.querySelectorAll(".base").forEach(el => el.classList.remove("elegida"));
+  $("titulo").scrollIntoView({ block: "start" });
+}
+$("agregadas").addEventListener("click", e => {
+  const quitar = e.target.closest(".quitar-base");
+  if (quitar){
+    e.stopPropagation();
+    const a = AGREGADAS[+quitar.dataset.k]; if (!a) return;
+    const eraLaCargada = baseActual === idAgregada(a.nombre);
+    AGREGADAS.splice(+quitar.dataset.k, 1);
+    guardarAgregadas();
+    if (eraLaCargada) volverAlInicio();
+    pintarAgregadas();
+    return;
+  }
+  const t = e.target.closest(".base"); if (!t) return;
+  const a = AGREGADAS[+t.dataset.k]; if (!a) return;
+  marcarBase(idAgregada(a.nombre));
+  cargar(a.texto, a.nombre, opcionesDe(a.texto));
+});
+pintarAgregadas();
 
 function pintarDatos(){
   const sepTxt = S.sepNombre + (S.comaDecimal ? ", decimales con coma" : "");
