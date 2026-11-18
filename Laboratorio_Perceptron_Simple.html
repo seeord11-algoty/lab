@@ -445,10 +445,11 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
 
     <section class="paso bloque" id="r-exportar">
       <h2><span class="n">15</span> Exportar</h2>
-      <p class="guia">Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda. El reporte reúne todo lo de esta página en Markdown.</p>
+      <p class="guia">El reporte reúne todo lo de esta página en un documento con tablas, en blanco y negro, listo para imprimir o entregar. Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda.</p>
       <div class="acciones" style="margin-top:0">
-        <button class="btn" id="d-pred" type="button" hidden>Descargar predicciones (CSV)</button>
-        <button class="btn" id="d-rep" type="button" hidden>Descargar reporte (Markdown)</button>
+        <button class="btn" id="d-pdf" type="button">Descargar reporte (PDF)</button>
+        <button class="btn sec" id="d-word" type="button">Descargar reporte (Word)</button>
+        <button class="btn sec" id="d-pred" type="button">Descargar predicciones (Excel/CSV)</button>
         <button class="btn sec" id="c-rep" type="button">Copiar reporte</button>
         <span class="estado" id="estado-exp" role="status"></span>
       </div>
@@ -3358,14 +3359,114 @@ function csvPred(){
   return [cab, ...filas].join("\n");
 }
 let descargas = null;
-async function guardar(nombre, datos){
+function bajarArchivo(nombre, datos, tipo){
+  const url = URL.createObjectURL(new Blob([datos], { type: tipo }));
+  const a = document.createElement("a"); a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+async function guardar(nombre, datos, tipo = "text/plain;charset=utf-8"){
   const est = $("estado-exp");
-  try { await descargas.save({ filename: nombre, data: datos }); est.textContent = `Guardado: ${nombre}`; }
-  catch (e){ est.textContent = e && e.code === "declined" ? "Descarga cancelada." : "No se pudo descargar aquí. Usa «Copiar reporte»."; }
+  try {
+    if (descargas) await descargas.save({ filename: nombre, data: datos });   // dentro de Claude
+    else bajarArchivo(nombre, datos, tipo);                                     // en cualquier navegador
+    est.textContent = `Descargado: ${nombre}`;
+  } catch (e){ est.textContent = e && e.code === "declined" ? "Descarga cancelada." : "No se pudo descargar aquí. Usa «Copiar reporte»."; }
 }
 const base = () => S.archivo.replace(/\.[^.]+$/, "");
-$("d-pred").addEventListener("click", () => R && guardar(`predicciones_${base()}.csv`, csvPred()));
-$("d-rep").addEventListener("click", () => R && guardar(`reporte_perceptron_${base()}.md`, reporte()));
+$("d-pred").addEventListener("click", () => R && guardar(`predicciones_${base()}.csv`, "﻿" + csvPred(), "text/csv;charset=utf-8"));
+$("d-word").addEventListener("click", () => R && guardar(`reporte_perceptron_${base()}.doc`, reporteDoc(true), "application/msword"));
+$("d-pdf").addEventListener("click", () => R && reportePDF());
+/* Reporte en PDF: arma el documento en un marco oculto y abre la ventana de impresión («Guardar como PDF»).
+   Dentro de Claude no se puede imprimir, así que ahí se descarga el documento para abrirlo e imprimirlo. */
+function reportePDF(){
+  const est = $("estado-exp"), html = reporteDoc(false);
+  if (descargas){ guardar(`reporte_perceptron_${base()}.html`, html, "text/html;charset=utf-8"); return; }
+  document.getElementById("marco-reporte")?.remove();
+  const marco = document.createElement("iframe");
+  marco.id = "marco-reporte"; marco.setAttribute("aria-hidden", "true"); marco.tabIndex = -1;
+  marco.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(marco);
+  const d = marco.contentDocument; d.open(); d.write(html); d.close();
+  setTimeout(() => {
+    try { marco.contentWindow.focus(); marco.contentWindow.print(); est.textContent = "En la ventana de impresión elige «Guardar como PDF»."; }
+    catch (e){ guardar(`reporte_perceptron_${base()}.html`, html, "text/html;charset=utf-8"); }
+  }, 250);
+}
+/* Documento del reporte en blanco y negro, con tablas. paraWord = true lo deja listo para abrir en Word. */
+function reporteDoc(paraWord){
+  const m = R.m, d = datosDuda(), hoy = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+  const tabla = (cab, filas, clase = "") => `<table class="${clase}"><thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${filas.map(f => `<tr>${f.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const e1 = R.yE.reduce((a, b) => a + b, 0), p1 = R.yP.reduce((a, b) => a + b, 0);
+  const estado = { convergio: "separó todo el entrenamiento y se detuvo con el criterio de scikit-learn", estancado: "se detuvo porque llevaba 5 épocas sin mejorar (criterio de scikit-learn)", maximo: "llegó al máximo de épocas" }[R.mod.motivo];
+  const dicc = S.cols.map((c, j) => [esc(c.nombre), c.esNum ? (c.entera ? "Numérica entera" : "Numérica continua") : "Texto", rolDe(j),
+    j === R.jo ? `${esc(R.n1)} = ${esc(R.pos)}; el resto, ${esc(R.n0)}` : c.esNum ? `${fmt(c.min)} a ${fmt(c.max)}` : esc(c.niveles.slice(0, 3).map(x => x[0]).join(", ") + (c.unicos > 3 ? ` y ${c.unicos - 3} más` : "")),
+    c.esNum ? fmt(c.media) : "—", ent(c.faltan), esc(S.desc[c.nombre] || "")]);
+  const pesos = R.spec.map((f, k) => [esc(f.nombre), fmt(R.mod.w[k], 4), f.tipo === "num" ? fmt(f.media) : "—", f.tipo === "num" ? fmt(f.desv) : "—"]).concat([["<b>Sesgo b</b>", `<b>${fmt(R.mod.b, 4)}</b>`, "", ""]]);
+  const ecuacion = "z = " + R.spec.map((f, k) => `(${fmt(R.mod.w[k], 4)})·${esc(f.nombre)}′`).join(" + ") + ` + (${fmt(R.mod.b, 4)})`;
+  const errores = [];
+  for (let i = 0; i < R.mod.errores.length; i += 10) errores.push(R.mod.errores.slice(i, i + 10).map((v, k) => `Época ${i + k + 1}: <b>${v}</b>`).join(" · "));
+  const metricas = [["Accuracy", pct(m.acc), `(VP + VN) / total = ${m.vp + m.vn} / ${m.n}`, "De todo lo que revisó, cuánto acertó."],
+    ["Precision", pct(m.prec), `VP / (VP + FP) = ${m.vp} / ${m.vp + m.fp}`, `Cuando dijo «${esc(R.n1)}», cuántas veces era cierto.`],
+    ["Recall", pct(m.rec), `VP / (VP + FN) = ${m.vp} / ${m.vp + m.fn}`, `De todos los «${esc(R.n1)}» reales, cuántos encontró.`],
+    ["F1-score", pct(m.f1), "2·P·R / (P + R)", "Equilibrio entre precision y recall."]];
+  const cv = R.cv ? tabla(["Pliegue", "Accuracy", "Precision", "Recall", "F1", "Épocas"], R.cv.map((x, k) => [k + 1, pct(x.acc), pct(x.prec), pct(x.rec), pct(x.f1), x.epocas])
+    .concat([["<b>Promedio</b>", ...["acc", "prec", "rec", "f1"].map(k => `<b>${pct(resumenCV(k).media)}</b>`), ""]]), "num") : "<p>No hay suficientes registros de cada clase para la validación cruzada.</p>";
+  const gerencia = textoGerencia().map(p => `<h3>${esc(p.t)}</h3><table class="ger"><tbody><tr><th>Evidencia</th><td>${esc(p.ev)}</td></tr><tr><th>Interpretación</th><td>${esc(p.in)}</td></tr><tr><th>Conclusión</th><td>${esc(p.co)}</td></tr></tbody></table>`).join("");
+  const word = paraWord ? `xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"` : "";
+  return `<!DOCTYPE html><html lang="es" ${word}><head><meta charset="utf-8"><title>Reporte del perceptrón simple · ${esc(S.archivo)}</title>
+<style>
+@page{size:letter;margin:2cm}
+body{font-family:Georgia,"Times New Roman",serif;color:#000;background:#fff;font-size:11pt;line-height:1.45;margin:0}
+h1{font-size:20pt;margin:0 0 4pt}
+h2{font-size:13pt;margin:18pt 0 6pt;padding-bottom:3pt;border-bottom:1.5pt solid #000;page-break-after:avoid}
+h3{font-size:11pt;margin:12pt 0 4pt;page-break-after:avoid}
+p{margin:0 0 6pt}
+.meta{font-size:10pt;margin-bottom:10pt}
+table{width:100%;border-collapse:collapse;margin:4pt 0 10pt;font-size:9.5pt;page-break-inside:avoid}
+th,td{border:0.75pt solid #000;padding:3pt 5pt;text-align:left;vertical-align:top}
+thead th{font-weight:bold;border-bottom:2pt solid #000}
+table.num td+td{text-align:right}
+table.matriz{width:auto}
+table.matriz td{text-align:center;padding:6pt 14pt}
+table.ger th{width:22%;font-weight:bold}
+.formula{font-family:"Courier New",monospace;font-size:9.5pt;border:0.75pt solid #000;padding:6pt;margin:4pt 0 10pt;word-break:break-word}
+.pie{margin-top:18pt;font-size:9pt;border-top:0.75pt solid #000;padding-top:4pt}
+</style></head><body>
+<h1>Reporte del Perceptrón Simple</h1>
+<p class="meta">Base de datos: <b>${esc(S.archivo)}</b> · Fecha: ${esc(hoy)}<br>Columna objetivo: <b>${esc(R.T.nombre)}</b>. Clase 1 = <b>${esc(R.n1)}</b> (valor ${esc(R.pos)}); clase 0 = <b>${esc(R.n0)}</b>.</p>
+<h2>1. Resumen</h2>
+${tabla(["Accuracy", "Precision", "Recall", "F1-score", "Épocas"], [[pct(m.acc), pct(m.prec), pct(m.rec), pct(m.f1), ent(R.mod.errores.length)]])}
+<p>Se entrenó con ${ent(R.fe.length)} registros y se evaluó con ${ent(R.fp.length)} que el modelo nunca vio. Clasificó bien ${ent(m.vp + m.vn)} de ${ent(m.n)}.${R.igualColab ? " Con esta base y estos ajustes las cifras son iguales a las de scikit-learn." : ""}</p>
+<h2>2. Datos</h2>
+<p>${ent(S.n)} filas y ${S.cols.length} columnas. Separador: ${esc(S.sepNombre)}${S.comaDecimal ? ", decimales con coma" : ""}.${R.descartadas ? ` Se dejaron por fuera ${ent(R.descartadas)} filas sin valor en la columna objetivo.` : ""}</p>
+${tabla(["Variable", "Tipo", "Rol", "Valores", "Media", "Vacíos", "Descripción"], dicc)}
+<h2>3. Partición</h2>
+${tabla(["Grupo", "Registros", esc(R.n0) + " (0)", esc(R.n1) + " (1)"], [["Total usado", ent(R.filas.length), ent(R.n0Total), ent(R.n1Total)], ["Entrenamiento", ent(R.fe.length), ent(R.fe.length - e1), ent(e1)], [`Prueba (${pct(R.prop, 0)})`, ent(R.fp.length), ent(R.fp.length - p1), ent(p1)]], "num")}
+<p>Partición estratificada con semilla ${R.semilla}: la prueba conserva la misma proporción de clases.</p>
+<h2>4. Entrenamiento</h2>
+<p>Tasa de aprendizaje η = ${fmt(R.eta, 4)}. Épocas: ${ent(R.mod.errores.length)} (máximo ${ent(R.maxEp)}). El modelo ${estado}.</p>
+<p>Correcciones por época: ${errores.join("<br>")}</p>
+<h2>5. Modelo aprendido</h2>
+<p class="formula">${ecuacion}</p>
+<p>Si z ≥ 0 el modelo dice «${esc(R.n1)}»; si no, «${esc(R.n0)}». Las variables numéricas (′) entran estandarizadas con la media y la desviación del entrenamiento.</p>
+${tabla(["Variable", "Peso w", "Media", "Desviación"], pesos, "num")}
+<h2>6. Matriz de confusión</h2>
+<table class="matriz"><thead><tr><th></th><th>Predijo ${esc(R.n0)}</th><th>Predijo ${esc(R.n1)}</th></tr></thead><tbody>
+<tr><th>Era ${esc(R.n0)}</th><td>VN = <b>${ent(m.vn)}</b></td><td>FP = <b>${ent(m.fp)}</b></td></tr>
+<tr><th>Era ${esc(R.n1)}</th><td>FN = <b>${ent(m.fn)}</b></td><td>VP = <b>${ent(m.vp)}</b></td></tr></tbody></table>
+<h2>7. Métricas</h2>
+${tabla(["Métrica", "Valor", "Cálculo", "Qué significa"], metricas)}
+<p>Línea base (decir siempre «${esc(R.mayor ? R.n1 : R.n0)}»): accuracy ${pct(R.base.acc)}, recall ${pct(R.base.rec)}.</p>
+<h2>8. Validación cruzada</h2>
+${cv}
+<h2>9. Zona de duda</h2>
+<p>Umbral |z| &lt; ${fmt(d.thr, 3)} (percentil ${R.perc} de |z| en el entrenamiento): ${ent(d.enZona)} de ${ent(m.n)} registros de prueba irían a revisión manual, y ahí caen ${ent(d.errEn)} de los ${ent(d.errTot)} errores del modelo.</p>
+<h2>10. Lectura para la gerencia</h2>
+${gerencia}
+<p class="pie">Generado con el Laboratorio del Perceptrón Simple.</p>
+</body></html>`;
+}
 async function copiar(texto, est){
   try { await navigator.clipboard.writeText(texto); $(est).textContent = "Copiado."; }
   catch (e){ $(est).textContent = "No se pudo copiar automáticamente. Selecciona el texto y cópialo a mano."; }
@@ -3376,7 +3477,6 @@ $("copiar-codigo").addEventListener("click", () => copiar($("codigo").textConten
   try {
     if (window.claude && typeof window.claude.use === "function"){
       descargas = await window.claude.use("downloads");
-      if (descargas){ $("d-pred").hidden = false; $("d-rep").hidden = false; }
     }
   } catch (e){ descargas = null; }
 })();
