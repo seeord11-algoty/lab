@@ -184,7 +184,7 @@ table.apretada th,table.apretada td{padding:4px 10px}
 
 /* los 3 casos de la regla */
 #rc-casos tbody tr{cursor:pointer}
-#rc-casos td,#rc-casos th{padding:6px 9px}
+#rc-casos td,#rc-casos th{padding:4px 9px}
 #rc-casos tbody tr:hover td{background:var(--hundido)}
 #rc-casos tbody tr[aria-selected="true"] td{background:color-mix(in srgb,var(--grabado) 16%,var(--lamina));font-weight:700}
 #rc-casos tbody tr[aria-selected="true"] td:first-child{box-shadow:inset 4px 0 0 var(--grabado)}
@@ -200,6 +200,8 @@ table.apretada th,table.apretada td{padding:4px 10px}
 .sim{border-radius:3px;transition:background .15s ease}
 .sim.on{background:color-mix(in srgb,var(--grabado) 35%,transparent);box-shadow:0 0 0 2px var(--grabado)}
 .eta-fija{align-self:flex-start;font-size:.8em}
+#rc-graf text{font-size:12.5px}
+#rc-graf .rot{fill:var(--tinta);font-weight:700}
 .celda{transition:transform .15s ease,box-shadow .15s ease}
 .celda[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--tinta);transform:scale(1.03)}
 .banco-dice{border-left:4px solid var(--grabado);background:var(--hundido);padding:8px 12px;border-radius:0 4px 4px 0;font-weight:600}
@@ -605,7 +607,7 @@ body:not(.expo) #b-rotulo{flex:1}
 
 <section class="lamina" data-parte="aprende">
   <header class="cabeza"><span class="num">Parte 4, cómo aprende</span><h2>Solo corrige cuando se equivoca</h2></header>
-  <div class="cuerpo" style="gap:7px">
+  <div class="cuerpo" style="gap:6px">
     <div style="position:relative">
       <p class="entrada" style="font-size:1.06em">Si acierta, no toca nada. Si falla, corrige los pesos.</p>
       <div class="fichas" role="group" aria-label="Símbolos de la fórmula"><button class="ficha" type="button" data-sim="w" aria-pressed="false">w</button><button class="ficha" type="button" data-sim="x" aria-pressed="false">x</button><button class="ficha" type="button" data-sim="b" aria-pressed="false">b</button><button class="ficha" type="button" data-sim="eta" aria-pressed="false">η</button><button class="ficha" type="button" data-sim="y" aria-pressed="false">y</button><button class="ficha" type="button" data-sim="yh" aria-pressed="false">ŷ</button><button class="ficha" type="button" data-sim="flecha" aria-pressed="false">←</button></div>
@@ -614,14 +616,18 @@ body:not(.expo) #b-rotulo{flex:1}
     <p style="font-weight:600">Peso nuevo = peso viejo + tamaño del paso × error × entrada</p>
     <p class="nota">y = lo real (1 falsificado, 0 auténtico) · ŷ = lo que dijo el modelo · y − ŷ = el error · η = tamaño del paso</p>
     <div class="dos" style="grid-template-columns:minmax(0,.94fr) minmax(0,1.18fr);gap:18px">
-      <div class="panel" style="gap:6px;padding:12px 16px">
+      <div class="panel" style="gap:4px;padding:10px 16px">
         <h3>Los 3 casos</h3>
         <table id="rc-casos" style="font-size:.8em">
           <thead><tr><th>Caso</th><th class="n">y − ŷ</th><th>Qué hace</th></tr></thead>
           <tbody></tbody>
         </table>
         <p style="font-size:.8em">Si acierta, el error es 0 y todo se multiplica por 0: por eso solo corrige cuando se equivoca.</p>
-        <span class="pastilla eta-fija">η = 1</span>
+        <div class="fila" style="justify-content:space-between;flex-wrap:nowrap">
+          <h3 style="font-size:.9em">El puntaje de este billete</h3>
+          <span class="pastilla eta-fija">η = 1</span>
+        </div>
+        <svg id="rc-graf" viewBox="0 0 460 72" role="img" aria-label="Puntaje z del billete antes y después de corregir, sobre un eje de −6 a 6 con la frontera en 0"></svg>
       </div>
       <div class="panel" style="gap:6px;padding:12px 16px">
         <p id="rc-titulo" style="font-size:.9em"></p>
@@ -1484,6 +1490,53 @@ mostrarBillete(TEST[1]);
     const e = c.y - (zDe(W0, B0, c.x) >= 0 ? 1 : 0);
     return `<tr data-caso="${c.id}" aria-selected="false"><td><button class="fila-btn" type="button">${c.nombre}</button></td><td class="n">${err(e)}</td><td>${c.que}</td></tr>`;
   }).join("");
+  /* gráfico del puntaje: dónde queda el billete antes y después de corregir */
+  const G = $("#rc-graf"), LIM = 6, Y = 25, EJE = 42;
+  const GX = z => 16 + (Math.max(-LIM, Math.min(LIM, z)) + LIM) / (2 * LIM) * 428;
+  const quieto = matchMedia("(prefers-reduced-motion: reduce)");
+  let anim = null;
+  function grafico(z0, z1, e, bien) {
+    cancelAnimationFrame(anim);
+    G.innerHTML = "";
+    sv("rect", { x: GX(-LIM), y: 14, width: GX(0) - GX(-LIM), height: EJE - 14, fill: "var(--autentico)", opacity: 0.14 }, G);
+    sv("rect", { x: GX(0), y: 14, width: GX(LIM) - GX(0), height: EJE - 14, fill: "var(--falso)", opacity: 0.14 }, G);
+    sv("text", { x: GX(-LIM), y: 10, style: "fill:var(--autentico);font-weight:600" }, G).textContent = "dice auténtico";
+    sv("text", { x: GX(LIM), y: 10, "text-anchor": "end", style: "fill:var(--falso);font-weight:600" }, G).textContent = "dice falsificado";
+    sv("text", { x: GX(0), y: 10, "text-anchor": "middle", class: "rot" }, G).textContent = "frontera (z = 0)";
+    sv("line", { x1: GX(-LIM), x2: GX(LIM), y1: EJE, y2: EJE, class: "eje" }, G);
+    for (let t = -LIM; t <= LIM; t += 2) {
+      sv("line", { x1: GX(t), x2: GX(t), y1: EJE, y2: EJE + 4, class: "eje" }, G);
+      sv("text", { x: GX(t), y: EJE + 14, "text-anchor": "middle" }, G).textContent = signo(t, 0);
+    }
+    sv("line", { x1: GX(0), x2: GX(0), y1: 13, y2: EJE, class: "frontera", "stroke-width": 1.5 }, G);
+    if (e === 0) {
+      sv("circle", { cx: GX(z0), cy: Y, r: 6.5, class: "tinta-f" }, G);
+      sv("text", { x: GX(LIM), y: 70, "text-anchor": "end", class: "rot" }, G).textContent = "no se mueve: ya estaba del lado correcto";
+      return;
+    }
+    const color = z1 >= 0 ? "var(--falso)" : "var(--autentico)", dir = z1 > z0 ? 1 : -1;
+    const flecha = sv("line", { y1: Y, y2: Y, stroke: color, "stroke-width": 2.5 }, G);
+    const punta = sv("path", { fill: color }, G);
+    const cambio = sv("text", { y: Y + 12, "text-anchor": "middle", class: "rot" }, G);
+    cambio.textContent = (z1 - z0 > 0 ? "+" : "−") + n(Math.abs(z1 - z0));
+    sv("circle", { cx: GX(z0), cy: Y, r: 6, fill: "var(--lamina)", stroke: "var(--tinta-2)", "stroke-width": 2 }, G);
+    sv("text", { x: GX(z0), y: 70, "text-anchor": "middle" }, G).textContent = `antes: ${n(z0)}`;
+    const punto = sv("circle", { cy: Y, r: 6.5, class: "tinta-f" }, G);
+    const etiq = sv("text", { y: 70, "text-anchor": "middle", class: "rot" }, G);
+    etiq.textContent = `después: ${n(z1)} ${bien ? "✓" : "✗"}`;
+    /* el punto viaja del antes al después en 0,6 s; sin animación si se pidió reducir movimiento */
+    const ir = t => {
+      const z = z0 + (z1 - z0) * t, xa = GX(z0) + dir * 8, xb = GX(z) - dir * 9;
+      flecha.setAttribute("x1", xa); flecha.setAttribute("x2", Math.abs(xb - xa) > 2 && (xb - xa) * dir > 0 ? xb : xa);
+      punta.setAttribute("d", (GX(z) - GX(z0)) * dir > 14 ? `M${GX(z) - dir * 8} ${Y}l${-dir * 9} -5.5v11z` : "");
+      punto.setAttribute("cx", GX(z)); etiq.setAttribute("x", GX(z));
+      cambio.setAttribute("x", (GX(z0) + GX(z)) / 2); cambio.style.opacity = t;
+    };
+    if (quieto.matches) return ir(1);
+    const t0 = performance.now();
+    const paso = ahora => { const t = Math.min(1, (ahora - t0) / 600); ir(1 - Math.pow(1 - t, 3)); if (t < 1) anim = requestAnimationFrame(paso); };
+    ir(0); anim = requestAnimationFrame(paso);
+  }
   function pintar() {
     const c = CASOS.find(k => k.id === caso), x = c.x;
     const z = zDe(W0, B0, x), pred = z >= 0 ? 1 : 0, e = c.y - pred;
@@ -1506,6 +1559,7 @@ mostrarBillete(TEST[1]);
     /* nota: un peso que se mueve al revés de lo que dice la regla porque su entrada es negativa */
     const raro = e ? W0.map((v, j) => ({ j, d: w1[j] - v })).find(o => o.d && Math.sign(o.d) !== Math.sign(e)) : null;
     $("#rc-nota").textContent = raro ? `w${SUB[raro.j]} ${raro.d > 0 ? "subió" : "bajó"} aunque se ${e < 0 ? "resta" : "suma"}, porque x${SUB[raro.j]} es negativo: ${e < 0 ? "restar un negativo es sumar" : "sumar un negativo es restar"}.` : "";
+    grafico(z, z1, e, pred1 === c.y);
     const antes = [W0[0], W0[1], B0], despues = [w1[0], w1[1], b1];
     $("#rc-antes tbody").innerHTML = `<tr><td>Antes</td>${antes.map(v => `<td class="n">${n(v)}</td>`).join("")}</tr>`
       + `<tr><td><strong>Después</strong></td>${despues.map((v, k) => `<td class="n">${v !== antes[k] ? `<mark class="cambio">${n(v)}</mark>` : `<strong>${n(v)}</strong>`}</td>`).join("")}</tr>`;
