@@ -250,6 +250,10 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
     <h2 id="h-datos"><span class="n">1</span> Los datos</h2>
     <p class="guia">Así leímos el archivo. Revisa que las columnas se vean bien antes de seguir.</p>
     <div class="archivo-actual" id="info-archivo"></div>
+    <div class="acciones" style="margin-top:12px">
+      <button class="btn sec chico" id="quitar" type="button">Quitar estos datos</button>
+      <small style="color:var(--tinta-2)">Borra la base cargada y sus resultados para cargar otra.</small>
+    </div>
     <div class="tarjeta desliza" style="margin-top:12px"><table class="vista" id="vista"></table></div>
   </section>
 
@@ -426,8 +430,9 @@ footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);col
 
     <section class="paso bloque" id="r-exportar">
       <h2><span class="n">15</span> Exportar</h2>
-      <p class="guia">Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda. El reporte reúne todo lo de esta página en Markdown.</p>
+      <p class="guia">El reporte reúne todo lo de esta página en un documento en blanco y negro, listo para imprimir o guardar como PDF. También se puede copiar en Markdown. Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda.</p>
       <div class="acciones" style="margin-top:0">
+        <button class="btn" id="v-rep" type="button">Ver reporte para imprimir</button>
         <button class="btn" id="d-pred" type="button" hidden>Descargar predicciones (CSV)</button>
         <button class="btn" id="d-rep" type="button" hidden>Descargar reporte (Markdown)</button>
         <button class="btn sec" id="c-rep" type="button">Copiar reporte</button>
@@ -2631,6 +2636,18 @@ function opcionesBilletes(){ return { nombres: BILLETES_COLS, desc: Object.assig
   clases: { objetivo: "class", positiva: "1", n1: "falsificado", n0: "auténtico" } }; }
 $("demo2").addEventListener("click", () => cargar(SOPORTES, "soportes_pago.csv", opcionesSoportes()));
 $("demo").addEventListener("click", () => cargar(BILLETES, "data_banknote_authentication.txt", opcionesBilletes()));
+/* quita la base cargada y sus resultados: la página vuelve a como estaba al abrirla */
+function quitarDatos(){
+  const nombre = S ? S.archivo : "";
+  S = null; R = null;
+  $("resultados").hidden = true; $("paso-datos").hidden = true; $("paso-config").hidden = true;
+  $("vista").innerHTML = ""; $("info-archivo").innerHTML = ""; $("vars").innerHTML = "";
+  $("estado").textContent = ""; mostrarError("msg-config", "");
+  $("archivo").value = "";
+  $("msg-carga").innerHTML = nombre ? `<p class="privado" role="status">Se quitó «${esc(nombre)}». Puedes cargar otra base.</p>` : "";
+  $("titulo").scrollIntoView({ block: "start" });
+}
+$("quitar").addEventListener("click", quitarDatos);
 
 function pintarDatos(){
   const sepTxt = S.sepNombre + (S.comaDecimal ? ", decimales con coma" : "");
@@ -3229,6 +3246,158 @@ function reporte(){
   textoGerencia().forEach(p => L.push(`### ${p.t}`, "", `- **Evidencia:** ${p.ev}`, `- **Interpretación:** ${p.in}`, `- **Conclusión:** ${p.co}`, ""));
   return L.join("\n");
 }
+/* Reporte para imprimir: un documento en blanco y negro armado con las mismas cifras de la página (no recalcula nada). */
+function reporteHTML(){
+  const m = R.m, d = datosDuda(), P = m.vp + m.fn, N = m.vn + m.fp;
+  const hoy = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+  const n1 = esc(R.n1), n0 = esc(R.n0);
+  /* tabla: cab = encabezados; filas = arreglos de celdas; num = índices de columnas numéricas; fuertes = filas en negrita */
+  const tabla = (cab, filas, num = [], fuertes = []) => `<table><thead><tr>${cab.map((c, i) => `<th${num.includes(i) ? ' class="n"' : ""}>${c}</th>`).join("")}</tr></thead><tbody>${filas.map((f, r) => `<tr${fuertes.includes(r) ? ' class="fuerte"' : ""}>${f.map((c, i) => `<td${num.includes(i) ? ' class="n"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const sec = (k, titulo, cuerpo) => `<section><h2><span>${k}</span>${titulo}</h2>${cuerpo}</section>`;
+  const igual = R.igualColab ? `<div class="nota"><b>${S.demo.fuente === "colab" ? "Igual que el Colab" : "Igual que scikit-learn"}:</b> misma partición, escalado y entrenamiento de scikit-learn${S.demo.fuente === "colab" ? "; estas cifras coinciden con las del cuaderno" : ""}.</div>` : "";
+  const H = [];
+  /* 1. portada */
+  H.push(`<header class="portada"><p class="rot">Grupo 4, Inteligencia de Negocios</p><h1>Reporte del Perceptrón Simple</h1>
+    ${tabla(["Dato", "Valor"], [["Archivo de datos", esc(S.archivo)], ["Columna objetivo", esc(R.T.nombre)], ["Clase positiva (1)", `${n1} (valor ${esc(R.pos)})`], ["Clase negativa (0)", n0], ["Fecha", hoy]])}${igual}</header>`);
+  /* 2. resumen */
+  const caja = (v, t) => `<div class="caja"><b>${pct(v)}</b><span>${t}</span></div>`;
+  H.push(sec(1, "El resultado en una mirada", `<p>Se entrenó con ${ent(R.fe.length)} registros y se evaluó con ${ent(R.fp.length)} que nunca vio. Clasificó bien ${ent(m.vp + m.vn)} de ${ent(m.n)}.</p>
+    <div class="cajas">${caja(m.acc, "Accuracy")}${caja(m.prec, "Precision")}${caja(m.rec, "Recall")}${caja(m.f1, "F1-score")}</div>
+    <p class="linea">VN <b>${ent(m.vn)}</b> · FP <b>${ent(m.fp)}</b> · FN <b>${ent(m.fn)}</b> · VP <b>${ent(m.vp)}</b> · Épocas <b>${ent(R.mod.errores.length)}</b></p>`));
+  /* 3. diccionario */
+  H.push(sec(2, "Diccionario de datos", tabla(["Variable", "Tipo", "Rol", "Valores", "Media", "Vacíos", "Descripción"], S.cols.map((c, j) => {
+    const tipo = c.esNum ? (c.entera ? "Numérica entera" : "Numérica continua") : "Texto";
+    const val = j === R.jo ? `${n1} = ${esc(R.pos)}; el resto, ${n0}` : c.esNum ? `${fmt(c.min)} a ${fmt(c.max)}` : esc(c.niveles.slice(0, 3).map(x => x[0]).join(", ") + (c.unicos > 3 ? ` y ${c.unicos - 3} más` : ""));
+    return [`<b>${esc(c.nombre)}</b>`, tipo, rolDe(j), val, c.esNum ? fmt(c.media) : "—", ent(c.faltan), esc(S.desc[c.nombre] || "")];
+  }), [4, 5])));
+  /* 4. partición */
+  const cuenta1 = arr => arr.reduce((a, b) => a + b, 0);
+  const e1 = cuenta1(R.yE), p1 = cuenta1(R.yP);
+  H.push(sec(3, "Entrenamiento y prueba", `<p>Se apartó el ${pct(R.prop, 0)} para la prueba, con la misma proporción de clases (partición estratificada, semilla ${R.semilla}). El modelo no ve la prueba mientras aprende.${R.descartadas ? ` Se dejaron por fuera ${cu(R.descartadas, "fila", "filas")} sin valor en la columna objetivo.` : ""}</p>` +
+    tabla(["Grupo", "Registros", n0, n1], [["Registros usados", ent(R.filas.length), ent(R.n0Total), ent(R.n1Total)], ["Entrenamiento", ent(R.fe.length), ent(R.fe.length - e1), ent(e1)], ["Prueba", ent(R.fp.length), ent(R.fp.length - p1), ent(p1)]], [1, 2, 3])));
+  /* 5. entrenamiento */
+  const motivo = { convergio: "separó todo el entrenamiento y se detuvo con el criterio de scikit-learn", estancado: "se detuvo con el criterio de scikit-learn (5 épocas seguidas sin que la pérdida bajara lo suficiente)", maximo: "llegó al máximo de épocas permitidas" }[R.mod.motivo];
+  const er = R.mod.errores, COL = 6, filasEr = [];
+  for (let i = 0; i < er.length; i += COL){ const f = []; for (let k = 0; k < COL; k++){ const e = i + k; f.push(e < er.length ? `${ent(e + 1)}` : "", e < er.length ? ent(er[e]) : ""); } filasEr.push(f); }
+  H.push(sec(4, "Cómo aprendió", `<p>Tasa de aprendizaje η = ${fmt(R.eta, 4)}. Épocas: ${ent(er.length)}. Errores en la primera época: ${ent(er[0])}; en la última: ${ent(er[er.length - 1])}. El modelo ${motivo}. Accuracy en entrenamiento: ${pct(R.mE.acc)}.</p>
+    <p class="sub">Errores en cada época</p>` + tabla(Array.from({ length: COL }, () => ["Época", "Errores"]).flat(), filasEr, Array.from({ length: COL * 2 }, (_, i) => i))));
+  /* 6. modelo */
+  const terminos = R.spec.map((f, k) => `${k === 0 ? (R.mod.w[k] < 0 ? "−" : "") : (R.mod.w[k] < 0 ? " − " : " + ")}${fmt(Math.abs(R.mod.w[k]), 3)}·${esc(f.nombre)}'`).join("") + `${R.mod.b < 0 ? " − " : " + "}${fmt(Math.abs(R.mod.b), 3)}`;
+  const pesos = R.spec.map((f, k) => ({ f, w: R.mod.w[k] })).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
+  const nums = R.spec.filter(f => f.tipo === "num");
+  H.push(sec(5, "El modelo completo", `<p>Un peso por variable y un sesgo. Si z ≥ 0 dice «${n1}»; si no, «${n0}». Las variables numéricas van estandarizadas (x').</p>
+    <div class="eq">z = ${terminos}</div>
+    <p class="sub">Peso de cada variable, de mayor a menor influencia</p>` +
+    tabla(["Variable", "Peso", "Valores altos empujan hacia"], pesos.map(o => [esc(o.f.nombre), fmt(o.w, 4), o.w >= 0 ? `«${n1}»` : `«${n0}»`]), [1]) +
+    (nums.length ? `<p class="sub">Estandarización (media y desviación del entrenamiento)</p>` + tabla(["Variable", "Media", "Desviación", "Mediana para vacíos"], nums.map(f => [esc(f.nombre), fmt(f.media, 4), fmt(f.desv, 4), fmt(f.med, 4)]), [1, 2, 3]) : "")));
+  /* 7. matriz */
+  H.push(sec(6, "Matriz de confusión", `<p>Lo que era cada uno de los ${ent(m.n)} registros de prueba frente a lo que dijo el modelo. Acertó ${ent(m.vp + m.vn)} y falló ${ent(m.fp + m.fn)}.</p>
+    <table class="matriz"><thead><tr><th></th><th class="n">Dijo «${n0}»</th><th class="n">Dijo «${n1}»</th></tr></thead><tbody>
+    <tr><th>Era «${n0}»</th><td class="n"><b>${ent(m.vn)}</b><br><small>VN, reconocido bien</small></td><td class="n"><b>${ent(m.fp)}</b><br><small>FP, falsa alarma</small></td></tr>
+    <tr><th>Era «${n1}»</th><td class="n"><b>${ent(m.fn)}</b><br><small>FN, se le pasó</small></td><td class="n"><b>${ent(m.vp)}</b><br><small>VP, detectado</small></td></tr></tbody></table>`));
+  /* 8. métricas */
+  const nm = R.mayor ? n1 : n0;
+  H.push(sec(7, "Métricas", tabla(["Métrica", "Valor", "Cálculo", "Qué responde"], [
+    ["Accuracy", pct(m.acc), `(VP + VN) / total = ${ent(m.vp + m.vn)} / ${ent(m.n)}`, "De todos, ¿cuántos clasificó bien?"],
+    ["Precision", pct(m.prec), `VP / (VP + FP) = ${ent(m.vp)} / ${ent(m.vp + m.fp)}`, `De lo que marcó como «${n1}», ¿cuánto lo era?`],
+    ["Recall", pct(m.rec), `VP / (VP + FN) = ${ent(m.vp)} / ${ent(P)}`, `De los «${n1}» reales, ¿cuántos detectó?`],
+    ["F1-score", pct(m.f1), "2·P·R / (P + R)", "Equilibrio entre precision y recall"]], [1]) +
+    `<p>Línea base: un modelo que siempre dijera «${nm}» tendría ${pct(R.base.acc)} de accuracy y ${pct(R.base.rec)} de recall.</p>`));
+  /* 9. validación cruzada */
+  if (R.cv){
+    const met = ["acc", "prec", "rec", "f1"];
+    const filas = R.cv.map((x, k) => [String(k + 1), ...met.map(c => pct(x[c])), ent(x.epocas)]);
+    [["media", "Promedio"], ["min", "Mínimo"], ["max", "Máximo"]].forEach(([t, nom]) => filas.push([nom, ...met.map(c => pct(resumenCV(c)[t])), ""]));
+    const a = resumenCV("acc"), r = resumenCV("rec");
+    H.push(sec(8, "¿Fue suerte? Validación cruzada", `<p>Se repitió todo el proceso ${R.K} veces, cada vez con una parte distinta de los datos como prueba (validación cruzada estratificada).</p>` +
+      tabla(["Pliegue", "Accuracy", "Precision", "Recall", "F1", "Épocas"], filas, [1, 2, 3, 4, 5], [R.K, R.K + 1, R.K + 2]) +
+      `<p>El accuracy estuvo entre ${pct(a.min)} y ${pct(a.max)} y el recall entre ${pct(r.min)} y ${pct(r.max)}.</p>`));
+  }
+  /* 10. zona de duda */
+  H.push(sec(R.cv ? 9 : 8, "Zona de duda", tabla(["Dato", "Valor"], [
+    ["Umbral (percentil " + R.perc + " de |z| en entrenamiento)", `|z| &lt; ${fmt(d.thr, 3)}`],
+    ["Registros de prueba a revisión manual", `${ent(d.enZona)} de ${ent(m.n)} (${pct(d.enZona / m.n, 1)})`],
+    ["Errores del modelo que caen en la zona", `${ent(d.errEn)} de ${ent(d.errTot)}`]], [1])));
+  /* 11. gerencia */
+  H.push(sec(R.cv ? 10 : 9, "Lectura para la gerencia", textoGerencia().map(p => `<div class="preg"><h3>${esc(p.t)}</h3><dl><dt>Evidencia</dt><dd>${esc(p.ev)}</dd><dt>Interpretación</dt><dd>${esc(p.in)}</dd><dt>Conclusión</dt><dd>${esc(p.co)}</dd></dl></div>`).join("")));
+  const css = `
+@page{size:letter;margin:18mm 18mm 20mm;@bottom-center{content:"Página " counter(page) " de " counter(pages);font:8pt "Hanken Grotesk",Arial,sans-serif;color:#555}}
+*{box-sizing:border-box}
+html{background:#e9e9e9}
+body{margin:0;color:#111;font:10.5pt/1.45 "Hanken Grotesk","Segoe UI",Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.barra{position:sticky;top:0;z-index:2;display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #bbb}
+.barra button{font:600 10pt "Hanken Grotesk",Arial,sans-serif;padding:8px 14px;border:1.5px solid #111;background:#111;color:#fff;border-radius:4px;cursor:pointer}
+.barra button.sec{background:#fff;color:#111}
+.hoja{max-width:190mm;margin:16px auto;background:#fff;padding:16mm 15mm;box-shadow:0 1px 6px rgba(0,0,0,.18)}
+h1,h2,h3{font-family:"Bodoni Moda",Georgia,"Times New Roman",serif;color:#000;margin:0}
+h1{font-size:26pt;line-height:1.1;margin:4px 0 14px}
+h2{font-size:15pt;margin:22px 0 10px;padding-bottom:4px;border-bottom:1.5px solid #000;break-after:avoid}
+h2 span{display:inline-block;min-width:1.6em;font-style:italic;font-weight:500;color:#555}
+h3{font-size:11.5pt;margin:0 0 6px}
+p{margin:6px 0}
+.rot{font-size:9pt;letter-spacing:.06em;text-transform:uppercase;color:#555;margin:0}
+.sub{font-weight:700;margin:12px 0 4px}
+.linea{color:#333}
+table{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:9.3pt;break-inside:avoid}
+th{text-align:left;font-weight:700;background:#ececec;border-top:1px solid #777;border-bottom:1px solid #777;padding:5px 7px;vertical-align:bottom}
+td{padding:4px 7px;border-bottom:1px solid #d0d0d0;vertical-align:top}
+tbody tr:nth-child(even) td{background:#f6f6f6}
+tr.fuerte td{font-weight:700;background:#ececec}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.matriz{width:auto;min-width:60%}
+table.matriz th,table.matriz td{padding:8px 14px}
+table.matriz tbody th{background:#f2f2f2;border-top:0}
+table.matriz td b{font-size:14pt}
+table.matriz small{color:#555;font-size:8pt}
+.cajas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0;break-inside:avoid}
+.caja{border:1.5px solid #000;padding:8px 10px}
+.caja b{display:block;font:700 19pt/1.1 "Bodoni Moda",Georgia,serif;font-variant-numeric:tabular-nums}
+.caja span{font-size:9pt;color:#444}
+.nota{border:1.5px solid #000;padding:8px 12px;margin:10px 0;break-inside:avoid}
+.eq{font:9.3pt/1.6 "IBM Plex Mono",Consolas,monospace;background:#f2f2f2;border:1px solid #999;padding:8px 10px;margin:8px 0;word-break:break-word}
+.preg{border-top:1px solid #bbb;padding-top:8px;margin-top:10px;break-inside:avoid}
+.preg dl{display:grid;grid-template-columns:28mm 1fr;gap:3px 10px;margin:0}
+.preg dt{font-weight:700}
+.preg dd{margin:0}
+footer{margin-top:22px;padding-top:8px;border-top:1px solid #999;font-size:8.5pt;color:#555}
+@media print{html{background:#fff}.barra{display:none}.hoja{max-width:none;margin:0;padding:0;box-shadow:none}}`;
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reporte del Perceptrón Simple: ${esc(S.archivo)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,700;1,6..96,500&family=Hanken+Grotesk:wght@400;600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>${css}</style></head><body>
+<div class="barra"><button id="imprimir" type="button">Imprimir o guardar como PDF</button><button class="sec" id="cerrar" type="button">Cerrar</button></div>
+<main class="hoja">${H.join("")}<footer>Generado con el Laboratorio del Perceptrón Simple. Todo se calculó en el navegador. Grupo 4, Inteligencia de Negocios.</footer></main>
+</body></html>`;
+}
+/* abre el reporte en una ventana nueva; si el navegador la bloquea, lo muestra encima de la página */
+function verReporte(){
+  if (!R) return;
+  const html = reporteHTML();
+  let w = null;
+  try { w = window.open("", "_blank"); } catch (e){ w = null; }
+  if (w && w.document){
+    w.document.open(); w.document.write(html); w.document.close();
+    w.document.getElementById("imprimir").onclick = () => w.print();
+    w.document.getElementById("cerrar").onclick = () => w.close();
+    $("estado-exp").textContent = "El reporte se abrió en una ventana nueva.";
+    return;
+  }
+  let capa = $("capa-reporte");
+  if (!capa){
+    capa = document.createElement("div"); capa.id = "capa-reporte";
+    capa.style.cssText = "position:fixed;inset:0;z-index:50;background:#fff";
+    capa.innerHTML = `<iframe title="Reporte del Perceptrón Simple" style="width:100%;height:100%;border:0"></iframe>`;
+    document.body.appendChild(capa);
+  }
+  const f = capa.querySelector("iframe");
+  f.onload = () => {
+    const doc = f.contentDocument;
+    doc.getElementById("imprimir").onclick = () => f.contentWindow.print();
+    doc.getElementById("cerrar").onclick = () => { capa.remove(); $("v-rep").focus(); };
+  };
+  f.srcdoc = html;
+  capa.hidden = false;
+}
+$("v-rep").addEventListener("click", verReporte);
 function csvPred(){
   const q = s => /[",\n;]/.test(s) ? `"${String(s).replace(/"/g, '""')}"` : s;
   const thr = datosDuda().thr;

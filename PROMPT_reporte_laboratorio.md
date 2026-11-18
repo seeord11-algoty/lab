@@ -1,5 +1,7 @@
 # Prompt para Claude Code: reporte imprimible del laboratorio
 
+> Ya quedó implementado en el laboratorio (botón «Ver reporte para imprimir» en la sección 15, Exportar). Este archivo queda como referencia por si se quiere rehacer o ajustar.
+
 Copia todo lo que está debajo de la línea y pégalo en Claude Code, abierto en la carpeta del repo (`Downloads\expo`).
 
 ---
