@@ -819,11 +819,11 @@ body:not(.expo) #b-rotulo{flex:1}
 
 <section class="lamina" data-parte="resultados">
   <header class="cabeza"><span class="num">Parte 7, resultados</span><h2>Las cuatro métricas</h2></header>
-  <div class="cuerpo" style="gap:10px">
-    <div class="dos" style="grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:24px">
+  <div class="cuerpo centro" style="gap:22px">
+    <div class="dos" style="grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:24px">
       <div class="metricas met2" id="metricas"></div>
-      <div class="panel" style="gap:8px;padding:12px 14px">
-        <div class="matriz" id="met-matriz" style="font-size:.74em">
+      <div class="panel" style="gap:12px;padding:16px 18px">
+        <div class="matriz" id="met-matriz" style="font-size:1.05em">
           <span></span><span class="rot">Dijo auténtico</span><span class="rot">Dijo falsificado</span>
           <span class="rot">Era auténtico</span>
           <div class="mcel" data-m="VN"><span class="cifra"></span><span>VN</span></div>
@@ -832,17 +832,7 @@ body:not(.expo) #b-rotulo{flex:1}
           <div class="mcel" data-m="FN"><span class="cifra"></span><span>FN, falso que pasó</span></div>
           <div class="mcel" data-m="VP"><span class="cifra"></span><span>VP</span></div>
         </div>
-        <p id="met-cuenta" aria-live="polite" style="font-size:.86em;min-height:4.4em"></p>
-      </div>
-    </div>
-    <div class="panel" style="gap:6px;padding:10px 16px">
-      <div class="fila" style="justify-content:space-between">
-        <span><strong>¿Y si…?</strong> <span class="nota" id="ysi-estado" aria-live="polite"></span></span>
-        <button class="btn sec" id="ysi-reset" type="button">Volver a los valores reales</button>
-      </div>
-      <div class="dos" style="gap:28px">
-        <div><label for="ysi-fp">Falsas alarmas (FP): <span class="dato" id="ysi-fpv"></span></label><input type="range" id="ysi-fp" min="0" max="40" step="1"></div>
-        <div><label for="ysi-fn">Falsos que pasan (FN): <span class="dato" id="ysi-fnv"></span></label><input type="range" id="ysi-fn" min="0" max="40" step="1"></div>
+        <p id="met-cuenta" aria-live="polite" style="font-size:1.06em;min-height:4.4em"></p>
       </div>
     </div>
     <p class="f" style="font-size:.95em">Las cuatro son altas y parejas: el modelo detecta casi todos los falsificados sin llenar al banco de falsas alarmas.</p>
@@ -1901,7 +1891,7 @@ function alVer(elems, cb) {
   alVer($$("#celda-pasos .f"), n => elegir(n ? ORDEN[n - 1] : null));
   elegir(null);
 
-  /* las cuatro métricas: cada una ilumina en la matriz las casillas de su fórmula; «¿Y si…?» mueve FP y FN */
+  /* las cuatro métricas: cada una ilumina en la matriz las casillas de su fórmula */
   const FALSOS = VP + FN, AUTENT = VN + FP;
   const METS = [
     { n: "Accuracy", d: "De todos los billetes, cuántos clasificó bien.", num: ["VP", "VN"], den: ["VP", "VN", "FP", "FN"],
@@ -1914,10 +1904,9 @@ function alVer(elems, cb) {
       v: c => 2 * c.VP / (2 * c.VP + c.FP + c.FN), cuenta: c => `2 · P · R / (P + R), con P = ${pct(METS[1].v(c))} y R = ${pct(METS[2].v(c))}` }
   ];
   $("#metricas").innerHTML = METS.map((m, i) => `<button class="metrica f" type="button" data-met="${i}" aria-pressed="false"><b>${m.n}</b><span class="cifra" style="color:var(--tinta)"></span><span>${m.d}</span></button>`).join("");
-  const sFP = $("#ysi-fp"), sFN = $("#ysi-fn");
+  const c = { VP, FN, FP, VN };
   let sel = null;
   function metricas() {
-    const fp = +sFP.value, fn = +sFN.value, c = { FP: fp, FN: fn, VN: AUTENT - fp, VP: FALSOS - fn }, real = fp === FP && fn === FN;
     $$("[data-met]").forEach((b, i) => { const v = METS[i].v(c); $(".cifra", b).textContent = v === null ? "sin alertas" : pct(v); b.setAttribute("aria-pressed", i === sel); });
     $$("#met-matriz .mcel").forEach(e => {
       const k = e.dataset.m, m = sel === null ? null : METS[sel];
@@ -1925,18 +1914,13 @@ function alVer(elems, cb) {
       e.classList.toggle("num", !!m && m.num.includes(k)); e.classList.toggle("den", !!m && !m.num.includes(k) && m.den.includes(k));
       e.classList.toggle("fuera", !!m && !m.den.includes(k));
     });
-    $("#ysi-fpv").textContent = fp; $("#ysi-fnv").textContent = fn;
-    $("#ysi-estado").textContent = real ? "Ahora: valores reales del modelo." : `Simulación: ${cuantos(fp, "falsa alarma", "falsas alarmas")} y ${cuantos(fn, "falso que pasa", "falsos que pasan")}.`;
-    $("#ysi-reset").disabled = real;
     if (sel === null) { $("#met-cuenta").innerHTML = "Toca una métrica: se iluminan las casillas que entran en su fórmula."; return; }
     const m = METS[sel], v = m.v(c);
     $("#met-cuenta").innerHTML = `<strong>${m.n}</strong> = ${m.cuenta(c)} = <strong>${v === null ? "no se puede calcular" : pct(v)}</strong><br><span class="nota">Relleno: va arriba en la fracción. Borde punteado: solo entra abajo.</span>`;
   }
   $$("[data-met]").forEach((b, i) => b.onclick = () => { sel = i; metricas(); });
   alVer($$("[data-met]"), n => { sel = n ? n - 1 : null; metricas(); });
-  sFP.addEventListener("input", metricas); sFN.addEventListener("input", metricas);
-  $("#ysi-reset").onclick = () => { sFP.value = FP; sFN.value = FN; metricas(); };
-  sFP.value = FP; sFN.value = FN; metricas();
+  metricas();
 
   /* tira de puntajes */
   const s = $("#tira"), W0 = 860, H0 = 250, m = { l: 20, r: 20, b: 44 }, LIM = 10, ANCHO = 0.5;
