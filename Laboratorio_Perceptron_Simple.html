@@ -1,0 +1,2643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio del Perceptrón Simple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,700;1,6..96,500&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#eef1ea; --lamina:#f9faf6; --hundido:#e2e8dc;
+  --tinta:#16233b; --tinta-2:#4c5870; --linea:#c3ccbf;
+  --grabado:#0c6a57; --sobre-grabado:#ffffff;
+  --c0:#2a78d6; --c1:#eb6834; --alerta:#b3261e;
+  --f-titulo:"Bodoni Moda","Didot","Bodoni MT",Georgia,serif;
+  --f-texto:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-codigo:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+html[data-tema="uv"]{
+  --papel:#0e1126; --lamina:#171b36; --hundido:#0a0c1d;
+  --tinta:#eceeff; --tinta-2:#aab1d6; --linea:#313866;
+  --grabado:#5fd9c4; --sobre-grabado:#0e1126;
+  --c0:#3987e5; --c1:#d95926; --alerta:#ff8a80;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){
+  html:not([data-tema="dia"]){
+    --papel:#0e1126; --lamina:#171b36; --hundido:#0a0c1d;
+    --tinta:#eceeff; --tinta-2:#aab1d6; --linea:#313866;
+    --grabado:#5fd9c4; --sobre-grabado:#0e1126;
+    --c0:#3987e5; --c1:#d95926; --alerta:#ff8a80;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--f-texto);font-size:17px;line-height:1.55}
+.envoltura{max-width:1060px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--f-titulo);font-weight:700;line-height:1.1;letter-spacing:-.01em;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.6rem,3.4vw,2.1rem)}
+h3{font-size:1.3rem}
+p{margin:.5em 0}
+a{color:var(--grabado)}
+code,pre,.mono{font-family:var(--f-codigo)}
+code{font-size:.88em}
+:focus-visible{outline:3px solid var(--grabado);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* encabezado */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--linea)}
+.top .marca{font-family:var(--f-titulo);font-style:italic;color:var(--grabado);font-size:1.05rem}
+.top .marca span{color:var(--tinta-2);font-family:var(--f-texto);font-style:normal;font-size:.9rem;margin-left:8px}
+
+/* portada */
+.portada{padding:44px 0 8px}
+.portada h1{font-size:clamp(2.3rem,6.4vw,4.2rem);max-width:15ch}
+.portada .entrada{font-size:1.17rem;color:var(--tinta-2);max-width:58ch;margin-top:14px}
+.carga{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:stretch;margin-top:28px}
+.soltar{display:flex;flex-direction:column;justify-content:center;gap:4px;border:2px dashed var(--linea);background:var(--lamina);border-radius:8px;padding:26px 24px;cursor:pointer;min-height:132px}
+.soltar strong{font-size:1.15rem}
+.soltar small{color:var(--tinta-2);font-size:.95rem}
+.soltar.sobre,.soltar:hover{border-color:var(--grabado)}
+.soltar:focus-within{outline:3px solid var(--grabado);outline-offset:2px}
+.soltar input{position:absolute;width:1px;height:1px;opacity:0}
+.demo{display:flex;flex-direction:column;justify-content:center;gap:8px;max-width:300px}
+.demo small{color:var(--tinta-2);font-size:.9rem}
+.privado{color:var(--tinta-2);font-size:.92rem;margin-top:12px}
+.archivo-actual{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:18px;font-size:.95rem;color:var(--tinta-2)}
+.archivo-actual b{color:var(--tinta)}
+
+/* botones y campos */
+.btn{font:600 1rem/1.2 var(--f-texto);padding:12px 18px;border-radius:7px;border:1.5px solid var(--grabado);background:var(--grabado);color:var(--sobre-grabado);cursor:pointer;text-align:center}
+.btn:hover{filter:brightness(1.08)}
+.btn.sec{background:transparent;color:var(--grabado)}
+.btn.chico{padding:8px 12px;font-size:.92rem}
+.btn[disabled]{opacity:.55;cursor:progress}
+label.campo{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.95rem}
+label.campo small{font-weight:400;color:var(--tinta-2)}
+select,input[type=number],input[type=text]{font:inherit;font-weight:400;font-size:1rem;padding:10px 12px;border:1.5px solid var(--linea);background:var(--lamina);color:var(--tinta);border-radius:7px;width:100%;min-width:0}
+select:focus,input:focus{border-color:var(--grabado);outline:none}
+input[type=range]{width:100%;accent-color:var(--grabado)}
+
+/* pasos */
+.paso{margin-top:46px}
+.paso>h2{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.paso>h2 .n{font-style:italic;font-weight:500;color:var(--grabado)}
+.paso>.guia{color:var(--tinta-2);max-width:68ch;margin:0 0 16px}
+.tarjeta{background:var(--lamina);border:1px solid var(--linea);border-radius:8px;padding:20px}
+.rejilla{display:grid;gap:16px}
+.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.r2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+/* tablas */
+.desliza{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:600;color:var(--tinta-2);font-size:.85rem;padding:8px 10px;border-bottom:1.5px solid var(--linea);white-space:nowrap}
+td{padding:8px 10px;border-top:1px solid var(--linea);vertical-align:top}
+tr:first-child td{border-top:0}
+td.num,th.num{text-align:right;white-space:nowrap}
+td[contenteditable]{min-width:180px;color:var(--tinta)}
+td[contenteditable]:empty::before{content:"Escribe qué significa";color:var(--tinta-2);opacity:.7}
+td[contenteditable]:focus{outline:2px solid var(--grabado);outline-offset:-2px;background:var(--papel)}
+.vista td,.vista th{white-space:nowrap}
+
+/* variables */
+.vars{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:8px}
+.var{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--linea);border-radius:7px;background:var(--papel);cursor:pointer;font-size:.95rem}
+.var input{margin-top:4px;accent-color:var(--grabado);width:17px;height:17px;flex:none}
+.var .nom{font-weight:600;word-break:break-word}
+.var .det{display:block;color:var(--tinta-2);font-size:.85rem;font-weight:400}
+.var.apagada{opacity:.55;cursor:not-allowed}
+.ajustes{margin-top:18px}
+.ajustes summary{cursor:pointer;font-weight:600;color:var(--grabado)}
+.ajustes .rejilla{margin-top:12px}
+.acciones{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
+.aviso{border-left:4px solid var(--alerta);background:var(--lamina);padding:12px 16px;border-radius:0 7px 7px 0;margin-top:14px}
+.sello{display:flex;gap:12px;align-items:flex-start;border:2px solid var(--grabado);background:color-mix(in srgb,var(--grabado) 9%,var(--lamina));border-radius:8px;padding:12px 16px;margin-top:14px}
+.sello b{color:var(--grabado)}
+.sello .marca-ok{flex:none;width:26px;height:26px;border-radius:50%;background:var(--grabado);color:var(--sobre-grabado);display:grid;place-items:center;font-weight:700}
+.resumen-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.resumen-cifras .cifra{font-size:2.6rem}
+.resumen-linea{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px;font-size:1rem;color:var(--tinta-2)}
+.resumen-linea b{color:var(--tinta)}
+@media (max-width:820px){.resumen-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.nota{border-left:4px solid var(--grabado);background:var(--lamina);padding:12px 16px;border-radius:0 7px 7px 0;margin-top:14px;color:var(--tinta)}
+
+/* índice de resultados */
+.indice{position:sticky;top:0;z-index:5;background:var(--papel);border-bottom:1px solid var(--linea);margin-top:30px}
+.indice .envoltura{display:flex;gap:6px;overflow-x:auto;padding:10px 20px;scrollbar-width:thin}
+.indice a{flex:none;text-decoration:none;color:var(--tinta);font-size:.9rem;font-weight:500;padding:6px 12px;border:1px solid var(--linea);border-radius:20px;background:var(--lamina)}
+.indice a:hover{border-color:var(--grabado);color:var(--grabado)}
+.bloque{scroll-margin-top:64px}
+
+/* cifras */
+.cifra{font-family:var(--f-titulo);font-weight:700;font-size:2.3rem;line-height:1;font-variant-numeric:tabular-nums}
+.dato .rot{color:var(--tinta-2);font-size:.92rem;margin-top:6px}
+.metrica h3{font-family:var(--f-texto);font-size:1rem;font-weight:700}
+.metrica .cifra{margin:8px 0 6px}
+.metrica .form{font-family:var(--f-codigo);font-size:.82rem;color:var(--tinta-2)}
+.metrica p{font-size:.93rem;margin:.6em 0 0}
+
+/* ecuación */
+.ecuacion{font-family:var(--f-codigo);font-size:clamp(.95rem,2vw,1.2rem);background:var(--hundido);border-radius:8px;padding:18px 20px;line-height:2;display:flex;flex-wrap:wrap;column-gap:.6em}
+.ecuacion b{font-weight:500}
+.ecuacion .t{white-space:nowrap}
+.regla{font-family:var(--f-codigo);font-size:.95rem}
+
+/* matriz */
+.matriz{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;max-width:720px}
+.matriz .eje{font-size:.85rem;color:var(--tinta-2);font-weight:600;display:flex;align-items:center;padding:4px 8px}
+.matriz .eje.col{justify-content:center;text-align:center}
+.celda{border-radius:7px;padding:14px 16px;border:1px solid var(--linea)}
+.celda .cifra{font-size:2rem}
+.celda .tipo{font-weight:700;font-size:.92rem;margin-top:6px}
+.celda .sig{font-size:.88rem;color:var(--tinta-2)}
+.celda.bien{background:color-mix(in srgb,var(--grabado) 13%,var(--lamina))}
+.celda.mal{background:color-mix(in srgb,var(--alerta) 10%,var(--lamina))}
+
+/* gráficas */
+.grafica{width:100%;display:block;overflow:visible}
+.grafica text{font-family:var(--f-texto);font-size:12px;fill:var(--tinta-2)}
+.grafica .tinta{fill:var(--tinta)}
+.grafica .rejilla-l{stroke:var(--linea);stroke-width:1}
+.grafica .eje-l{stroke:var(--tinta-2);stroke-width:1}
+.grafica .cruz{stroke:var(--tinta-2);stroke-width:1;stroke-dasharray:3 3;visibility:hidden}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;color:var(--tinta-2);margin:4px 0 8px}
+.leyenda i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.leyenda i.anillo{border-radius:50%;background:transparent!important;border:2.5px solid var(--tinta-2)}
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--tinta);color:var(--papel);font-size:.85rem;line-height:1.35;padding:7px 10px;border-radius:5px;max-width:260px;display:none}
+
+/* probar un caso */
+.prueba{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+.prueba>*{min-width:0;max-width:100%}
+.tarjeta{min-width:0}
+.entradas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.entradas label{font-size:.88rem;font-weight:600;display:flex;flex-direction:column;gap:4px;word-break:break-word}
+.veredicto{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:10px}
+.estampa{font-family:var(--f-titulo);font-weight:700;font-size:1.5rem;letter-spacing:.05em;padding:2px 14px;border:3px double currentColor;border-radius:3px;transform:rotate(-3deg);display:inline-block}
+.estampa.c0{color:var(--c0)} .estampa.c1{color:var(--c1)}
+.zval{font-family:var(--f-codigo);font-size:1rem}
+.real{font-size:.92rem;color:var(--tinta-2)}
+
+/* gerencia */
+.gerencia{display:grid;gap:14px}
+.preg h3{font-size:1.25rem;margin-bottom:8px}
+.preg dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 16px}
+.preg dt{font-weight:700;font-size:.92rem;color:var(--grabado)}
+.preg dd{margin:0}
+
+/* código */
+pre.codigo{background:var(--hundido);border-radius:8px;padding:16px 18px;overflow-x:auto;font-size:.82rem;line-height:1.55;margin:10px 0 0;tab-size:4}
+.estado{font-size:.92rem;color:var(--tinta-2);min-height:1.4em}
+
+footer{margin:60px 0 40px;padding-top:18px;border-top:1px solid var(--linea);color:var(--tinta-2);font-size:.9rem}
+
+@media (max-width:820px){
+  .r4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .r3{grid-template-columns:1fr}
+  .prueba{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  body{font-size:16px}
+  .carga{grid-template-columns:1fr}
+  .demo{max-width:none}
+  .r2{grid-template-columns:1fr}
+  .preg dl{grid-template-columns:1fr}
+  .preg dt{margin-top:6px}
+  .cifra{font-size:1.9rem}
+  .matriz{grid-template-columns:auto 1fr 1fr;gap:4px}
+  .celda{padding:10px}
+  .celda .cifra{font-size:1.6rem}
+  .celda .sig{display:none}
+  .tarjeta{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+<div class="envoltura">
+  <header class="top">
+    <div class="marca">Perceptrón Simple<span>Grupo 4, Inteligencia de Negocios</span></div>
+    <button class="btn sec chico" id="tema" type="button" aria-pressed="false">Luz UV</button>
+  </header>
+
+  <section class="portada" aria-labelledby="titulo">
+    <h1 id="titulo">Laboratorio del Perceptrón Simple</h1>
+    <p class="entrada">Sube una base de datos, elige qué quieres predecir y el perceptrón hace el resto: aprende con una parte de los datos, se evalúa con la otra y te explica los resultados.</p>
+    <div class="carga">
+      <label class="soltar" id="soltar">
+        <input type="file" id="archivo" accept=".csv,.txt,.tsv,.data,text/csv,text/plain">
+        <strong>Arrastra aquí tu archivo CSV o TXT</strong>
+        <small>o toca para elegirlo. Sirve con coma, punto y coma o tabulador, con o sin encabezado.</small>
+      </label>
+      <div class="demo">
+        <button class="btn" id="demo" type="button">Usar la base de billetes</button>
+        <small>Banknote Authentication (UCI): 1.372 billetes, la misma del Colab.</small>
+      </div>
+    </div>
+    <p class="privado">Todo se calcula en tu navegador. El archivo no se sube a ningún servidor.</p>
+    <div id="msg-carga"></div>
+  </section>
+
+  <section class="paso" id="paso-datos" hidden aria-labelledby="h-datos">
+    <h2 id="h-datos"><span class="n">1</span> Los datos</h2>
+    <p class="guia">Así leímos el archivo. Revisa que las columnas se vean bien antes de seguir.</p>
+    <div class="archivo-actual" id="info-archivo"></div>
+    <div class="tarjeta desliza" style="margin-top:12px"><table class="vista" id="vista"></table></div>
+  </section>
+
+  <section class="paso" id="paso-config" hidden aria-labelledby="h-config">
+    <h2 id="h-config"><span class="n">2</span> Qué quieres predecir</h2>
+    <p class="guia">El perceptrón simple separa dos clases. Elige la columna objetivo y cuál de sus valores es la clase positiva, la que quieres detectar.</p>
+    <div class="tarjeta">
+      <div class="rejilla r2">
+        <label class="campo">Columna objetivo (y)
+          <select id="objetivo"></select>
+          <small id="objetivo-det"></small>
+        </label>
+        <label class="campo">Clase positiva (1)
+          <select id="positiva"></select>
+          <small>Lo que el modelo debe detectar. El resto queda como clase 0.</small>
+        </label>
+        <label class="campo">Nombre de la clase 1
+          <input type="text" id="nombre1" maxlength="40">
+        </label>
+        <label class="campo">Nombre de la clase 0
+          <input type="text" id="nombre0" maxlength="40">
+        </label>
+      </div>
+      <div style="margin-top:20px">
+        <div style="font-weight:600">Variables de entrada (X)</div>
+        <small style="color:var(--tinta-2)">Las numéricas se estandarizan; las de texto con pocas categorías se convierten en columnas 0/1. Los identificadores quedan fuera porque no dicen nada del caso.</small>
+        <div class="vars" id="vars"></div>
+      </div>
+      <details class="ajustes">
+        <summary>Ajustes del modelo</summary>
+        <div class="rejilla r4">
+          <label class="campo">Datos de prueba
+            <select id="prueba"><option value="0.2" selected>20 %</option><option value="0.25">25 %</option><option value="0.3">30 %</option><option value="0.15">15 %</option></select>
+          </label>
+          <label class="campo">Tasa de aprendizaje (η)
+            <input type="number" id="eta" value="1" min="0.0001" step="any">
+          </label>
+          <label class="campo">Épocas máximas
+            <input type="number" id="epocas" value="1000" min="1" max="5000" step="1">
+          </label>
+          <label class="campo">Semilla
+            <input type="number" id="semilla" value="42" step="1">
+          </label>
+        </div>
+      </details>
+      <div class="acciones">
+        <button class="btn" id="entrenar" type="button">Entrenar el perceptrón</button>
+        <span class="estado" id="estado" role="status"></span>
+      </div>
+      <div id="msg-config"></div>
+    </div>
+  </section>
+</div>
+
+<div id="resultados" hidden>
+  <nav class="indice" aria-label="Secciones de resultados">
+    <div class="envoltura">
+      <a href="#r-resumen">Resumen</a><a href="#r-diccionario">Diccionario</a><a href="#r-reparto">Reparto</a><a href="#r-entreno">Entrenamiento</a><a href="#r-modelo">Modelo</a><a href="#r-matriz">Matriz</a><a href="#r-metricas">Métricas</a><a href="#r-cv">Validación cruzada</a><a href="#r-duda">Zona de duda</a><a href="#r-caso">Probar un caso</a><a href="#r-gerencia">Gerencia</a><a href="#r-codigo">Código Python</a><a href="#r-exportar">Exportar</a>
+    </div>
+  </nav>
+  <div class="envoltura">
+    <section class="paso bloque" id="r-resumen">
+      <h2><span class="n">3</span> El resultado en una mirada</h2>
+      <p class="guia" id="g-resumen"></p>
+      <div id="c-resumen"></div>
+    </section>
+
+    <section class="paso bloque" id="r-diccionario">
+      <h2><span class="n">4</span> Diccionario de datos</h2>
+      <p class="guia">Cada columna con su tipo, su papel en el modelo y sus valores. La descripción la puedes escribir tú y sale en el reporte.</p>
+      <div class="tarjeta desliza"><table id="t-dicc"></table></div>
+    </section>
+
+    <section class="paso bloque" id="r-reparto">
+      <h2><span class="n">5</span> Entrenamiento y prueba</h2>
+      <p class="guia" id="g-reparto"></p>
+      <div class="tarjeta" id="c-reparto"></div>
+    </section>
+
+    <section class="paso bloque" id="r-entreno">
+      <h2><span class="n">6</span> Cómo aprendió</h2>
+      <p class="guia">En cada época el perceptrón recorre todos los registros de entrenamiento en orden aleatorio. Cada vez que se equivoca corrige los pesos con la regla <span class="regla">w ← w + η(y − ŷ)x</span> y el sesgo con <span class="regla">b ← b + η(y − ŷ)</span>.</p>
+      <div class="rejilla r3" id="c-entreno-datos"></div>
+      <div class="tarjeta" style="margin-top:16px">
+        <div style="font-weight:600">Errores en cada época</div>
+        <div id="g-errores"></div>
+      </div>
+      <div id="n-entreno"></div>
+    </section>
+
+    <section class="paso bloque" id="r-modelo">
+      <h2><span class="n">7</span> El modelo completo</h2>
+      <p class="guia" id="g-modelo"></p>
+      <div class="ecuacion" id="ecuacion"></div>
+      <div class="tarjeta" style="margin-top:16px">
+        <div style="font-weight:600">Peso de cada variable</div>
+        <small style="color:var(--tinta-2)">Como las variables están estandarizadas, el tamaño del peso se puede comparar: entre más largo, más influye.</small>
+        <div class="leyenda" id="ley-pesos"></div>
+        <div id="g-pesos"></div>
+      </div>
+      <details class="ajustes tarjeta" style="margin-top:16px">
+        <summary>Cómo se estandarizó cada variable</summary>
+        <p style="color:var(--tinta-2);font-size:.93rem">La media y la desviación salen solo del entrenamiento. A cada valor se le resta la media y se divide por la desviación: <span class="regla">x' = (x − media) / desviación</span>.</p>
+        <div class="desliza"><table id="t-escala"></table></div>
+      </details>
+    </section>
+
+    <section class="paso bloque" id="r-matriz">
+      <h2><span class="n">8</span> Matriz de confusión</h2>
+      <p class="guia" id="g-matriz"></p>
+      <div class="matriz" id="matriz"></div>
+    </section>
+
+    <section class="paso bloque" id="r-metricas">
+      <h2><span class="n">9</span> Métricas</h2>
+      <p class="guia">Las cuatro salen de la matriz de confusión. La clase positiva es la que se quiere detectar.</p>
+      <div class="rejilla r4" id="metricas"></div>
+      <div class="nota" id="n-base"></div>
+    </section>
+
+    <section class="paso bloque" id="r-cv">
+      <h2><span class="n">10</span> ¿Fue suerte? Validación cruzada</h2>
+      <p class="guia" id="g-cv"></p>
+      <div class="tarjeta desliza"><table id="t-cv"></table></div>
+      <div id="n-cv"></div>
+    </section>
+
+    <section class="paso bloque" id="r-duda">
+      <h2><span class="n">11</span> Zona de duda</h2>
+      <p class="guia">El puntaje <span class="regla">z</span> dice qué tan lejos de la frontera quedó cada registro. Los que quedan muy cerca de cero son los casos en que el modelo duda: ahí conviene una revisión manual.</p>
+      <div class="tarjeta">
+        <div class="rejilla r2" style="align-items:end">
+          <label class="campo"><span>Tamaño de la zona: percentil <output id="o-perc">5</output> de |z| en entrenamiento</span>
+            <input type="range" id="perc" min="1" max="20" value="5" step="1">
+          </label>
+          <div id="duda-datos" style="font-size:.95rem"></div>
+        </div>
+        <div class="leyenda" id="ley-z"></div>
+        <div id="g-z"></div>
+      </div>
+    </section>
+
+    <section class="paso bloque" id="r-caso">
+      <h2><span class="n">12</span> Probar un caso</h2>
+      <p class="guia">Cambia los valores y mira cómo decide el modelo: multiplica cada variable estandarizada por su peso, suma todo con el sesgo y mira el signo de z.</p>
+      <div class="prueba">
+        <div class="tarjeta">
+          <div class="entradas" id="entradas"></div>
+          <div class="acciones" style="margin-top:14px">
+            <button class="btn sec chico" id="azar" type="button">Traer un caso de prueba al azar</button>
+            <button class="btn sec chico" id="medianas" type="button">Volver a las medianas</button>
+          </div>
+        </div>
+        <div class="tarjeta">
+          <div class="veredicto"><span class="estampa" id="estampa"></span><span class="zval" id="zval"></span></div>
+          <div class="real" id="real"></div>
+          <div class="desliza" style="margin-top:10px"><table id="t-aportes"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="paso bloque" id="r-gerencia">
+      <h2><span class="n">13</span> Lectura para la gerencia</h2>
+      <p class="guia">Las mismas cinco preguntas del examen, respondidas con las cifras de esta corrida. Revísenlas antes de usarlas: el texto se arma solo con los números.</p>
+      <div class="gerencia" id="gerencia"></div>
+    </section>
+
+    <section class="paso bloque" id="r-codigo">
+      <h2><span class="n">14</span> Llévalo al Colab</h2>
+      <p class="guia" id="g-codigo">El mismo proceso con scikit-learn, listo para pegar en una celda.</p>
+      <div class="acciones" style="margin-top:0"><button class="btn sec chico" id="copiar-codigo" type="button">Copiar código</button><span class="estado" id="estado-codigo" role="status"></span></div>
+      <pre class="codigo" id="codigo"></pre>
+    </section>
+
+    <section class="paso bloque" id="r-exportar">
+      <h2><span class="n">15</span> Exportar</h2>
+      <p class="guia">Las predicciones traen cada registro de prueba con su clase real, la predicha, el puntaje z y si cayó en la zona de duda. El reporte reúne todo lo de esta página en Markdown.</p>
+      <div class="acciones" style="margin-top:0">
+        <button class="btn" id="d-pred" type="button" hidden>Descargar predicciones (CSV)</button>
+        <button class="btn" id="d-rep" type="button" hidden>Descargar reporte (Markdown)</button>
+        <button class="btn sec" id="c-rep" type="button">Copiar reporte</button>
+        <span class="estado" id="estado-exp" role="status"></span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="envoltura">
+  <footer>Perceptrón Simple de Rosenblatt (1958), implementado desde cero en JavaScript. Grupo 4, examen final de Inteligencia de Negocios.</footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+"use strict";
+const BILLETES = `3.6216,8.6661,-2.8073,-0.44699,0
+4.5459,8.1674,-2.4586,-1.4621,0
+3.866,-2.6383,1.9242,0.10645,0
+3.4566,9.5228,-4.0112,-3.5944,0
+0.32924,-4.4552,4.5718,-0.9888,0
+4.3684,9.6718,-3.9606,-3.1625,0
+3.5912,3.0129,0.72888,0.56421,0
+2.0922,-6.81,8.4636,-0.60216,0
+3.2032,5.7588,-0.75345,-0.61251,0
+1.5356,9.1772,-2.2718,-0.73535,0
+1.2247,8.7779,-2.2135,-0.80647,0
+3.9899,-2.7066,2.3946,0.86291,0
+1.8993,7.6625,0.15394,-3.1108,0
+-1.5768,10.843,2.5462,-2.9362,0
+3.404,8.7261,-2.9915,-0.57242,0
+4.6765,-3.3895,3.4896,1.4771,0
+2.6719,3.0646,0.37158,0.58619,0
+0.80355,2.8473,4.3439,0.6017,0
+1.4479,-4.8794,8.3428,-2.1086,0
+5.2423,11.0272,-4.353,-4.1013,0
+5.7867,7.8902,-2.6196,-0.48708,0
+0.3292,-4.4552,4.5718,-0.9888,0
+3.9362,10.1622,-3.8235,-4.0172,0
+0.93584,8.8855,-1.6831,-1.6599,0
+4.4338,9.887,-4.6795,-3.7483,0
+0.7057,-5.4981,8.3368,-2.8715,0
+1.1432,-3.7413,5.5777,-0.63578,0
+-0.38214,8.3909,2.1624,-3.7405,0
+6.5633,9.8187,-4.4113,-3.2258,0
+4.8906,-3.3584,3.4202,1.0905,0
+-0.24811,-0.17797,4.9068,0.15429,0
+1.4884,3.6274,3.308,0.48921,0
+4.2969,7.617,-2.3874,-0.96164,0
+-0.96511,9.4111,1.7305,-4.8629,0
+-1.6162,0.80908,8.1628,0.60817,0
+2.4391,6.4417,-0.80743,-0.69139,0
+2.6881,6.0195,-0.46641,-0.69268,0
+3.6289,0.81322,1.6277,0.77627,0
+4.5679,3.1929,-2.1055,0.29653,0
+3.4805,9.7008,-3.7541,-3.4379,0
+4.1711,8.722,-3.0224,-0.59699,0
+-0.2062,9.2207,-3.7044,-6.8103,0
+-0.0068919,9.2931,-0.41243,-1.9638,0
+0.96441,5.8395,2.3235,0.066365,0
+2.8561,6.9176,-0.79372,0.48403,0
+-0.7869,9.5663,-3.7867,-7.5034,0
+2.0843,6.6258,0.48382,-2.2134,0
+-0.7869,9.5663,-3.7867,-7.5034,0
+3.9102,6.065,-2.4534,-0.68234,0
+1.6349,3.286,2.8753,0.087054,0
+4.3239,-4.8835,3.4356,-0.5776,0
+5.262,3.9834,-1.5572,1.0103,0
+3.1452,5.825,-0.51439,-1.4944,0
+2.549,6.1499,-1.1605,-1.2371,0
+4.9264,5.496,-2.4774,-0.50648,0
+4.8265,0.80287,1.6371,1.1875,0
+2.5635,6.7769,-0.61979,0.38576,0
+5.807,5.0097,-2.2384,0.43878,0
+3.1377,-4.1096,4.5701,0.98963,0
+-0.78289,11.3603,-0.37644,-7.0495,0
+2.888,0.44696,4.5907,-0.24398,0
+0.49665,5.527,1.7785,-0.47156,0
+4.2586,11.2962,-4.0943,-4.3457,0
+1.7939,-1.1174,1.5454,-0.26079,0
+5.4021,3.1039,-1.1536,1.5651,0
+2.5367,2.599,2.0938,0.20085,0
+4.6054,-4.0765,2.7587,0.31981,0
+2.4235,9.5332,-3.0789,-2.7746,0
+1.0009,7.7846,-0.28219,-2.6608,0
+0.12326,8.9848,-0.9351,-2.4332,0
+3.9529,-2.3548,2.3792,0.48274,0
+4.1373,0.49248,1.093,1.8276,0
+4.7181,10.0153,-3.9486,-3.8582,0
+4.1654,-3.4495,3.643,1.0879,0
+4.4069,10.9072,-4.5775,-4.4271,0
+2.3066,3.5364,0.57551,0.41938,0
+3.7935,7.9853,-2.5477,-1.872,0
+0.049175,6.1437,1.7828,-0.72113,0
+0.24835,7.6439,0.9885,-0.87371,0
+1.1317,3.9647,3.3979,0.84351,0
+2.8033,9.0862,-3.3668,-1.0224,0
+4.4682,2.2907,0.95766,0.83058,0
+5.0185,8.5978,-2.9375,-1.281,0
+1.8664,7.7763,-0.23849,-2.9634,0
+3.245,6.63,-0.63435,0.86937,0
+4.0296,2.6756,0.80685,0.71679,0
+-1.1313,1.9037,7.5339,1.022,0
+0.87603,6.8141,0.84198,-0.17156,0
+4.1197,-2.7956,2.0707,0.67412,0
+3.8027,0.81529,2.1041,1.0245,0
+1.4806,7.6377,-2.7876,-1.0341,0
+4.0632,3.584,0.72545,0.39481,0
+4.3064,8.2068,-2.7824,-1.4336,0
+2.4486,-6.3175,7.9632,0.20602,0
+3.2718,1.7837,2.1161,0.61334,0
+-0.64472,-4.6062,8.347,-2.7099,0
+2.9543,1.076,0.64577,0.89394,0
+2.1616,-6.8804,8.1517,-0.081048,0
+3.82,10.9279,-4.0112,-5.0284,0
+-2.7419,11.4038,2.5394,-5.5793,0
+3.3669,-5.1856,3.6935,-1.1427,0
+4.5597,-2.4211,2.6413,1.6168,0
+5.1129,-0.49871,0.62863,1.1189,0
+3.3397,-4.6145,3.9823,-0.23751,0
+4.2027,0.22761,0.96108,0.97282,0
+3.5438,1.2395,1.997,2.1547,0
+2.3136,10.6651,-3.5288,-4.7672,0
+-1.8584,7.886,-1.6643,-1.8384,0
+3.106,9.5414,-4.2536,-4.003,0
+2.9163,10.8306,-3.3437,-4.122,0
+3.9922,-4.4676,3.7304,-0.1095,0
+1.518,5.6946,0.094818,-0.026738,0
+3.2351,9.647,-3.2074,-2.5948,0
+4.2188,6.8162,-1.2804,0.76076,0
+1.7819,6.9176,-1.2744,-1.5759,0
+2.5331,2.9135,-0.822,-0.12243,0
+3.8969,7.4163,-1.8245,0.14007,0
+2.108,6.7955,-0.1708,0.4905,0
+2.8969,0.70768,2.29,1.8663,0
+0.9297,-3.7971,4.6429,-0.2957,0
+3.4642,10.6878,-3.4071,-4.109,0
+4.0713,10.4023,-4.1722,-4.7582,0
+-1.4572,9.1214,1.7425,-5.1241,0
+-1.5075,1.9224,7.1466,0.89136,0
+-0.91718,9.9884,1.1804,-5.2263,0
+2.994,7.2011,-1.2153,0.3211,0
+-2.343,12.9516,3.3285,-5.9426,0
+3.7818,-2.8846,2.2558,-0.15734,0
+4.6689,1.3098,0.055404,1.909,0
+3.4663,1.1112,1.7425,1.3388,0
+3.2697,-4.3414,3.6884,-0.29829,0
+5.1302,8.6703,-2.8913,-1.5086,0
+2.0139,6.1416,0.37929,0.56938,0
+0.4339,5.5395,2.033,-0.40432,0
+-1.0401,9.3987,0.85998,-5.3336,0
+4.1605,11.2196,-3.6136,-4.0819,0
+5.438,9.4669,-4.9417,-3.9202,0
+5.032,8.2026,-2.6256,-1.0341,0
+5.2418,10.5388,-4.1174,-4.2797,0
+-0.2062,9.2207,-3.7044,-6.8103,0
+2.0911,0.94358,4.5512,1.234,0
+1.7317,-0.34765,4.1905,-0.99138,0
+4.1736,3.3336,-1.4244,0.60429,0
+3.9232,-3.2467,3.4579,0.83705,0
+3.8481,10.1539,-3.8561,-4.2228,0
+0.5195,-3.2633,3.0895,-0.9849,0
+3.8584,0.78425,1.1033,1.7008,0
+1.7496,-0.1759,5.1827,1.2922,0
+3.6277,0.9829,0.68861,0.63403,0
+2.7391,7.4018,0.071684,-2.5302,0
+4.5447,8.2274,-2.4166,-1.5875,0
+-1.7599,11.9211,2.6756,-3.3241,0
+5.0691,0.21313,0.20278,1.2095,0
+3.4591,11.112,-4.2039,-5.0931,0
+1.9358,8.1654,-0.023425,-2.2586,0
+2.486,-0.99533,5.3404,-0.15475,0
+2.4226,-4.5752,5.947,0.21507,0
+3.9479,-3.7723,2.883,0.019813,0
+2.2634,-4.4862,3.6558,-0.61251,0
+1.3566,4.2358,2.1341,0.3211,0
+5.0452,3.8964,-1.4304,0.86291,0
+3.5499,8.6165,-3.2794,-1.2009,0
+0.17346,7.8695,0.26876,-3.7883,0
+2.4008,9.3593,-3.3565,-3.3526,0
+4.8851,1.5995,-0.00029081,1.6401,0
+4.1927,-3.2674,2.5839,0.21766,0
+1.1166,8.6496,-0.96252,-1.8112,0
+1.0235,6.901,-2.0062,-2.7125,0
+-1.803,11.8818,2.0458,-5.2728,0
+0.11739,6.2761,-1.5495,-2.4746,0
+0.5706,-0.0248,1.2421,-0.5621,0
+4.0552,-2.4583,2.2806,1.0323,0
+-1.6952,1.0657,8.8294,0.94955,0
+-1.1193,10.7271,2.0938,-5.6504,0
+1.8799,2.4707,2.4931,0.37671,0
+3.583,-3.7971,3.4391,-0.12501,0
+0.19081,9.1297,-3.725,-5.8224,0
+3.6582,5.6864,-1.7157,-0.23751,0
+-0.13144,-1.7775,8.3316,0.35214,0
+2.3925,9.798,-3.0361,-2.8224,0
+1.6426,3.0149,0.22849,-0.147,0
+-0.11783,-1.5789,8.03,-0.028031,0
+-0.69572,8.6165,1.8419,-4.3289,0
+2.9421,7.4101,-0.97709,-0.88406,0
+-1.7559,11.9459,3.0946,-4.8978,0
+-1.2537,10.8803,1.931,-4.3237,0
+3.2585,-4.4614,3.8024,-0.15087,0
+1.8314,6.3672,-0.036278,0.049554,0
+4.5645,-3.6275,2.8684,0.27714,0
+2.7365,-5.0325,6.6608,-0.57889,0
+0.9297,-3.7971,4.6429,-0.2957,0
+3.9663,10.1684,-4.1131,-4.6056,0
+1.4578,-0.08485,4.1785,0.59136,0
+4.8272,3.0687,0.68604,0.80731,0
+-2.341,12.3784,0.70403,-7.5836,0
+-1.8584,7.886,-1.6643,-1.8384,0
+4.1454,7.257,-1.9153,-0.86078,0
+1.9157,6.0816,0.23705,-2.0116,0
+4.0215,-2.1914,2.4648,1.1409,0
+5.8862,5.8747,-2.8167,-0.30087,0
+-2.0897,10.8265,2.3603,-3.4198,0
+4.0026,-3.5943,3.5573,0.26809,0
+-0.78689,9.5663,-3.7867,-7.5034,0
+4.1757,10.2615,-3.8552,-4.3056,0
+0.83292,7.5404,0.65005,-0.92544,0
+4.8077,2.2327,-0.26334,1.5534,0
+5.3063,5.2684,-2.8904,-0.52716,0
+2.5605,9.2683,-3.5913,-1.356,0
+2.1059,7.6046,-0.47755,-1.8461,0
+2.1721,-0.73874,5.4672,-0.72371,0
+4.2899,9.1814,-4.6067,-4.3263,0
+3.5156,10.1891,-4.2759,-4.978,0
+2.614,8.0081,-3.7258,-1.3069,0
+0.68087,2.3259,4.9085,0.54998,0
+4.1962,0.74493,0.83256,0.753,0
+6.0919,2.9673,-1.3267,1.4551,0
+1.3234,3.2964,0.2362,-0.11984,0
+1.3264,1.0326,5.6566,-0.41337,0
+-0.16735,7.6274,1.2061,-3.6241,0
+-1.3,10.2678,-2.953,-5.8638,0
+-2.2261,12.5398,2.9438,-3.5258,0
+2.4196,6.4665,-0.75688,0.228,0
+1.0987,0.6394,5.989,-0.58277,0
+4.6464,10.5326,-4.5852,-4.206,0
+-0.36038,4.1158,3.1143,-0.37199,0
+1.3562,3.2136,4.3465,0.78662,0
+0.5706,-0.0248,1.2421,-0.5621,0
+-2.6479,10.1374,-1.331,-5.4707,0
+3.1219,-3.137,1.9259,-0.37458,0
+5.4944,1.5478,0.041694,1.9284,0
+-1.3389,1.552,7.0806,1.031,0
+-2.3361,11.9604,3.0835,-5.4435,0
+2.2596,-0.033118,4.7355,-0.2776,0
+0.46901,-0.63321,7.3848,0.36507,0
+2.7296,2.8701,0.51124,0.5099,0
+2.0466,2.03,2.1761,-0.083634,0
+-1.3274,9.498,2.4408,-5.2689,0
+3.8905,-2.1521,2.6302,1.1047,0
+3.9994,0.90427,1.1693,1.6892,0
+2.3952,9.5083,-3.1783,-3.0086,0
+3.2704,6.9321,-1.0456,0.23447,0
+-1.3931,1.5664,7.5382,0.78403,0
+1.6406,3.5488,1.3964,-0.36424,0
+2.7744,6.8576,-1.0671,0.075416,0
+2.4287,9.3821,-3.2477,-1.4543,0
+4.2134,-2.806,2.0116,0.67412,0
+1.6472,0.48213,4.7449,1.225,0
+2.0597,-0.99326,5.2119,-0.29312,0
+0.3798,0.7098,0.7572,-0.4444,0
+1.0135,8.4551,-1.672,-2.0815,0
+4.5691,-4.4552,3.1769,0.0042961,0
+0.57461,10.1105,-1.6917,-4.3922,0
+0.5734,9.1938,-0.9094,-1.872,0
+5.2868,3.257,-1.3721,1.1668,0
+4.0102,10.6568,-4.1388,-5.0646,0
+4.1425,-3.6792,3.8281,1.6297,0
+3.0934,-2.9177,2.2232,0.22283,0
+2.2034,5.9947,0.53009,0.84998,0
+3.744,0.79459,0.95851,1.0077,0
+3.0329,2.2948,2.1135,0.35084,0
+3.7731,7.2073,-1.6814,-0.94742,0
+3.1557,2.8908,0.59693,0.79825,0
+1.8114,7.6067,-0.9788,-2.4668,0
+4.988,7.2052,-3.2846,-1.1608,0
+2.483,6.6155,-0.79287,-0.90863,0
+1.594,4.7055,1.3758,0.081882,0
+-0.016103,9.7484,0.15394,-1.6134,0
+3.8496,9.7939,-4.1508,-4.4582,0
+0.9297,-3.7971,4.6429,-0.2957,0
+4.9342,2.4107,-0.17594,1.6245,0
+3.8417,10.0215,-4.2699,-4.9159,0
+5.3915,9.9946,-3.8081,-3.3642,0
+4.4072,-0.070365,2.0416,1.1319,0
+2.6946,6.7976,-0.40301,0.44912,0
+5.2756,0.13863,0.12138,1.1435,0
+3.4312,6.2637,-1.9513,-0.36165,0
+4.052,-0.16555,0.45383,0.51248,0
+1.3638,-4.7759,8.4182,-1.8836,0
+0.89566,7.7763,-2.7473,-1.9353,0
+1.9265,7.7557,-0.16823,-3.0771,0
+0.20977,-0.46146,7.7267,0.90946,0
+4.068,-2.9363,2.1992,0.50084,0
+2.877,-4.0599,3.6259,-0.32544,0
+0.3223,-0.89808,8.0883,0.69222,0
+-1.3,10.2678,-2.953,-5.8638,0
+1.7747,-6.4334,8.15,-0.89828,0
+1.3419,-4.4221,8.09,-1.7349,0
+0.89606,10.5471,-1.4175,-4.0327,0
+0.44125,2.9487,4.3225,0.7155,0
+3.2422,6.2265,0.12224,-1.4466,0
+2.5678,3.5136,0.61406,-0.40691,0
+-2.2153,11.9625,0.078538,-7.7853,0
+4.1349,6.1189,-2.4294,-0.19613,0
+1.934,-9.2828e-06,4.816,-0.33967,0
+2.5068,1.1588,3.9249,0.12585,0
+2.1464,6.0795,-0.5778,-2.2302,0
+0.051979,7.0521,-2.0541,-3.1508,0
+1.2706,8.035,-0.19651,-2.1888,0
+1.143,0.83391,5.4552,-0.56984,0
+2.2928,9.0386,-3.2417,-1.2991,0
+0.3292,-4.4552,4.5718,-0.9888,0
+2.9719,6.8369,-0.2702,0.71291,0
+1.6849,8.7489,-1.2641,-1.3858,0
+-1.9177,11.6894,2.5454,-3.2763,0
+2.3729,10.4726,-3.0087,-3.2013,0
+1.0284,9.767,-1.3687,-1.7853,0
+0.27451,9.2186,-3.2863,-4.8448,0
+1.6032,-4.7863,8.5193,-2.1203,0
+4.616,10.1788,-4.2185,-4.4245,0
+4.2478,7.6956,-2.7696,-1.0767,0
+4.0215,-2.7004,2.4957,0.36636,0
+5.0297,-4.9704,3.5025,-0.23751,0
+1.5902,2.2948,3.2403,0.18404,0
+2.1274,5.1939,-1.7971,-1.1763,0
+1.1811,8.3847,-2.0567,-0.90345,0
+0.3292,-4.4552,4.5718,-0.9888,0
+5.7353,5.2808,-2.2598,0.075416,0
+2.6718,5.6574,0.72974,-1.4892,0
+1.5799,-4.7076,7.9186,-1.5487,0
+2.9499,2.2493,1.3458,-0.037083,0
+0.5195,-3.2633,3.0895,-0.9849,0
+3.7352,9.5911,-3.9032,-3.3487,0
+-1.7344,2.0175,7.7618,0.93532,0
+3.884,10.0277,-3.9298,-4.0819,0
+3.5257,1.2829,1.9276,1.7991,0
+4.4549,2.4976,1.0313,0.96894,0
+-0.16108,-6.4624,8.3573,-1.5216,0
+4.2164,9.4607,-4.9288,-5.2366,0
+3.5152,6.8224,-0.67377,-0.46898,0
+1.6988,2.9094,2.9044,0.11033,0
+1.0607,2.4542,2.5188,-0.17027,0
+2.0421,1.2436,4.2171,0.90429,0
+3.5594,1.3078,1.291,1.6556,0
+3.0009,5.8126,-2.2306,-0.66553,0
+3.9294,1.4112,1.8076,0.89782,0
+3.4667,-4.0724,4.2882,1.5418,0
+3.966,3.9213,0.70574,0.33662,0
+1.0191,2.33,4.9334,0.82929,0
+0.96414,5.616,2.2138,-0.12501,0
+1.8205,6.7562,0.0099913,0.39481,0
+4.9923,7.8653,-2.3515,-0.71984,0
+-1.1804,11.5093,0.15565,-6.8194,0
+4.0329,0.23175,0.89082,1.1823,0
+0.66018,10.3878,-1.4029,-3.9151,0
+3.5982,7.1307,-1.3035,0.21248,0
+-1.8584,7.886,-1.6643,-1.8384,0
+4.0972,0.46972,1.6671,0.91593,0
+3.3299,0.91254,1.5806,0.39352,0
+3.1088,3.1122,0.80857,0.4336,0
+-4.2859,8.5234,3.1392,-0.91639,0
+-1.2528,10.2036,2.1787,-5.6038,0
+0.5195,-3.2633,3.0895,-0.9849,0
+0.3292,-4.4552,4.5718,-0.9888,0
+0.88872,5.3449,2.045,-0.19355,0
+3.5458,9.3718,-4.0351,-3.9564,0
+-0.21661,8.0329,1.8848,-3.8853,0
+2.7206,9.0821,-3.3111,-0.96811,0
+3.2051,8.6889,-2.9033,-0.7819,0
+2.6917,10.8161,-3.3,-4.2888,0
+-2.3242,11.5176,1.8231,-5.375,0
+2.7161,-4.2006,4.1914,0.16981,0
+3.3848,3.2674,0.90967,0.25128,0
+1.7452,4.8028,2.0878,0.62627,0
+2.805,0.57732,1.3424,1.2133,0
+5.7823,5.5788,-2.4089,-0.056479,0
+3.8999,1.734,1.6011,0.96765,0
+3.5189,6.332,-1.7791,-0.020273,0
+3.2294,7.7391,-0.37816,-2.5405,0
+3.4985,3.1639,0.22677,-0.1651,0
+2.1948,1.3781,1.1582,0.85774,0
+2.2526,9.9636,-3.1749,-2.9944,0
+4.1529,-3.9358,2.8633,-0.017686,0
+0.74307,11.17,-1.3824,-4.0728,0
+1.9105,8.871,-2.3386,-0.75604,0
+-1.5055,0.070346,6.8681,-0.50648,0
+0.58836,10.7727,-1.3884,-4.3276,0
+3.2303,7.8384,-3.5348,-1.2151,0
+-1.9922,11.6542,2.6542,-5.2107,0
+2.8523,9.0096,-3.761,-3.3371,0
+4.2772,2.4955,0.48554,0.36119,0
+1.5099,0.039307,6.2332,-0.30346,0
+5.4188,10.1457,-4.084,-3.6991,0
+0.86202,2.6963,4.2908,0.54739,0
+3.8117,10.1457,-4.0463,-4.5629,0
+0.54777,10.3754,-1.5435,-4.1633,0
+2.3718,7.4908,0.015989,-1.7414,0
+-2.4953,11.1472,1.9353,-3.4638,0
+4.6361,-2.6611,2.8358,1.1991,0
+-2.2527,11.5321,2.5899,-3.2737,0
+3.7982,10.423,-4.1602,-4.9728,0
+-0.36279,8.2895,-1.9213,-3.3332,0
+2.1265,6.8783,0.44784,-2.2224,0
+0.86736,5.5643,1.6765,-0.16769,0
+3.7831,10.0526,-3.8869,-3.7366,0
+-2.2623,12.1177,0.28846,-7.7581,0
+1.2616,4.4303,-1.3335,-1.7517,0
+2.6799,3.1349,0.34073,0.58489,0
+-0.39816,5.9781,1.3912,-1.1621,0
+4.3937,0.35798,2.0416,1.2004,0
+2.9695,5.6222,0.27561,-1.1556,0
+1.3049,-0.15521,6.4911,-0.75346,0
+2.2123,-5.8395,7.7687,-0.85302,0
+1.9647,6.9383,0.57722,0.66377,0
+3.0864,-2.5845,2.2309,0.30947,0
+0.3798,0.7098,0.7572,-0.4444,0
+0.58982,7.4266,1.2353,-2.9595,0
+0.14783,7.946,1.0742,-3.3409,0
+-0.062025,6.1975,1.099,-1.131,0
+4.223,1.1319,0.72202,0.96118,0
+0.64295,7.1018,0.3493,-0.41337,0
+1.941,0.46351,4.6472,1.0879,0
+4.0047,0.45937,1.3621,1.6181,0
+3.7767,9.7794,-3.9075,-3.5323,0
+3.4769,-0.15314,2.53,2.4495,0
+1.9818,9.2621,-3.521,-1.872,0
+3.8023,-3.8696,4.044,0.95343,0
+4.3483,11.1079,-4.0857,-4.2539,0
+1.1518,1.3864,5.2727,-0.43536,0
+-1.2576,1.5892,7.0078,0.42455,0
+1.9572,-5.1153,8.6127,-1.4297,0
+-2.484,12.1611,2.8204,-3.7418,0
+-1.1497,1.2954,7.701,0.62627,0
+4.8368,10.0132,-4.3239,-4.3276,0
+-0.12196,8.8068,0.94566,-4.2267,0
+1.9429,6.3961,0.092248,0.58102,0
+1.742,-4.809,8.2142,-2.0659,0
+-1.5222,10.8409,2.7827,-4.0974,0
+-1.3,10.2678,-2.953,-5.8638,0
+3.4246,-0.14693,0.80342,0.29136,0
+2.5503,-4.9518,6.3729,-0.41596,0
+1.5691,6.3465,-0.1828,-2.4099,0
+1.3087,4.9228,2.0013,0.22024,0
+5.1776,8.2316,-3.2511,-1.5694,0
+2.229,9.6325,-3.1123,-2.7164,0
+5.6272,10.0857,-4.2931,-3.8142,0
+1.2138,8.7986,-2.1672,-0.74182,0
+0.3798,0.7098,0.7572,-0.4444,0
+0.5415,6.0319,1.6825,-0.46122,0
+4.0524,5.6802,-1.9693,0.026279,0
+4.7285,2.1065,-0.28305,1.5625,0
+3.4359,0.66216,2.1041,1.8922,0
+0.86816,10.2429,-1.4912,-4.0082,0
+3.359,9.8022,-3.8209,-3.7133,0
+3.6702,2.9942,0.85141,0.30688,0
+1.3349,6.1189,0.46497,0.49826,0
+3.1887,-3.4143,2.7742,-0.2026,0
+2.4527,2.9653,0.20021,-0.056479,0
+3.9121,2.9735,0.92852,0.60558,0
+3.9364,10.5885,-3.725,-4.3133,0
+3.9414,-3.2902,3.1674,1.0866,0
+3.6922,-3.9585,4.3439,1.3517,0
+5.681,7.795,-2.6848,-0.92544,0
+0.77124,9.0862,-1.2281,-1.4996,0
+3.5761,9.7753,-3.9795,-3.4638,0
+1.602,6.1251,0.52924,0.47886,0
+2.6682,10.216,-3.4414,-4.0069,0
+2.0007,1.8644,2.6491,0.47369,0
+0.64215,3.1287,4.2933,0.64696,0
+4.3848,-3.0729,3.0423,1.2741,0
+0.77445,9.0552,-2.4089,-1.3884,0
+0.96574,8.393,-1.361,-1.4659,0
+3.0948,8.7324,-2.9007,-0.96682,0
+4.9362,7.6046,-2.3429,-0.85302,0
+-1.9458,11.2217,1.9079,-3.4405,0
+5.7403,-0.44284,0.38015,1.3763,0
+-2.6989,12.1984,0.67661,-8.5482,0
+1.1472,3.5985,1.9387,-0.43406,0
+2.9742,8.96,-2.9024,-1.0379,0
+4.5707,7.2094,-3.2794,-1.4944,0
+0.1848,6.5079,2.0133,-0.87242,0
+0.87256,9.2931,-0.7843,-2.1978,0
+0.39559,6.8866,1.0588,-0.67587,0
+3.8384,6.1851,-2.0439,-0.033204,0
+2.8209,7.3108,-0.81857,-1.8784,0
+2.5817,9.7546,-3.1749,-2.9957,0
+3.8213,0.23175,2.0133,2.0564,0
+0.3798,0.7098,0.7572,-0.4444,0
+3.4893,6.69,-1.2042,-0.38751,0
+-1.7781,0.8546,7.1303,0.027572,0
+2.0962,2.4769,1.9379,-0.040962,0
+0.94732,-0.57113,7.1903,-0.67587,0
+2.8261,9.4007,-3.3034,-1.0509,0
+0.0071249,8.3661,0.50781,-3.8155,0
+0.96788,7.1907,1.2798,-2.4565,0
+4.7432,2.1086,0.1368,1.6543,0
+3.6575,7.2797,-2.2692,-1.144,0
+3.8832,6.4023,-2.432,-0.98363,0
+3.4776,8.811,-3.1886,-0.92285,0
+1.1315,7.9212,1.093,-2.8444,0
+2.8237,2.8597,0.19678,0.57196,0
+1.9321,6.0423,0.26019,-2.053,0
+3.0632,-3.3315,5.1305,0.8267,0
+-1.8411,10.8306,2.769,-3.0901,0
+2.8084,11.3045,-3.3394,-4.4194,0
+2.5698,-4.4076,5.9856,0.078002,0
+-0.12624,10.3216,-3.7121,-6.1185,0
+3.3756,-4.0951,4.367,1.0698,0
+-0.048008,-1.6037,8.4756,0.75558,0
+0.5706,-0.0248,1.2421,-0.5621,0
+0.88444,6.5906,0.55837,-0.44182,0
+3.8644,3.7061,0.70403,0.35214,0
+1.2999,2.5762,2.0107,-0.18967,0
+2.0051,-6.8638,8.132,-0.2401,0
+4.9294,0.27727,0.20792,0.33662,0
+2.8297,6.3485,-0.73546,-0.58665,0
+2.565,8.633,-2.9941,-1.3082,0
+2.093,8.3061,0.022844,-3.2724,0
+4.6014,5.6264,-2.1235,0.19309,0
+5.0617,-0.35799,0.44698,0.99868,0
+-0.2951,9.0489,-0.52725,-2.0789,0
+3.577,2.4004,1.8908,0.73231,0
+3.9433,2.5017,1.5215,0.903,0
+2.6648,10.754,-3.3994,-4.1685,0
+5.9374,6.1664,-2.5905,-0.36553,0
+2.0153,1.8479,3.1375,0.42843,0
+5.8782,5.9409,-2.8544,-0.60863,0
+-2.3983,12.606,2.9464,-5.7888,0
+1.762,4.3682,2.1384,0.75429,0
+4.2406,-2.4852,1.608,0.7155,0
+3.4669,6.87,-1.0568,-0.73147,0
+3.1896,5.7526,-0.18537,-0.30087,0
+0.81356,9.1566,-2.1492,-4.1814,0
+0.52855,0.96427,4.0243,-1.0483,0
+2.1319,-2.0403,2.5574,-0.061652,0
+0.33111,4.5731,2.057,-0.18967,0
+1.2746,8.8172,-1.5323,-1.7957,0
+2.2091,7.4556,-1.3284,-3.3021,0
+2.5328,7.528,-0.41929,-2.6478,0
+3.6244,1.4609,1.3501,1.9284,0
+-1.3885,12.5026,0.69118,-7.5487,0
+5.7227,5.8312,-2.4097,-0.24527,0
+3.3583,10.3567,-3.7301,-3.6991,0
+2.5227,2.2369,2.7236,0.79438,0
+0.045304,6.7334,1.0708,-0.9332,0
+4.8278,7.7598,-2.4491,-1.2216,0
+1.9476,-4.7738,8.527,-1.8668,0
+2.7659,0.66216,4.1494,-0.28406,0
+-0.10648,-0.76771,7.7575,0.64179,0
+0.72252,-0.053811,5.6703,-1.3509,0
+4.2475,1.4816,-0.48355,0.95343,0
+3.9772,0.33521,2.2566,2.1625,0
+3.6667,4.302,0.55923,0.33791,0
+2.8232,10.8513,-3.1466,-3.9784,0
+-1.4217,11.6542,-0.057699,-7.1025,0
+4.2458,1.1981,0.66633,0.94696,0
+4.1038,-4.8069,3.3491,-0.49225,0
+1.4507,8.7903,-2.2324,-0.65259,0
+3.4647,-3.9172,3.9746,0.36119,0
+1.8533,6.1458,1.0176,-2.0401,0
+3.5288,0.71596,1.9507,1.9375,0
+3.9719,1.0367,0.75973,1.0013,0
+3.534,9.3614,-3.6316,-1.2461,0
+3.6894,9.887,-4.0788,-4.3664,0
+3.0672,-4.4117,3.8238,-0.81682,0
+2.6463,-4.8152,6.3549,0.003003,0
+2.2893,3.733,0.6312,-0.39786,0
+1.5673,7.9274,-0.056842,-2.1694,0
+4.0405,0.51524,1.0279,1.106,0
+4.3846,-4.8794,3.3662,-0.029324,0
+2.0165,-0.25246,5.1707,1.0763,0
+4.0446,11.1741,-4.3582,-4.7401,0
+-0.33729,-0.64976,7.6659,0.72326,0
+-2.4604,12.7302,0.91738,-7.6418,0
+4.1195,10.9258,-3.8929,-4.1802,0
+2.0193,0.82356,4.6369,1.4202,0
+1.5701,7.9129,0.29018,-2.1953,0
+2.6415,7.586,-0.28562,-1.6677,0
+5.0214,8.0764,-3.0515,-1.7155,0
+4.3435,3.3295,0.83598,0.64955,0
+1.8238,-6.7748,8.3873,-0.54139,0
+3.9382,0.9291,0.78543,0.6767,0
+2.2517,-5.1422,4.2916,-1.2487,0
+5.504,10.3671,-4.413,-4.0211,0
+2.8521,9.171,-3.6461,-1.2047,0
+1.1676,9.1566,-2.0867,-0.80647,0
+2.6104,8.0081,-0.23592,-1.7608,0
+0.32444,10.067,-1.1982,-4.1284,0
+3.8962,-4.7904,3.3954,-0.53751,0
+2.1752,-0.8091,5.1022,-0.67975,0
+1.1588,8.9331,-2.0807,-1.1272,0
+4.7072,8.2957,-2.5605,-1.4905,0
+-1.9667,11.8052,-0.40472,-7.8719,0
+4.0552,0.40143,1.4563,0.65343,0
+2.3678,-6.839,8.4207,-0.44829,0
+0.33565,6.8369,0.69718,-0.55691,0
+4.3398,-5.3036,3.8803,-0.70432,0
+1.5456,8.5482,0.4187,-2.1784,0
+1.4276,8.3847,-2.0995,-1.9677,0
+-0.27802,8.1881,-3.1338,-2.5276,0
+0.93611,8.6413,-1.6351,-1.3043,0
+4.6352,-3.0087,2.6773,1.212,0
+1.5268,-5.5871,8.6564,-1.722,0
+0.95626,2.4728,4.4578,0.21636,0
+-2.7914,1.7734,6.7756,-0.39915,0
+5.2032,3.5116,-1.2538,1.0129,0
+3.1836,7.2321,-1.0713,-2.5909,0
+0.65497,5.1815,1.0673,-0.42113,0
+5.6084,10.3009,-4.8003,-4.3534,0
+1.105,7.4432,0.41099,-3.0332,0
+3.9292,-2.9156,2.2129,0.30817,0
+1.1558,6.4003,1.5506,0.6961,0
+2.5581,2.6218,1.8513,0.40257,0
+2.7831,10.9796,-3.557,-4.4039,0
+3.7635,2.7811,0.66119,0.34179,0
+-2.6479,10.1374,-1.331,-5.4707,0
+1.0652,8.3682,-1.4004,-1.6509,0
+-1.4275,11.8797,0.41613,-6.9978,0
+5.7456,10.1808,-4.7857,-4.3366,0
+5.086,3.2798,-1.2701,1.1189,0
+3.4092,5.4049,-2.5228,-0.89958,0
+-0.2361,9.3221,2.1307,-4.3793,0
+3.8197,8.9951,-4.383,-4.0327,0
+-1.1391,1.8127,6.9144,0.70127,0
+4.9249,0.68906,0.77344,1.2095,0
+2.5089,6.841,-0.029423,0.44912,0
+-0.2062,9.2207,-3.7044,-6.8103,0
+3.946,6.8514,-1.5443,-0.5582,0
+-0.278,8.1881,-3.1338,-2.5276,0
+1.8592,3.2074,-0.15966,-0.26208,0
+0.56953,7.6294,1.5754,-3.2233,0
+3.4626,-4.449,3.5427,0.15429,0
+3.3951,1.1484,2.1401,2.0862,0
+5.0429,-0.52974,0.50439,1.106,0
+3.7758,7.1783,-1.5195,0.40128,0
+4.6562,7.6398,-2.4243,-1.2384,0
+4.0948,-2.9674,2.3689,0.75429,0
+1.8384,6.063,0.54723,0.51248,0
+2.0153,0.43661,4.5864,-0.3151,0
+3.5251,0.7201,1.6928,0.64438,0
+3.757,-5.4236,3.8255,-1.2526,0
+2.5989,3.5178,0.7623,0.81119,0
+1.8994,0.97462,4.2265,0.81377,0
+3.6941,-3.9482,4.2625,1.1577,0
+4.4295,-2.3507,1.7048,0.90946,0
+6.8248,5.2187,-2.5425,0.5461,0
+1.8967,-2.5163,2.8093,-0.79742,0
+2.1526,-6.1665,8.0831,-0.34355,0
+3.3004,7.0811,-1.3258,0.22283,0
+2.7213,7.05,-0.58808,0.41809,0
+3.8846,-3.0336,2.5334,0.20214,0
+4.1665,-0.4449,0.23448,0.27843,0
+0.94225,5.8561,1.8762,-0.32544,0
+5.1321,-0.031048,0.32616,1.1151,0
+0.38251,6.8121,1.8128,-0.61251,0
+3.0333,-2.5928,2.3183,0.303,0
+2.9233,6.0464,-0.11168,-0.58665,0
+1.162,10.2926,-1.2821,-4.0392,0
+3.7791,2.5762,1.3098,0.5655,0
+0.77765,5.9781,1.1941,-0.3526,0
+-0.38388,-1.0471,8.0514,0.49567,0
+0.21084,9.4359,-0.094543,-1.859,0
+2.9571,-4.5938,5.9068,0.57196,0
+4.6439,-3.3729,2.5976,0.55257,0
+3.3577,-4.3062,6.0241,0.18274,0
+3.5127,2.9073,1.0579,0.40774,0
+2.6562,10.7044,-3.3085,-4.0767,0
+-1.3612,10.694,1.7022,-2.9026,0
+-0.278,8.1881,-3.1338,-2.5276,0
+1.04,-6.9321,8.2888,-1.2991,0
+2.1881,2.7356,1.3278,-0.1832,0
+4.2756,-2.6528,2.1375,0.94437,0
+-0.11996,6.8741,0.91995,-0.6694,0
+2.9736,8.7944,-3.6359,-1.3754,0
+3.7798,-3.3109,2.6491,0.066365,0
+5.3586,3.7557,-1.7345,1.0789,0
+1.8373,6.1292,0.84027,0.55257,0
+1.2262,0.89599,5.7568,-0.11596,0
+-0.048008,-0.56078,7.7215,0.453,0
+0.5706,-0.024841,1.2421,-0.56208,0
+4.3634,0.46351,1.4281,2.0202,0
+3.482,-4.1634,3.5008,-0.078462,0
+0.51947,-3.2633,3.0895,-0.98492,0
+2.3164,-2.628,3.1529,-0.08622,0
+-1.8348,11.0334,3.1863,-4.8888,0
+1.3754,8.8793,-1.9136,-0.53751,0
+-0.16682,5.8974,0.49839,-0.70044,0
+0.29961,7.1328,-0.31475,-1.1828,0
+0.25035,9.3262,-3.6873,-6.2543,0
+2.4673,1.3926,1.7125,0.41421,0
+0.77805,6.6424,-1.1425,-1.0573,0
+3.4465,2.9508,1.0271,0.5461,0
+2.2429,-4.1427,5.2333,-0.40173,0
+3.7321,-3.884,3.3577,-0.0060486,0
+4.3365,-3.584,3.6884,0.74912,0
+-2.0759,10.8223,2.6439,-4.837,0
+4.0715,7.6398,-2.0824,-1.1698,0
+0.76163,5.8209,1.1959,-0.64613,0
+-0.53966,7.3273,0.46583,-1.4543,0
+2.6213,5.7919,0.065686,-1.5759,0
+3.0242,-3.3378,2.5865,-0.54785,0
+5.8519,5.3905,-2.4037,-0.061652,0
+0.5706,-0.0248,1.2421,-0.5621,0
+3.9771,11.1513,-3.9272,-4.3444,0
+1.5478,9.1814,-1.6326,-1.7375,0
+0.74054,0.36625,2.1992,0.48403,0
+0.49571,10.2243,-1.097,-4.0159,0
+1.645,7.8612,-0.87598,-3.5569,0
+3.6077,6.8576,-1.1622,0.28231,0
+3.2403,-3.7082,5.2804,0.41291,0
+3.9166,10.2491,-4.0926,-4.4659,0
+3.9262,6.0299,-2.0156,-0.065531,0
+5.591,10.4643,-4.3839,-4.3379,0
+3.7522,-3.6978,3.9943,1.3051,0
+1.3114,4.5462,2.2935,0.22541,0
+3.7022,6.9942,-1.8511,-0.12889,0
+4.364,-3.1039,2.3757,0.78532,0
+3.5829,1.4423,1.0219,1.4008,0
+4.65,-4.8297,3.4553,-0.25174,0
+5.1731,3.9606,-1.983,0.40774,0
+3.2692,3.4184,0.20706,-0.066824,0
+2.4012,1.6223,3.0312,0.71679,0
+1.7257,-4.4697,8.2219,-1.8073,0
+4.7965,6.9859,-1.9967,-0.35001,0
+4.0962,10.1891,-3.9323,-4.1827,0
+2.5559,3.3605,2.0321,0.26809,0
+3.4916,8.5709,-3.0326,-0.59182,0
+0.5195,-3.2633,3.0895,-0.9849,0
+2.9856,7.2673,-0.409,-2.2431,0
+4.0932,5.4132,-1.8219,0.23576,0
+1.7748,-0.76978,5.5854,1.3039,0
+5.2012,0.32694,0.17965,1.1797,0
+-0.45062,-1.3678,7.0858,-0.40303,0
+4.8451,8.1116,-2.9512,-1.4724,0
+0.74841,7.2756,1.1504,-0.5388,0
+5.1213,8.5565,-3.3917,-1.5474,0
+3.6181,-3.7454,2.8273,-0.71208,0
+0.040498,8.5234,1.4461,-3.9306,0
+-2.6479,10.1374,-1.331,-5.4707,0
+0.37984,0.70975,0.75716,-0.44441,0
+-0.95923,0.091039,6.2204,-1.4828,0
+2.8672,10.0008,-3.2049,-3.1095,0
+1.0182,9.109,-0.62064,-1.7129,0
+-2.7143,11.4535,2.1092,-3.9629,0
+3.8244,-3.1081,2.4537,0.52024,0
+2.7961,2.121,1.8385,0.38317,0
+3.5358,6.7086,-0.81857,0.47886,0
+-0.7056,8.7241,2.2215,-4.5965,0
+4.1542,7.2756,-2.4766,-1.2099,0
+0.92703,9.4318,-0.66263,-1.6728,0
+1.8216,-6.4748,8.0514,-0.41855,0
+-2.4473,12.6247,0.73573,-7.6612,0
+3.5862,-3.0957,2.8093,0.24481,0
+0.66191,9.6594,-0.28819,-1.6638,0
+4.7926,1.7071,-0.051701,1.4926,0
+4.9852,8.3516,-2.5425,-1.2823,0
+0.75736,3.0294,2.9164,-0.068117,0
+4.6499,7.6336,-1.9427,-0.37458,0
+-0.023579,7.1742,0.78457,-0.75734,0
+0.85574,0.0082678,6.6042,-0.53104,0
+0.88298,0.66009,6.0096,-0.43277,0
+4.0422,-4.391,4.7466,1.137,0
+2.2546,8.0992,-0.24877,-3.2698,0
+0.38478,6.5989,-0.3336,-0.56466,0
+3.1541,-5.1711,6.5991,0.57455,0
+2.3969,0.23589,4.8477,1.437,0
+4.7114,2.0755,-0.2702,1.2379,0
+4.0127,10.1477,-3.9366,-4.0728,0
+2.6606,3.1681,1.9619,0.18662,0
+3.931,1.8541,-0.023425,1.2314,0
+0.01727,8.693,1.3989,-3.9668,0
+3.2414,0.40971,1.4015,1.1952,0
+2.2504,3.5757,0.35273,0.2836,0
+-1.3971,3.3191,-1.3927,-1.9948,1
+0.39012,-0.14279,-0.031994,0.35084,1
+-1.6677,-7.1535,7.8929,0.96765,1
+-3.8483,-12.8047,15.6824,-1.281,1
+-3.5681,-8.213,10.083,0.96765,1
+-2.2804,-0.30626,1.3347,1.3763,1
+-1.7582,2.7397,-2.5323,-2.234,1
+-0.89409,3.1991,-1.8219,-2.9452,1
+0.3434,0.12415,-0.28733,0.14654,1
+-0.9854,-6.661,5.8245,0.5461,1
+-2.4115,-9.1359,9.3444,-0.65259,1
+-1.5252,-6.2534,5.3524,0.59912,1
+-0.61442,-0.091058,-0.31818,0.50214,1
+-0.36506,2.8928,-3.6461,-3.0603,1
+-5.9034,6.5679,0.67661,-6.6797,1
+-1.8215,2.7521,-0.72261,-2.353,1
+-0.77461,-1.8768,2.4023,1.1319,1
+-1.8187,-9.0366,9.0162,-0.12243,1
+-3.5801,-12.9309,13.1779,-2.5677,1
+-1.8219,-6.8824,5.4681,0.057313,1
+-0.3481,-0.38696,-0.47841,0.62627,1
+0.47368,3.3605,-4.5064,-4.0431,1
+-3.4083,4.8587,-0.76888,-4.8668,1
+-1.6662,-0.30005,1.4238,0.024986,1
+-2.0962,-7.1059,6.6188,-0.33708,1
+-2.6685,-10.4519,9.1139,-1.7323,1
+-0.47465,-4.3496,1.9901,0.7517,1
+1.0552,1.1857,-2.6411,0.11033,1
+1.1644,3.8095,-4.9408,-4.0909,1
+-4.4779,7.3708,-0.31218,-6.7754,1
+-2.7338,0.45523,2.4391,0.21766,1
+-2.286,-5.4484,5.8039,0.88231,1
+-1.6244,-6.3444,4.6575,0.16981,1
+0.50813,0.47799,-1.9804,0.57714,1
+1.6408,4.2503,-4.9023,-2.6621,1
+0.81583,4.84,-5.2613,-6.0823,1
+-5.4901,9.1048,-0.38758,-5.9763,1
+-3.2238,2.7935,0.32274,-0.86078,1
+-2.0631,-1.5147,1.219,0.44524,1
+-0.91318,-2.0113,-0.19565,0.066365,1
+0.6005,1.9327,-3.2888,-0.32415,1
+0.91315,3.3377,-4.0557,-1.6741,1
+-0.28015,3.0729,-3.3857,-2.9155,1
+-3.6085,3.3253,-0.51954,-3.5737,1
+-6.2003,8.6806,0.0091344,-3.703,1
+-4.2932,3.3419,0.77258,-0.99785,1
+-3.0265,-0.062088,0.68604,-0.055186,1
+-1.7015,-0.010356,-0.99337,-0.53104,1
+-0.64326,2.4748,-2.9452,-1.0276,1
+-0.86339,1.9348,-2.3729,-1.0897,1
+-2.0659,1.0512,-0.46298,-1.0974,1
+-2.1333,1.5685,-0.084261,-1.7453,1
+-1.2568,-1.4733,2.8718,0.44653,1
+-3.1128,-6.841,10.7402,-1.0172,1
+-4.8554,-5.9037,10.9818,-0.82199,1
+-2.588,3.8654,-0.3336,-1.2797,1
+0.24394,1.4733,-1.4192,-0.58535,1
+-1.5322,-5.0966,6.6779,0.17498,1
+-4.0025,-13.4979,17.6772,-3.3202,1
+-4.0173,-8.3123,12.4547,-1.4375,1
+-3.0731,-0.53181,2.3877,0.77627,1
+-1.979,3.2301,-1.3575,-2.5819,1
+-0.4294,-0.14693,0.044265,-0.15605,1
+-2.234,-7.0314,7.4936,0.61334,1
+-4.211,-12.4736,14.9704,-1.3884,1
+-3.8073,-8.0971,10.1772,0.65084,1
+-2.5912,-0.10554,1.2798,1.0414,1
+-2.2482,3.0915,-2.3969,-2.6711,1
+-1.4427,3.2922,-1.9702,-3.4392,1
+-0.39416,-0.020702,-0.066267,-0.44699,1
+-1.522,-6.6383,5.7491,-0.10691,1
+-2.8267,-9.0407,9.0694,-0.98233,1
+-1.7263,-6.0237,5.2419,0.29524,1
+-0.94255,0.039307,-0.24192,0.31593,1
+-0.89569,3.0025,-3.6067,-3.4457,1
+-6.2815,6.6651,0.52581,-7.0107,1
+-2.3211,3.166,-1.0002,-2.7151,1
+-1.3414,-2.0776,2.8093,0.60688,1
+-2.258,-9.3263,9.3727,-0.85949,1
+-3.8858,-12.8461,12.7957,-3.1353,1
+-1.8969,-6.7893,5.2761,-0.32544,1
+-0.52645,-0.24832,-0.45613,0.41938,1
+0.0096613,3.5612,-4.407,-4.4103,1
+-3.8826,4.898,-0.92311,-5.0801,1
+-2.1405,-0.16762,1.321,-0.20906,1
+-2.4824,-7.3046,6.839,-0.59053,1
+-2.9098,-10.0712,8.4156,-1.9948,1
+-0.60975,-4.002,1.8471,0.6017,1
+0.83625,1.1071,-2.4706,-0.062945,1
+0.60731,3.9544,-4.772,-4.4853,1
+-4.8861,7.0542,-0.17252,-6.959,1
+-3.1366,0.42212,2.6225,-0.064238,1
+-2.5754,-5.6574,6.103,0.65214,1
+-1.8782,-6.5865,4.8486,-0.021566,1
+0.24261,0.57318,-1.9402,0.44007,1
+1.296,4.2855,-4.8457,-2.9013,1
+0.25943,5.0097,-5.0394,-6.3862,1
+-5.873,9.1752,-0.27448,-6.0422,1
+-3.4605,2.6901,0.16165,-1.0224,1
+-2.3797,-1.4402,1.1273,0.16076,1
+-1.2424,-1.7175,-0.52553,-0.21036,1
+0.20216,1.9182,-3.2828,-0.61768,1
+0.59823,3.5012,-3.9795,-1.7841,1
+-0.77995,3.2322,-3.282,-3.1004,1
+-4.1409,3.4619,-0.47841,-3.8879,1
+-6.5084,8.7696,0.23191,-3.937,1
+-4.4996,3.4288,0.56265,-1.1672,1
+-3.3125,0.10139,0.55323,-0.2957,1
+-1.9423,0.3766,-1.2898,-0.82458,1
+-0.75793,2.5349,-3.0464,-1.2629,1
+-0.95403,1.9824,-2.3163,-1.1957,1
+-2.2173,1.4671,-0.72689,-1.1724,1
+-2.799,1.9679,-0.42357,-2.1125,1
+-1.8629,-0.84841,2.5377,0.097399,1
+-3.5916,-6.2285,10.2389,-1.1543,1
+-5.1216,-5.3118,10.3846,-1.0612,1
+-3.2854,4.0372,-0.45356,-1.8228,1
+-0.56877,1.4174,-1.4252,-1.1246,1
+-2.3518,-4.8359,6.6479,-0.060358,1
+-4.4861,-13.2889,17.3087,-3.2194,1
+-4.3876,-7.7267,11.9655,-1.4543,1
+-3.3604,-0.32696,2.1324,0.6017,1
+-1.0112,2.9984,-1.1664,-1.6185,1
+0.030219,-1.0512,1.4024,0.77369,1
+-1.6514,-8.4985,9.1122,1.2379,1
+-3.2692,-12.7406,15.5573,-0.14182,1
+-2.5701,-6.8452,8.9999,2.1353,1
+-1.3066,0.25244,0.7623,1.7758,1
+-1.6637,3.2881,-2.2701,-2.2224,1
+-0.55008,2.8659,-1.6488,-2.4319,1
+0.21431,-0.69529,0.87711,0.29653,1
+-0.77288,-7.4473,6.492,0.36119,1
+-1.8391,-9.0883,9.2416,-0.10432,1
+-0.63298,-5.1277,4.5624,1.4797,1
+0.0040545,0.62905,-0.64121,0.75817,1
+-0.28696,3.1784,-3.5767,-3.1896,1
+-5.2406,6.6258,-0.19908,-6.8607,1
+-1.4446,2.1438,-0.47241,-1.6677,1
+-0.65767,-2.8018,3.7115,0.99739,1
+-1.5449,-10.1498,9.6152,-1.2332,1
+-2.8957,-12.0205,11.9149,-2.7552,1
+-0.81479,-5.7381,4.3919,0.3211,1
+0.50225,0.65388,-1.1793,0.39998,1
+0.74521,3.6357,-4.4044,-4.1414,1
+-2.9146,4.0537,-0.45699,-4.0327,1
+-1.3907,-1.3781,2.3055,-0.021566,1
+-1.786,-8.1157,7.0858,-1.2112,1
+-1.7322,-9.2828,7.719,-1.7168,1
+0.55298,-3.4619,1.7048,1.1008,1
+2.031,1.852,-3.0121,0.003003,1
+1.2279,4.0309,-4.6435,-3.9125,1
+-4.2249,6.2699,0.15822,-5.5457,1
+-2.5346,-0.77392,3.3602,0.00171,1
+-1.749,-6.332,6.0987,0.14266,1
+-0.539,-5.167,3.4399,0.052141,1
+1.5631,0.89599,-1.9702,0.65472,1
+2.3917,4.5565,-4.9888,-2.8987,1
+0.89512,4.7738,-4.8431,-5.5909,1
+-5.4808,8.1819,0.27818,-5.0323,1
+-2.8833,1.7713,0.68946,-0.4638,1
+-1.4174,-2.2535,1.518,0.61981,1
+0.4283,-0.94981,-1.0731,0.3211,1
+1.5904,2.2121,-3.1183,-0.11725,1
+1.7425,3.6833,-4.0129,-1.7207,1
+-0.23356,3.2405,-3.0669,-2.7784,1
+-3.6227,3.9958,-0.35845,-3.9047,1
+-6.1536,7.9295,0.61663,-3.2646,1
+-3.9172,2.6652,0.78886,-0.7819,1
+-2.2214,-0.23798,0.56008,0.05602,1
+-0.49241,0.89392,-1.6283,-0.56854,1
+0.26517,2.4066,-2.8416,-0.59958,1
+-0.10234,1.8189,-2.2169,-0.56725,1
+-1.6176,1.0926,-0.35502,-0.59958,1
+-1.8448,1.254,0.27218,-1.0728,1
+-1.2786,-2.4087,4.5735,0.47627,1
+-2.902,-7.6563,11.8318,-0.84268,1
+-4.3773,-5.5167,10.939,-0.4082,1
+-2.0529,3.8385,-0.79544,-1.2138,1
+0.18868,0.70148,-0.51182,0.0055892,1
+-1.7279,-6.841,8.9494,0.68058,1
+-3.3793,-13.7731,17.9274,-2.0323,1
+-3.1273,-7.1121,11.3897,-0.083634,1
+-2.121,-0.05588,1.949,1.353,1
+-1.7697,3.4329,-1.2144,-2.3789,1
+-0.0012852,0.13863,-0.19651,0.0081754,1
+-1.682,-6.8121,7.1398,1.3323,1
+-3.4917,-12.1736,14.3689,-0.61639,1
+-3.1158,-8.6289,10.4403,0.97153,1
+-2.0891,-0.48422,1.704,1.7435,1
+-1.6936,2.7852,-2.1835,-1.9276,1
+-1.2846,3.2715,-1.7671,-3.2608,1
+-0.092194,0.39315,-0.32846,-0.13794,1
+-1.0292,-6.3879,5.5255,0.79955,1
+-2.2083,-9.1069,8.9991,-0.28406,1
+-1.0744,-6.3113,5.355,0.80472,1
+-0.51003,-0.23591,0.020273,0.76334,1
+-0.36372,3.0439,-3.4816,-2.7836,1
+-6.3979,6.4479,1.0836,-6.6176,1
+-2.2501,3.3129,-0.88369,-2.8974,1
+-1.1859,-1.2519,2.2635,0.77239,1
+-1.8076,-8.8131,8.7086,-0.21682,1
+-3.3863,-12.9889,13.0545,-2.7202,1
+-1.4106,-7.108,5.6454,0.31335,1
+-0.21394,-0.68287,0.096532,1.1965,1
+0.48797,3.5674,-4.3882,-3.8116,1
+-3.8167,5.1401,-0.65063,-5.4306,1
+-1.9555,0.20692,1.2473,-0.3707,1
+-2.1786,-6.4479,6.0344,-0.20777,1
+-2.3299,-9.9532,8.4756,-1.8733,1
+0.0031201,-4.0061,1.7956,0.91722,1
+1.3518,1.0595,-2.3437,0.39998,1
+1.2309,3.8923,-4.8277,-4.0069,1
+-5.0301,7.5032,-0.13396,-7.5034,1
+-3.0799,0.60836,2.7039,-0.23751,1
+-2.2987,-5.227,5.63,0.91722,1
+-1.239,-6.541,4.8151,-0.033204,1
+0.75896,0.29176,-1.6506,0.83834,1
+1.6799,4.2068,-4.5398,-2.3931,1
+0.63655,5.2022,-5.2159,-6.1211,1
+-6.0598,9.2952,-0.43642,-6.3694,1
+-3.518,2.8763,0.1548,-1.2086,1
+-2.0336,-1.4092,1.1582,0.36507,1
+-0.69745,-1.7672,-0.34474,-0.12372,1
+0.75108,1.9161,-3.1098,-0.20518,1
+0.84546,3.4826,-3.6307,-1.3961,1
+-0.55648,3.2136,-3.3085,-2.7965,1
+-3.6817,3.2239,-0.69347,-3.4004,1
+-6.7526,8.8172,-0.061983,-3.725,1
+-4.577,3.4515,0.66719,-0.94742,1
+-2.9883,0.31245,0.45041,0.068951,1
+-1.4781,0.14277,-1.1622,-0.48579,1
+-0.46651,2.3383,-2.9812,-1.0431,1
+-0.8734,1.6533,-2.1964,-0.78061,1
+-2.1234,1.1815,-0.55552,-0.81165,1
+-2.3142,2.0838,-0.46813,-1.6767,1
+-1.4233,-0.98912,2.3586,0.39481,1
+-3.0866,-6.6362,10.5405,-0.89182,1
+-4.7331,-6.1789,11.388,-1.0741,1
+-2.8829,3.8964,-0.1888,-1.1672,1
+-0.036127,1.525,-1.4089,-0.76121,1
+-1.7104,-4.778,6.2109,0.3974,1
+-3.8203,-13.0551,16.9583,-2.3052,1
+-3.7181,-8.5089,12.363,-0.95518,1
+-2.899,-0.60424,2.6045,1.3776,1
+-0.98193,2.7956,-1.2341,-1.5668,1
+-0.17296,-1.1816,1.3818,0.7336,1
+-1.9409,-8.6848,9.155,0.94049,1
+-3.5713,-12.4922,14.8881,-0.47027,1
+-2.9915,-6.6258,8.6521,1.8198,1
+-1.8483,0.31038,0.77344,1.4189,1
+-2.2677,3.2964,-2.2563,-2.4642,1
+-0.50816,2.868,-1.8108,-2.2612,1
+0.14329,-1.0885,1.0039,0.48791,1
+-0.90784,-7.9026,6.7807,0.34179,1
+-2.0042,-9.3676,9.3333,-0.10303,1
+-0.93587,-5.1008,4.5367,1.3866,1
+-0.40804,0.54214,-0.52725,0.6586,1
+-0.8172,3.3812,-3.6684,-3.456,1
+-4.8392,6.6755,-0.24278,-6.5775,1
+-1.2792,2.1376,-0.47584,-1.3974,1
+-0.66008,-3.226,3.8058,1.1836,1
+-1.7713,-10.7665,10.2184,-1.0043,1
+-3.0061,-12.2377,11.9552,-2.1603,1
+-1.1022,-5.8395,4.5641,0.68705,1
+0.11806,0.39108,-0.98223,0.42843,1
+0.11686,3.735,-4.4379,-4.3741,1
+-2.7264,3.9213,-0.49212,-3.6371,1
+-1.2369,-1.6906,2.518,0.51636,1
+-1.8439,-8.6475,7.6796,-0.66682,1
+-1.8554,-9.6035,7.7764,-0.97716,1
+0.16358,-3.3584,1.3749,1.3569,1
+1.5077,1.9596,-3.0584,-0.12243,1
+0.67886,4.1199,-4.569,-4.1414,1
+-3.9934,5.8333,0.54723,-4.9379,1
+-2.3898,-0.78427,3.0141,0.76205,1
+-1.7976,-6.7686,6.6753,0.89912,1
+-0.70867,-5.5602,4.0483,0.903,1
+1.0194,1.1029,-2.3,0.59395,1
+1.7875,4.78,-5.1362,-3.2362,1
+0.27331,4.8773,-4.9194,-5.8198,1
+-5.1661,8.0433,0.044265,-4.4983,1
+-2.7028,1.6327,0.83598,-0.091393,1
+-1.4904,-2.2183,1.6054,0.89394,1
+-0.014902,-1.0243,-0.94024,0.64955,1
+0.88992,2.2638,-3.1046,-0.11855,1
+1.0637,3.6957,-4.1594,-1.9379,1
+-0.8471,3.1329,-3.0112,-2.9388,1
+-3.9594,4.0289,-0.35845,-3.8957,1
+-5.8818,7.6584,0.5558,-2.9155,1
+-3.7747,2.5162,0.83341,-0.30993,1
+-2.4198,-0.24418,0.70146,0.41809,1
+-0.83535,0.80494,-1.6411,-0.19225,1
+-0.30432,2.6528,-2.7756,-0.65647,1
+-0.60254,1.7237,-2.1501,-0.77027,1
+-2.1059,1.1815,-0.53324,-0.82716,1
+-2.0441,1.2271,0.18564,-1.091,1
+-1.5621,-2.2121,4.2591,0.27972,1
+-3.2305,-7.2135,11.6433,-0.94613,1
+-4.8426,-4.9932,10.4052,-0.53104,1
+-2.3147,3.6668,-0.6969,-1.2474,1
+-0.11716,0.60422,-0.38587,-0.059065,1
+-2.0066,-6.719,9.0162,0.099985,1
+-3.6961,-13.6779,17.5795,-2.6181,1
+-3.6012,-6.5389,10.5234,-0.48967,1
+-2.6286,0.18002,1.7956,0.97282,1
+-0.82601,2.9611,-1.2864,-1.4647,1
+0.31803,-0.99326,1.0947,0.88619,1
+-1.4454,-8.4385,8.8483,0.96894,1
+-3.1423,-13.0365,15.6773,-0.66165,1
+-2.5373,-6.959,8.8054,1.5289,1
+-1.366,0.18416,0.90539,1.5806,1
+-1.7064,3.3088,-2.2829,-2.1978,1
+-0.41965,2.9094,-1.7859,-2.2069,1
+0.37637,-0.82358,0.78543,0.74524,1
+-0.55355,-7.9233,6.7156,0.74394,1
+-1.6001,-9.5828,9.4044,0.081882,1
+-0.37013,-5.554,4.7749,1.547,1
+0.12126,0.22347,-0.47327,0.97024,1
+-0.27068,3.2674,-3.5562,-3.0888,1
+-5.119,6.6486,-0.049987,-6.5206,1
+-1.3946,2.3134,-0.44499,-1.4905,1
+-0.69879,-3.3771,4.1211,1.5043,1
+-1.48,-10.5244,9.9176,-0.5026,1
+-2.6649,-12.813,12.6689,-1.9082,1
+-0.62684,-6.301,4.7843,1.106,1
+0.518,0.25865,-0.84085,0.96118,1
+0.64376,3.764,-4.4738,-4.0483,1
+-2.9821,4.1986,-0.5898,-3.9642,1
+-1.4628,-1.5706,2.4357,0.49826,1
+-1.7101,-8.7903,7.9735,-0.45475,1
+-1.5572,-9.8808,8.1088,-1.0806,1
+0.74428,-3.7723,1.6131,1.5754,1
+2.0177,1.7982,-2.9581,0.2099,1
+1.164,3.913,-4.5544,-3.8672,1
+-4.3667,6.0692,0.57208,-5.4668,1
+-2.5919,-1.0553,3.8949,0.77757,1
+-1.8046,-6.8141,6.7019,1.1681,1
+-0.71868,-5.7154,3.8298,1.0233,1
+1.4378,0.66837,-2.0267,1.0271,1
+2.1943,4.5503,-4.976,-2.7254,1
+0.7376,4.8525,-4.7986,-5.6659,1
+-5.637,8.1261,0.13081,-5.0142,1
+-3.0193,1.7775,0.73745,-0.45346,1
+-1.6706,-2.09,1.584,0.71162,1
+-0.1269,-1.1505,-0.95138,0.57843,1
+1.2198,2.0982,-3.1954,0.12843,1
+1.4501,3.6067,-4.0557,-1.5966,1
+-0.40857,3.0977,-2.9607,-2.6892,1
+-3.8952,3.8157,-0.31304,-3.8194,1
+-6.3679,8.0102,0.4247,-3.2207,1
+-4.1429,2.7749,0.68261,-0.71984,1
+-2.6864,-0.097265,0.61663,0.061192,1
+-1.0555,0.79459,-1.6968,-0.46768,1
+-0.29858,2.4769,-2.9512,-0.66165,1
+-0.49948,1.7734,-2.2469,-0.68104,1
+-1.9881,0.99945,-0.28562,-0.70044,1
+-1.9389,1.5706,0.045979,-1.122,1
+-1.4375,-1.8624,4.026,0.55127,1
+-3.1875,-7.5756,11.8678,-0.57889,1
+-4.6765,-5.6636,10.969,-0.33449,1
+-2.0285,3.8468,-0.63435,-1.175,1
+0.26637,0.73252,-0.67891,0.03533,1
+-1.7589,-6.4624,8.4773,0.31981,1
+-3.5985,-13.6593,17.6052,-2.4927,1
+-3.3582,-7.2404,11.4419,-0.57113,1
+-2.3629,-0.10554,1.9336,1.1358,1
+-2.1802,3.3791,-1.2256,-2.6621,1
+-0.40951,-0.15521,0.060545,-0.088807,1
+-2.2918,-7.257,7.9597,0.9211,1
+-4.0214,-12.8006,15.6199,-0.95647,1
+-3.3884,-8.215,10.3315,0.98187,1
+-2.0046,-0.49457,1.333,1.6543,1
+-1.7063,2.7956,-2.378,-2.3491,1
+-1.6386,3.3584,-1.7302,-3.5646,1
+-0.41645,0.32487,-0.33617,-0.36036,1
+-1.5877,-6.6072,5.8022,0.31593,1
+-2.5961,-9.349,9.7942,-0.28018,1
+-1.5228,-6.4789,5.7568,0.87325,1
+-0.53072,-0.097265,-0.21793,1.0426,1
+-0.49081,2.8452,-3.6436,-3.1004,1
+-6.5773,6.8017,0.85483,-7.5344,1
+-2.4621,2.7645,-0.62578,-2.8573,1
+-1.3995,-1.9162,2.5154,0.59912,1
+-2.3221,-9.3304,9.233,-0.79871,1
+-3.73,-12.9723,12.9817,-2.684,1
+-1.6988,-7.1163,5.7902,0.16723,1
+-0.26654,-0.64562,-0.42014,0.89136,1
+0.33325,3.3108,-4.5081,-4.012,1
+-4.2091,4.7283,-0.49126,-5.2159,1
+-2.3142,-0.68494,1.9833,-0.44829,1
+-2.4835,-7.4494,6.8964,-0.64484,1
+-2.7611,-10.5099,9.0239,-1.9547,1
+-0.36025,-4.449,2.1067,0.94308,1
+1.0117,0.9022,-2.3506,0.42714,1
+0.96708,3.8426,-4.9314,-4.1323,1
+-5.2049,7.259,0.070827,-7.3004,1
+-3.3203,-0.02691,2.9618,-0.44958,1
+-2.565,-5.7899,6.0122,0.046968,1
+-1.5951,-6.572,4.7689,-0.94354,1
+0.7049,0.17174,-1.7859,0.36119,1
+1.7331,3.9544,-4.7412,-2.5017,1
+0.6818,4.8504,-5.2133,-6.1043,1
+-6.3364,9.2848,0.014275,-6.7844,1
+-3.8053,2.4273,0.6809,-1.0871,1
+-2.1979,-2.1252,1.7151,0.45171,1
+-0.87874,-2.2121,-0.051701,0.099985,1
+0.74067,1.7299,-3.1963,-0.1457,1
+0.98296,3.4226,-3.9692,-1.7116,1
+-0.3489,3.1929,-3.4054,-3.1832,1
+-3.8552,3.5219,-0.38415,-3.8608,1
+-6.9599,8.9931,0.2182,-4.572,1
+-4.7462,3.1205,1.075,-1.2966,1
+-3.2051,-0.14279,0.97565,0.045675,1
+-1.7549,-0.080711,-0.75774,-0.3707,1
+-0.59587,2.4811,-2.8673,-0.89828,1
+-0.89542,2.0279,-2.3652,-1.2746,1
+-2.0754,1.2767,-0.64206,-1.2642,1
+-3.2778,1.8023,0.1805,-2.3931,1
+-2.2183,-1.254,2.9986,0.36378,1
+-3.5895,-6.572,10.5251,-0.16381,1
+-5.0477,-5.8023,11.244,-0.3901,1
+-3.5741,3.944,-0.07912,-2.1203,1
+-0.7351,1.7361,-1.4938,-1.1582,1
+-2.2617,-4.7428,6.3489,0.11162,1
+-4.244,-13.0634,17.1116,-2.8017,1
+-4.0218,-8.304,12.555,-1.5099,1
+-3.0201,-0.67253,2.7056,0.85774,1
+-2.4941,3.5447,-1.3721,-2.8483,1
+-0.83121,0.039307,0.05369,-0.23105,1
+-2.5665,-6.8824,7.5416,0.70774,1
+-4.4018,-12.9371,15.6559,-1.6806,1
+-3.7573,-8.2916,10.3032,0.38059,1
+-2.4725,-0.40145,1.4855,1.1189,1
+-1.9725,2.8825,-2.3086,-2.3724,1
+-2.0149,3.6874,-1.9385,-3.8918,1
+-0.82053,0.65181,-0.48869,-0.52716,1
+-1.7886,-6.3486,5.6154,0.42584,1
+-2.9138,-9.4711,9.7668,-0.60216,1
+-1.8343,-6.5907,5.6429,0.54998,1
+-0.8734,-0.033118,-0.20165,0.55774,1
+-0.70346,2.957,-3.5947,-3.1457,1
+-6.7387,6.9879,0.67833,-7.5887,1
+-2.7723,3.2777,-0.9351,-3.1457,1
+-1.6641,-1.3678,1.997,0.52283,1
+-2.4349,-9.2497,8.9922,-0.50001,1
+-3.793,-12.7095,12.7957,-2.825,1
+-1.9551,-6.9756,5.5383,-0.12889,1
+-0.69078,-0.50077,-0.35417,0.47498,1
+0.025013,3.3998,-4.4327,-4.2655,1
+-4.3967,4.9601,-0.64892,-5.4719,1
+-2.456,-0.24418,1.4041,-0.45863,1
+-2.62,-6.8555,6.2169,-0.62285,1
+-2.9662,-10.3257,8.784,-2.1138,1
+-0.71494,-4.4448,2.2241,0.49826,1
+0.6005,0.99945,-2.2126,0.097399,1
+0.61652,3.8944,-4.7275,-4.3948,1
+-5.4414,7.2363,0.10938,-7.5642,1
+-3.5798,0.45937,2.3457,-0.45734,1
+-2.7769,-5.6967,5.9179,0.37671,1
+-1.8356,-6.7562,5.0585,-0.55044,1
+0.30081,0.17381,-1.7542,0.48921,1
+1.3403,4.1323,-4.7018,-2.5987,1
+0.26877,4.987,-5.1508,-6.3913,1
+-6.5235,9.6014,-0.25392,-6.9642,1
+-4.0679,2.4955,0.79571,-1.1039,1
+-2.564,-1.7051,1.5026,0.32757,1
+-1.3414,-1.9162,-0.15538,-0.11984,1
+0.23874,2.0879,-3.3522,-0.66553,1
+0.6212,3.6771,-4.0771,-2.0711,1
+-0.77848,3.4019,-3.4859,-3.5569,1
+-4.1244,3.7909,-0.6532,-4.1802,1
+-7.0421,9.2,0.25933,-4.6832,1
+-4.9462,3.5716,0.82742,-1.4957,1
+-3.5359,0.30417,0.6569,-0.2957,1
+-2.0662,0.16967,-1.0054,-0.82975,1
+-0.88728,2.808,-3.1432,-1.2035,1
+-1.0941,2.3072,-2.5237,-1.4453,1
+-2.4458,1.6285,-0.88541,-1.4802,1
+-3.551,1.8955,0.1865,-2.4409,1
+-2.2811,-0.85669,2.7185,0.044382,1
+-3.6053,-5.974,10.0916,-0.82846,1
+-5.0676,-5.1877,10.4266,-0.86725,1
+-3.9204,4.0723,-0.23678,-2.1151,1
+-1.1306,1.8458,-1.3575,-1.3806,1
+-2.4561,-4.5566,6.4534,-0.056479,1
+-4.4775,-13.0303,17.0834,-3.0345,1
+-4.1958,-8.1819,12.1291,-1.6017,1
+-3.38,-0.7077,2.5325,0.71808,1
+-2.4365,3.6026,-1.4166,-2.8948,1
+-0.77688,0.13036,-0.031137,-0.35389,1
+-2.7083,-6.8266,7.5339,0.59007,1
+-4.5531,-12.5854,15.4417,-1.4983,1
+-3.8894,-7.8322,9.8208,0.47498,1
+-2.5084,-0.22763,1.488,1.2069,1
+-2.1652,3.0211,-2.4132,-2.4241,1
+-1.8974,3.5074,-1.7842,-3.8491,1
+-0.62043,0.5587,-0.38587,-0.66423,1
+-1.8387,-6.301,5.6506,0.19567,1
+-3,-9.1566,9.5766,-0.73018,1
+-1.9116,-6.1603,5.606,0.48533,1
+-1.005,0.084831,-0.2462,0.45688,1
+-0.87834,3.257,-3.6778,-3.2944,1
+-6.651,6.7934,0.68604,-7.5887,1
+-2.5463,3.1101,-0.83228,-3.0358,1
+-1.4377,-1.432,2.1144,0.42067,1
+-2.4554,-9.0407,8.862,-0.86983,1
+-3.9411,-12.8792,13.0597,-3.3125,1
+-2.1241,-6.8969,5.5992,-0.47156,1
+-0.74324,-0.32902,-0.42785,0.23317,1
+-0.071503,3.7412,-4.5415,-4.2526,1
+-4.2333,4.9166,-0.49212,-5.3207,1
+-2.3675,-0.43663,1.692,-0.43018,1
+-2.5526,-7.3625,6.9255,-0.66811,1
+-3.0986,-10.4602,8.9717,-2.3427,1
+-0.89809,-4.4862,2.2009,0.50731,1
+0.56232,1.0015,-2.2726,-0.0060486,1
+0.53936,3.8944,-4.8166,-4.3418,1
+-5.3012,7.3915,0.029699,-7.3987,1
+-3.3553,0.35591,2.6473,-0.37846,1
+-2.7908,-5.7133,5.953,0.45946,1
+-1.9983,-6.6072,4.8254,-0.41984,1
+0.15423,0.11794,-1.6823,0.59524,1
+1.208,4.0744,-4.7635,-2.6129,1
+0.2952,4.8856,-5.149,-6.2323,1
+-6.4247,9.5311,0.022844,-6.8517,1
+-3.9933,2.6218,0.62863,-1.1595,1
+-2.659,-1.6058,1.3647,0.16464,1
+-1.4094,-2.1252,-0.10397,-0.19225,1
+0.11032,1.9741,-3.3668,-0.65259,1
+0.52374,3.644,-4.0746,-1.9909,1
+-0.76794,3.4598,-3.4405,-3.4276,1
+-3.9698,3.6812,-0.60008,-4.0133,1
+-7.0364,9.2931,0.16594,-4.5396,1
+-4.9447,3.3005,1.063,-1.444,1
+-3.5933,0.22968,0.7126,-0.3332,1
+-2.1674,0.12415,-1.0465,-0.86208,1
+-0.9607,2.6963,-3.1226,-1.3121,1
+-1.0802,2.1996,-2.5862,-1.2759,1
+-2.3277,1.4381,-0.82114,-1.2862,1
+-3.7244,1.9037,-0.035421,-2.5095,1
+-2.5724,-0.95602,2.7073,-0.16639,1
+-3.9297,-6.0816,10.0958,-1.0147,1
+-5.2943,-5.1463,10.3332,-1.1181,1
+-3.8953,4.0392,-0.3019,-2.1836,1
+-1.2244,1.7485,-1.4801,-1.4181,1
+-2.6406,-4.4159,5.983,-0.13924,1
+-4.6338,-12.7509,16.7166,-3.2168,1
+-4.2887,-7.8633,11.8387,-1.8978,1
+-3.3458,-0.50491,2.6328,0.53705,1
+-1.1188,3.3357,-1.3455,-1.9573,1
+0.55939,-0.3104,0.18307,0.44653,1
+-1.5078,-7.3191,7.8981,1.2289,1
+-3.506,-12.5667,15.1606,-0.75216,1
+-2.9498,-8.273,10.2646,1.1629,1
+-1.6029,-0.38903,1.62,1.9103,1
+-1.2667,2.8183,-2.426,-1.8862,1
+-0.49281,3.0605,-1.8356,-2.834,1
+0.66365,-0.045533,-0.18794,0.23447,1
+-0.72068,-6.7583,5.8408,0.62369,1
+-1.9966,-9.5001,9.682,-0.12889,1
+-0.97325,-6.4168,5.6026,1.0323,1
+-0.025314,-0.17383,-0.11339,1.2198,1
+0.062525,2.9301,-3.5467,-2.6737,1
+-5.525,6.3258,0.89768,-6.6241,1
+-1.2943,2.6735,-0.84085,-2.0323,1
+-0.24037,-1.7837,2.135,1.2418,1
+-1.3968,-9.6698,9.4652,-0.34872,1
+-2.9672,-13.2869,13.4727,-2.6271,1
+-1.1005,-7.2508,6.0139,0.36895,1
+0.22432,-0.52147,-0.40386,1.2017,1
+0.90407,3.3708,-4.4987,-3.6965,1
+-2.8619,4.5193,-0.58123,-4.2629,1
+-1.0833,-0.31247,1.2815,0.41291,1
+-1.5681,-7.2446,6.5537,-0.1276,1
+-2.0545,-10.8679,9.4926,-1.4116,1
+0.2346,-4.5152,2.1195,1.4448,1
+1.581,0.86909,-2.3138,0.82412,1
+1.5514,3.8013,-4.9143,-3.7483,1
+-4.1479,7.1225,-0.083404,-6.4172,1
+-2.2625,-0.099335,2.8127,0.48662,1
+-1.7479,-5.823,5.8699,1.212,1
+-0.95923,-6.7128,4.9857,0.32886,1
+1.3451,0.23589,-1.8785,1.3258,1
+2.2279,4.0951,-4.8037,-2.1112,1
+1.2572,4.8731,-5.2861,-5.8741,1
+-5.3857,9.1214,-0.41929,-5.9181,1
+-2.9786,2.3445,0.52667,-0.40173,1
+-1.5851,-2.1562,1.7082,0.9017,1
+-0.21888,-2.2038,-0.0954,0.56421,1
+1.3183,1.9017,-3.3111,0.065071,1
+1.4896,3.4288,-4.0309,-1.4259,1
+0.11592,3.2219,-3.4302,-2.8457,1
+-3.3924,3.3564,-0.72004,-3.5233,1
+-6.1632,8.7096,-0.21621,-3.6345,1
+-4.0786,2.9239,0.87026,-0.65389,1
+-2.5899,-0.3911,0.93452,0.42972,1
+-1.0116,-0.19038,-0.90597,0.003003,1
+0.066129,2.4914,-2.9401,-0.62156,1
+-0.24745,1.9368,-2.4697,-0.80518,1
+-1.5732,1.0636,-0.71232,-0.8388,1
+-2.1668,1.5933,0.045122,-1.678,1
+-1.1667,-1.4237,2.9241,0.66119,1
+-2.8391,-6.63,10.4849,-0.42113,1
+-4.5046,-5.8126,10.8867,-0.52846,1
+-2.41,3.7433,-0.40215,-1.2953,1
+0.40614,1.3492,-1.4501,-0.55949,1
+-1.3887,-4.8773,6.4774,0.34179,1
+-3.7503,-13.4586,17.5932,-2.7771,1
+-3.5637,-8.3827,12.393,-1.2823,1
+-2.5419,-0.65804,2.6842,1.1952,1`;
+const BILLETES_COLS = ["variance","skewness","curtosis","entropy","class"];
+/* Partición y pliegues EXACTOS del Colab (scikit-learn, random_state = 42):
+   - entreno / prueba: filas que devuelve train_test_split(test_size=0.2, stratify=y), en su mismo orden
+   - pliegue: número de pliegue (0 a 4) de cada fila en StratifiedKFold(5, shuffle=True, random_state=42)
+   Con estas filas y el mismo entrenamiento de scikit-learn, la página da las mismas cifras del Colab. */
+const COLAB = {"prueba":[385,899,47,1018,786,1346,645,32,200,887,646,1270,52,201,347,663,1166,956,767,134,546,1121,1201,313,187,1124,1363,1231,1339,105,966,1324,13,1348,1025,1096,20,764,330,577,1081,1034,1242,475,1111,1126,454,389,652,1147,1014,492,1000,489,867,64,592,953,726,14,252,387,927,1135,366,378,269,214,555,308,476,699,854,156,856,561,1303,339,217,862,839,160,1010,1069,62,1287,401,1098,1164,844,295,868,504,672,647,520,769,894,1162,455,563,413,1,600,573,670,241,460,1274,1316,1305,1299,704,121,315,565,471,337,1354,1323,189,170,759,95,1371,498,612,474,35,944,138,128,34,787,907,566,379,847,1076,1269,345,1196,40,1304,491,997,687,804,191,251,1367,755,992,941,276,553,1091,484,1035,665,1204,574,716,1107,750,564,803,828,27,80,906,834,418,206,872,1285,807,397,427,1235,205,106,711,270,661,814,230,1307,1281,1246,458,768,715,989,159,502,812,977,822,1295,58,562,1272,1328,830,795,987,240,766,975,1042,741,1211,1073,973,614,1130,1208,540,1227,242,21,808,4,466,91,1043,1155,524,681,505,508,87,1186,71,85,686,800,510,560,809,1185,166,161,216,459,98,288,1267,870,789,776,461,102,273,130,882,817,243,406,99,556,842,945,391,392,1064,372,1352,994,700,343,654,435,744],"pliegue":"1102324040032141112323432342232303021441212420041344212400243400113433044311242044403432403301230441040214202020401111403013330443422040220101234240322121320231010003311011104142043340202102102444040201233101222300024413232011030224004301432313241422134141413211402200403023422000143213313314203122422322010134444130324114210210311104004110424213013331230334313223024114400430243211234003413324222403023201422402212031031142313104221021220311042133410440114433430404310044033232410131031202101142322414041442333444130333013022000241440402113441120343004432321040411120112124023341434324314230142132242112214432344444330113031444031333412241044303230010041321223300340430010321102113241113230320430103222023210232114434313341434303310231112232240402032130404001202342212140340440204300314232144233102141402140242312121020302343113310134002110433204333004430211333402033041240302222413103413042040330332100132310104441401120321222100200141410112221024414324433134200410211102123212304211334210443030143123130241232420121033441310131031034340404131231211312330142242404343431434444124133341220334414442434422234110011200233241013424112222322223032300333244423432424220110414320131222132041004100142233242134313130404014301241303001321214323240001213231342331221003001332403414104030114401204310424200242314034422020200201100400402414343030004122430100113040423111040443122332","entreno":[924,1258,342,1283,1005,1234,457,1191,695,660,1142,729,999,589,1203,662,1131,1087,636,493,1302,543,1071,101,1366,1294,892,1344,328,575,235,1298,1194,84,1329,133,1030,1335,900,354,226,538,635,1262,1003,346,861,605,511,1140,186,1259,396,259,390,915,336,16,694,228,1337,852,1017,1275,933,777,895,916,1065,287,597,599,846,1320,526,48,567,990,301,1060,488,261,1067,971,1306,449,229,1151,1240,1070,677,63,733,1291,224,1156,1237,12,617,1006,239,735,1212,263,136,480,937,1257,194,742,1331,1312,547,1207,1088,1154,627,1247,28,571,292,922,820,431,319,806,483,634,1219,115,1074,1019,725,222,171,825,981,607,501,116,1254,56,837,388,864,1123,60,450,277,957,223,499,1082,1175,628,317,918,794,65,609,79,183,1013,472,173,770,358,442,88,49,1326,429,256,213,312,889,405,341,1066,145,632,626,815,581,1218,155,784,1125,348,1138,45,897,1249,529,576,719,955,1209,1250,650,979,1041,1108,1085,1036,356,1188,1056,684,266,1174,1327,487,898,845,198,885,703,674,606,799,875,377,1360,184,409,1062,948,874,1232,41,901,682,630,813,127,1343,568,1102,280,1120,338,151,1284,1109,51,1129,762,237,622,54,706,756,410,485,282,311,395,739,1165,934,532,402,321,972,477,307,513,503,913,1351,365,411,587,1345,408,437,1189,1342,1083,42,126,233,75,231,991,172,1255,1176,209,960,621,426,962,771,245,696,382,550,943,737,1173,608,819,879,517,53,44,374,211,490,1132,1016,1105,618,525,728,727,497,275,1027,1297,1216,963,531,938,1158,691,782,96,602,1268,59,247,792,1181,164,165,930,512,1054,323,441,306,877,10,638,1115,588,7,676,507,3,1152,57,1321,509,1094,371,970,530,283,869,150,679,583,860,710,1145,843,707,55,453,17,1182,740,367,656,167,1355,797,702,383,373,840,557,1169,698,1195,666,369,969,558,440,633,914,1300,717,921,199,324,1200,1349,779,303,462,1286,433,1315,23,144,1157,444,257,832,1238,1313,1332,486,19,802,785,316,204,1356,110,613,866,1009,734,271,1119,238,43,949,1101,425,993,404,1080,693,653,919,838,331,831,1059,611,1252,1290,218,644,1170,97,1277,1161,190,534,255,1205,123,482,420,361,234,747,796,1078,1341,932,675,1353,910,1172,552,174,195,668,279,148,494,1110,1198,1044,1001,705,998,926,923,1311,340,535,688,1280,595,690,1347,959,982,708,753,370,118,1045,1022,61,113,893,221,293,1266,570,412,15,1039,394,585,1183,6,871,818,363,1350,697,467,297,940,1214,1103,904,995,1340,69,1021,26,701,805,730,196,669,1049,1358,539,1159,880,655,436,1370,1289,70,594,1047,578,375,639,637,448,1217,912,542,936,109,1322,514,1325,1336,1309,416,731,1301,140,1112,193,332,1116,931,958,445,720,829,890,649,1265,968,1020,554,1011,648,419,355,447,168,798,881,146,403,29,114,749,73,640,996,169,974,596,736,827,1092,500,625,947,181,207,857,1264,896,320,479,601,884,1028,24,72,322,31,333,658,274,678,1148,22,177,1163,811,849,400,774,1075,1122,1330,1271,886,464,506,299,30,162,709,1261,203,185,763,1288,1187,1256,422,1293,451,1215,1221,1245,74,761,961,25,1334,559,743,624,801,478,9,154,722,350,2,76,1177,724,137,1037,265,1192,302,260,793,1136,821,790,712,1364,112,851,1153,1090,267,905,721,351,1226,82,549,523,616,909,1263,262,519,723,732,823,289,284,593,631,33,1357,1023,1282,149,244,175,978,1055,468,393,950,300,984,908,325,683,620,1197,1160,1296,108,143,980,623,496,586,522,384,1314,848,714,1004,1007,291,37,1099,1171,131,254,119,1033,689,659,124,641,1180,850,362,357,376,1233,781,304,1241,253,1084,780,81,1190,590,208,90,495,855,911,353,775,548,1317,1128,643,285,452,202,536,381,1058,77,1213,1260,533,179,18,965,1222,783,178,951,1097,92,249,456,1113,551,584,939,765,1024,1229,132,942,1117,598,225,692,11,876,544,1079,246,407,1244,810,738,180,1061,579,423,954,46,572,1278,329,268,264,83,757,1139,78,421,772,518,103,629,946,176,878,685,147,1046,359,1144,1273,751,272,8,424,1251,1114,816,1179,334,671,1292,298,841,286,473,1369,788,278,463,310,1276,1193,985,1228,1057,318,481,281,125,667,1104,248,528,983,1032,902,778,1253,122,1239,883,250,541,1279,139,380,1361,120,232,1368,1072,93,294,94,258,192,1127,1359,68,748,603,1052,432,163,36,227,5,891,135,236,1308,903,713,952,580,1029,360,928,104,1051,465,1053,219,470,619,1048,86,826,1210,158,1143,443,642,1095,1243,1220,38,364,1199,415,1168,888,582,758,111,1338,1008,1038,212,1040,152,1118,853,521,651,1223,858,754,976,1137,398,188,349,964,182,1318,657,129,1012,925,591,438,967,197,873,335,290,917,718,66,929,515,752,527,1133,1050,417,1178,1134,569,836,352,210,865,428,1362,1002,142,386,1100,1026,1365,988,430,863,434,314,153,100,39,604,745,0,1202,920,368,439,89,1146,1068,326,327,537,824,446,791,835,296,305,414,1106,746,1150,157,215,1225,1206,1031,469,680,545,1224,760,1089,1093,1236,610,220,1167,1248,935,399,1230,1015,107,1184,664,1086,1149,773,1310,344,1141,117,516,309,1077,141,859,986,833,67,50,673,1319,1333,615,1063]};
+/* Semilla interna con la que scikit-learn baraja los datos cuando Perceptron(random_state=42):
+   es el segundo número de np.random.RandomState(42).randint(...). */
+const SEMILLA_SKL_42 = 1273642419;
+const BILLETES_DESC = {
+  variance:"Varianza de la imagen transformada con wavelet: qué tan marcado es el contraste de la textura.",
+  skewness:"Asimetría de la imagen transformada con wavelet: si los valores se cargan más hacia un lado.",
+  curtosis:"Curtosis de la imagen transformada con wavelet: qué tan puntiaguda es la distribución.",
+  entropy:"Entropía de la imagen: cantidad de desorden o complejidad de la textura.",
+  "class":"Clase del billete: 0 = auténtico, 1 = falsificado."
+};
+
+/* ---------- utilidades ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function fmt(x, d = 2){
+  if (!Number.isFinite(x)) return "—";
+  const s = Math.abs(x).toFixed(d);
+  let [i, f] = s.split(".");
+  i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const neg = x < 0 && Number(s) !== 0;
+  return (neg ? "−" : "") + i + (f ? "," + f : "");
+}
+const pct = (x, d = 2) => Number.isFinite(x) ? fmt(x * 100, d) + " %" : "—";
+const ent = n => fmt(n, 0);
+const cu = (n, s, p) => `${ent(n)} ${n === 1 ? s : p}`;
+const corto = (s, n = 24) => s.length > n ? s.slice(0, n - 1) + "…" : s;
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function barajar(a, rng){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rng() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function cuantil(ordenado, q){
+  const n = ordenado.length; if (!n) return NaN;
+  const p = (n - 1) * q, lo = Math.floor(p), hi = Math.ceil(p);
+  return ordenado[lo] + (ordenado[hi] - ordenado[lo]) * (p - lo);
+}
+
+/* ---------- lectura del archivo ---------- */
+const FALTA = new Set(["", "na", "n/a", "nan", "null", "none", "?", "-", "#n/a", "missing"]);
+const falta = s => FALTA.has(String(s).trim().toLowerCase());
+let S = null;   // datos cargados
+let R = null;   // resultado del entrenamiento
+
+function partir(linea, sep){
+  if (sep === null) return linea.trim().split(/\s+/);
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < linea.length; i++){
+    const ch = linea[i];
+    if (q){
+      if (ch === '"'){ if (linea[i + 1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    } else if (ch === '"' && cur.trim() === ""){ q = true; cur = ""; }
+    else if (ch === sep){ out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+function detectarSeparador(lineas){
+  let mejor = null, puntaje = 0;
+  for (const c of [",", ";", "\t", "|"]){
+    const k = lineas.slice(0, 25).map(l => partir(l, c).length);
+    if (k[0] < 2) continue;
+    const iguales = k.filter(v => v === k[0]).length / k.length;
+    if (iguales >= 0.8 && k[0] * iguales > puntaje){ mejor = c; puntaje = k[0] * iguales; }
+  }
+  if (mejor === null){
+    const k = lineas.slice(0, 25).map(l => l.trim().split(/\s+/).length);
+    if (k[0] >= 2 && k.every(v => v === k[0])) return { sep: null, nombre: "espacios" };
+    return { sep: ",", nombre: "coma" };
+  }
+  return { sep: mejor, nombre: { ",": "coma", ";": "punto y coma", "\t": "tabulador", "|": "barra" }[mejor] };
+}
+function aNumero(s, comaDecimal){
+  s = String(s).trim();
+  if (falta(s)) return NaN;
+  if (comaDecimal && s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return NaN;
+  return Number(s);
+}
+
+function leerTexto(texto, nombreArchivo, opciones = {}){
+  texto = texto.replace(/^﻿/, "");
+  const lineas = texto.split(/\r\n|\n|\r/).filter(l => l.trim() !== "");
+  if (lineas.length < 2) throw new Error("El archivo tiene menos de dos filas con datos. Revisa que sea un CSV o TXT con una fila por registro.");
+  const { sep, nombre: sepNombre } = detectarSeparador(lineas);
+  let filas = lineas.map(l => partir(l, sep));
+  let comaDecimal = false;
+  if (sep !== ","){
+    const nc = Math.max(...filas.slice(0, 50).map(f => f.length));
+    for (let j = 0; j < nc && !comaDecimal; j++){
+      let si = 0, no = 0;
+      for (const f of filas.slice(0, 300)){ const c = (f[j] ?? "").trim(); if (c === "" || falta(c)) continue; if (/^[-+]?(\d{1,3}(\.\d{3})+|\d+),\d+$/.test(c)) si++; else no++; }
+      if (si >= 5 && si > (si + no) * 0.5) comaDecimal = true;
+    }
+  }
+  const ncol = Math.max(...filas.slice(0, 50).map(f => f.length));
+  if (ncol < 2) throw new Error("Solo encontramos una columna. El perceptrón necesita al menos una variable de entrada y una columna objetivo.");
+  let encabezado, nombres;
+  if (opciones.nombres){ encabezado = false; nombres = opciones.nombres.slice(); }
+  else {
+    const f0 = filas[0], cuerpo = filas.slice(1, 80);
+    const esNum = f0.map(c => !Number.isNaN(aNumero(c, comaDecimal)));
+    if (esNum.every(Boolean)) encabezado = false;
+    else {
+      encabezado = f0.some((c, j) => !esNum[j] && cuerpo.filter(r => !Number.isNaN(aNumero(r[j] ?? "", comaDecimal))).length > cuerpo.length * 0.8);
+      if (!encabezado) encabezado = f0.every((c, j) => !cuerpo.some(r => r[j] === c));
+    }
+    nombres = encabezado ? f0.map((c, j) => c.replace(/^"|"$/g, "").trim() || `columna ${j + 1}`) : Array.from({ length: ncol }, (_, j) => `columna ${j + 1}`);
+  }
+  while (nombres.length < ncol) nombres.push(`columna ${nombres.length + 1}`);
+  const vistos = {};
+  nombres = nombres.slice(0, ncol).map(n => { if (vistos[n]){ vistos[n]++; return `${n} (${vistos[n]})`; } vistos[n] = 1; return n; });
+  if (encabezado) filas = filas.slice(1);
+  const n = filas.length;
+  const cols = nombres.map((nombre, j) => perfilar(nombre, filas.map(f => (f[j] ?? "").trim()), comaDecimal));
+  return { archivo: nombreArchivo, sep, sepNombre, comaDecimal, encabezado, nombres, cols, n, filas, desc: opciones.desc || {}, clases: opciones.clases || null, demo: !!opciones.demo };
+}
+
+function perfilar(nombre, raw, comaDecimal){
+  const n = raw.length, nums = new Float64Array(n);
+  let faltan = 0, numOk = 0;
+  for (let i = 0; i < n; i++){
+    if (falta(raw[i])){ faltan++; nums[i] = NaN; continue; }
+    const v = aNumero(raw[i], comaDecimal); nums[i] = v;
+    if (!Number.isNaN(v)) numOk++;
+  }
+  const presentes = n - faltan;
+  const esNum = presentes > 0 && numOk >= presentes * 0.95;
+  const conteo = new Map();
+  for (let i = 0; i < n; i++){
+    if (falta(raw[i])) continue;
+    if (esNum && Number.isNaN(nums[i])) continue;
+    const k = esNum ? String(nums[i]) : raw[i];
+    conteo.set(k, (conteo.get(k) || 0) + 1);
+  }
+  const c = { nombre, raw, nums, faltan, presentes, esNum, conteo, unicos: conteo.size };
+  if (esNum){
+    const v = []; for (let i = 0; i < n; i++) if (!Number.isNaN(nums[i])) v.push(nums[i]);
+    v.sort((a, b) => a - b);
+    c.min = v[0]; c.max = v[v.length - 1]; c.mediana = cuantil(v, 0.5);
+    c.media = v.reduce((a, b) => a + b, 0) / v.length;
+    c.entera = v.every(Number.isInteger);
+    if (esNum) for (let i = 0; i < n; i++) if (!falta(raw[i]) && Number.isNaN(nums[i])) c.faltan++;
+  }
+  c.niveles = [...conteo.entries()].sort((a, b) => b[1] - a[1]);
+  c.pareceId = /^(id|.*[_\s.-]id|id[_\s.-].*|c[oó]digo|index|[ií]ndice|unnamed.*|row.?id|n[uú]mero|#)$/i.test(nombre.trim())
+    || (c.unicos === presentes && presentes >= 20 && (!esNum || c.entera));
+  c.objetivoPosible = c.unicos >= 2 && c.unicos <= 20;
+  return c;
+}
+const clave = (c, i) => c.esNum ? String(c.nums[i]) : c.raw[i];
+const catVal = (c, i) => falta(c.raw[i]) ? "(vacío)" : c.raw[i];
+const nombreValor = v => /^[-+]?\d+(\.\d+)?$/.test(v) ? `clase ${v.replace(".", ",")}` : v;
+
+/* ---------- carga ---------- */
+function mostrarError(lugar, texto){ $(lugar).innerHTML = texto ? `<div class="aviso" role="alert">${esc(texto)}</div>` : ""; }
+
+function cargar(texto, nombreArchivo, opciones){
+  try {
+    S = leerTexto(texto, nombreArchivo, opciones);
+  } catch (e){ mostrarError("msg-carga", e.message); return; }
+  mostrarError("msg-carga", "");
+  R = null;
+  $("resultados").hidden = true;
+  pintarDatos();
+  pintarConfig();
+  $("paso-datos").hidden = false; $("paso-config").hidden = false;
+  $("paso-datos").scrollIntoView({ block: "start" });
+}
+
+$("archivo").addEventListener("change", e => { const f = e.target.files[0]; if (f) leerArchivo(f); e.target.value = ""; });
+const zona = $("soltar");
+["dragenter", "dragover"].forEach(t => zona.addEventListener(t, e => { e.preventDefault(); zona.classList.add("sobre"); }));
+["dragleave", "drop"].forEach(t => zona.addEventListener(t, e => { e.preventDefault(); zona.classList.remove("sobre"); }));
+zona.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) leerArchivo(f); });
+function leerArchivo(f){
+  if (/\.(xlsx?|ods|json|parquet)$/i.test(f.name)){ mostrarError("msg-carga", `«${f.name}» no es texto plano. Guárdalo como CSV desde Excel o Sheets y súbelo de nuevo.`); return; }
+  const lector = new FileReader();
+  lector.onload = () => cargar(lector.result, f.name);
+  lector.onerror = () => mostrarError("msg-carga", "No se pudo leer el archivo. Intenta de nuevo o guárdalo otra vez como CSV.");
+  lector.readAsText(f);
+}
+$("demo").addEventListener("click", () => cargar(BILLETES, "data_banknote_authentication.txt", {
+  nombres: BILLETES_COLS, desc: BILLETES_DESC, demo: true, clases: { objetivo: "class", positiva: "1", n1: "falsificado", n0: "auténtico" }
+}));
+
+function pintarDatos(){
+  const sepTxt = S.sepNombre + (S.comaDecimal ? ", decimales con coma" : "");
+  $("info-archivo").innerHTML = `<span><b>${esc(S.archivo)}</b></span><span><b>${ent(S.n)}</b> filas</span><span><b>${S.cols.length}</b> columnas</span><span>Separador: <b>${esc(sepTxt)}</b></span><span>Encabezado: <b>${S.encabezado ? "sí" : "no, les pusimos nombre"}</b></span>`;
+  const muestra = S.filas.slice(0, 6);
+  $("vista").innerHTML = `<thead><tr>${S.nombres.map(n => `<th>${esc(corto(n, 28))}</th>`).join("")}</tr></thead><tbody>${muestra.map(f => `<tr>${S.nombres.map((_, j) => `<td>${esc(corto(f[j] ?? "", 28))}</td>`).join("")}</tr>`).join("")}</tbody>`;
+}
+
+function pintarConfig(){
+  const sel = $("objetivo");
+  const posibles = S.cols.map((c, j) => ({ c, j })).filter(o => o.c.objetivoPosible);
+  if (!posibles.length){
+    sel.innerHTML = ""; $("vars").innerHTML = ""; $("positiva").innerHTML = "";
+    mostrarError("msg-config", "Ninguna columna tiene entre 2 y 20 valores distintos, así que no hay una clase que predecir. El perceptrón simple necesita una columna objetivo con categorías, por ejemplo sí/no o 0/1.");
+    $("entrenar").disabled = true; return;
+  }
+  $("entrenar").disabled = false; mostrarError("msg-config", "");
+  sel.innerHTML = posibles.map(o => `<option value="${o.j}">${esc(o.c.nombre)} (${o.c.unicos} valores)</option>`).join("");
+  let j = posibles[posibles.length - 1].j;
+  if (S.clases){ const k = S.nombres.indexOf(S.clases.objetivo); if (k >= 0) j = k; }
+  else if (S.cols[S.cols.length - 1].objetivoPosible) j = S.cols.length - 1;
+  sel.value = String(j);
+  alCambiarObjetivo();
+}
+$("objetivo").addEventListener("change", alCambiarObjetivo);
+$("positiva").addEventListener("change", () => ponerNombres());
+
+function alCambiarObjetivo(){
+  const j = +$("objetivo").value, c = S.cols[j];
+  const niveles = c.niveles.map(x => x[0]);
+  const ordenados = niveles.slice().sort((a, b) => c.esNum ? Number(a) - Number(b) : a.localeCompare(b));
+  $("positiva").innerHTML = ordenados.map(v => `<option value="${esc(v)}">${esc(c.esNum ? v.replace(".", ",") : v)} (${ent(c.conteo.get(v))})</option>`).join("");
+  let pos;
+  const bajos = niveles.map(v => v.toLowerCase());
+  const preferidos = ["1", "yes", "si", "sí", "true", "positivo", "y", "s"];
+  if (S.clases && S.cols[j].nombre === S.clases.objetivo) pos = S.clases.positiva;
+  else { const k = preferidos.map(p => bajos.indexOf(p)).find(i => i >= 0); pos = k !== undefined ? niveles[k] : c.niveles[c.niveles.length - 1][0]; }
+  $("positiva").value = pos;
+  $("objetivo-det").textContent = c.faltan ? `${cu(c.faltan, "fila no tiene", "filas no tienen")} valor aquí y se dejarán por fuera.` : "Sin valores vacíos.";
+  ponerNombres();
+  pintarVariables();
+}
+function ponerNombres(){
+  const j = +$("objetivo").value, c = S.cols[j], pos = $("positiva").value;
+  if (S.clases && c.nombre === S.clases.objetivo && pos === S.clases.positiva){ $("nombre1").value = S.clases.n1; $("nombre0").value = S.clases.n0; return; }
+  $("nombre1").value = nombreValor(pos);
+  $("nombre0").value = c.unicos === 2 ? nombreValor(c.niveles.map(x => x[0]).find(v => v !== pos)) : `no ${nombreValor(pos)}`;
+}
+function pintarVariables(){
+  const jo = +$("objetivo").value;
+  $("vars").innerHTML = S.cols.map((c, j) => {
+    if (j === jo) return "";
+    let det, marcada = true, apagada = false;
+    if (c.esNum){
+      det = `numérica, de ${fmt(c.min)} a ${fmt(c.max)}`;
+      if (c.pareceId){ det = "parece un identificador"; marcada = false; }
+      else if (c.min === c.max){ det = "siempre vale lo mismo"; marcada = false; apagada = true; }
+    } else {
+      det = `texto, ${cu(c.unicos, "categoría", "categorías")}`;
+      if (c.pareceId){ det = "parece un identificador"; marcada = false; apagada = c.unicos > 50; }
+      else if (c.unicos > 50){ det = `texto con ${ent(c.unicos)} categorías, demasiadas`; marcada = false; apagada = true; }
+      else if (c.unicos > 20){ marcada = false; det += ", muchas"; }
+      else if (c.unicos < 2){ det = "siempre vale lo mismo"; marcada = false; apagada = true; }
+    }
+    if (c.faltan && !apagada) det += `, ${ent(c.faltan)} vacías`;
+    return `<label class="var${apagada ? " apagada" : ""}"><input type="checkbox" value="${j}" ${marcada && !apagada ? "checked" : ""} ${apagada ? "disabled" : ""}><span><span class="nom">${esc(c.nombre)}</span><span class="det">${esc(det)}</span></span></label>`;
+  }).join("");
+}
+
+/* ---------- preparación y modelo ---------- */
+function ajustarPrep(feats, filas){
+  const spec = [];
+  for (const j of feats){
+    const c = S.cols[j];
+    if (c.esNum){
+      const v = []; for (const i of filas){ const x = c.nums[i]; if (!Number.isNaN(x)) v.push(x); }
+      v.sort((a, b) => a - b);
+      const med = v.length ? cuantil(v, 0.5) : 0;
+      let m = 0; for (const i of filas){ const x = Number.isNaN(c.nums[i]) ? med : c.nums[i]; m += x; } m /= filas.length;
+      let s = 0; for (const i of filas){ const x = Number.isNaN(c.nums[i]) ? med : c.nums[i]; s += (x - m) ** 2; } s = Math.sqrt(s / filas.length);
+      spec.push({ tipo: "num", j, nombre: c.nombre, base: c.nombre, med, media: m, desv: s > 0 ? s : 1 });
+    } else {
+      const lv = new Set(); for (const i of filas) lv.add(catVal(c, i));
+      [...lv].sort((a, b) => a.localeCompare(b)).forEach(v => spec.push({ tipo: "cat", j, nombre: `${c.nombre} = ${v}`, base: c.nombre, val: v }));
+    }
+  }
+  return spec;
+}
+function valorX(f, cruda){ // cruda: número o texto
+  if (f.tipo === "num"){ const x = Number.isNaN(cruda) ? f.med : cruda; return (x - f.media) / f.desv; }
+  return cruda === f.val ? 1 : 0;
+}
+function transformar(spec, filas){
+  const d = spec.length, X = new Float64Array(filas.length * d);
+  filas.forEach((i, r) => { for (let k = 0; k < d; k++){ const f = spec[k], c = S.cols[f.j]; X[r * d + k] = valorX(f, f.tipo === "num" ? c.nums[i] : catVal(c, i)); } });
+  return X;
+}
+/* Entrenamiento igual al de scikit-learn (Perceptron = SGD con pérdida perceptrón, η constante):
+   - al empezar cada época baraja con su generador our_rand_r, siempre desde la misma semilla;
+   - corrige cuando y·z ≤ 0 (y en {−1, +1}): w ← w + η·y·x y b ← b + η·y;
+   - se detiene cuando lleva 5 épocas seguidas sin que la pérdida baje al menos tol·n (tol = 0,001). */
+function semillaBarajado(semilla){ return semilla === 42 ? SEMILLA_SKL_42 : ((Math.imul((semilla ^ 0x5bd1e995) >>> 0, 2654435761) >>> 0) || 1); }
+function entrenar(X, y, n, d, eta, maxEp, semillaSk){
+  const w = new Float64Array(d); let b = 0; const errores = [];
+  const orden = new Int32Array(n); for (let i = 0; i < n; i++) orden[i] = i;
+  const tol = 1e-3; let mejor = Infinity, sinMejora = 0, motivo = "maximo";
+  for (let ep = 1; ep <= maxEp; ep++){
+    let s = semillaSk >>> 0;
+    for (let i = 0; i < n - 1; i++){
+      s = (s ^ (s << 13)) >>> 0; s = (s ^ (s >>> 17)) >>> 0; s = (s ^ (s << 5)) >>> 0;
+      const j = i + ((s & 0x7FFFFFFF) % (n - i));
+      const t = orden[i]; orden[i] = orden[j]; orden[j] = t;
+    }
+    let e = 0, perdida = 0;
+    for (let q = 0; q < n; q++){
+      const r = orden[q], o = r * d; let z = 0;
+      for (let k = 0; k < d; k++) z += w[k] * X[o + k];
+      z += b;
+      const ys = y[r] === 1 ? 1 : -1;
+      if (ys * z <= 0){
+        e++; perdida -= ys * z;
+        const paso = eta * ys;
+        for (let k = 0; k < d; k++) w[k] += X[o + k] * paso;
+        b += paso;
+      }
+    }
+    errores.push(e);
+    if (perdida > mejor - tol * n) sinMejora++; else sinMejora = 0;
+    if (perdida < mejor) mejor = perdida;
+    if (sinMejora >= 5){ motivo = errores.some(v => v === 0) ? "convergio" : "estancado"; break; }
+  }
+  return { w, b, errores, motivo };
+}
+function puntajes(X, n, d, w, b){ const z = new Float64Array(n); for (let r = 0; r < n; r++){ let s = b; for (let k = 0; k < d; k++) s += w[k] * X[r * d + k]; z[r] = s; } return z; }
+function evaluar(y, yh){
+  let vn = 0, fp = 0, fn = 0, vp = 0;
+  for (let i = 0; i < y.length; i++){ if (y[i] === 1){ yh[i] === 1 ? vp++ : fn++; } else { yh[i] === 1 ? fp++ : vn++; } }
+  const n = y.length, acc = (vp + vn) / n, prec = vp + fp ? vp / (vp + fp) : 0, rec = vp + fn ? vp / (vp + fn) : 0, f1 = prec + rec ? 2 * prec * rec / (prec + rec) : 0;
+  return { vn, fp, fn, vp, n, acc, prec, rec, f1 };
+}
+function particion(y, prop, rng){
+  const prueba = [], entreno = [], N = y.length, nPrueba = Math.ceil(prop * N);
+  const grupos = [0, 1].map(c => { const idx = []; for (let p = 0; p < N; p++) if (y[p] === c) idx.push(p); return idx; });
+  const cuota = grupos.map(g => g.length * nPrueba / N), k = cuota.map(Math.floor);
+  let resto = nPrueba - k[0] - k[1];
+  [0, 1].sort((a, b) => (cuota[b] - k[b]) - (cuota[a] - k[a])).forEach(c => { if (resto > 0){ k[c]++; resto--; } });
+  grupos.forEach((idx, c) => { barajar(idx, rng); const kk = Math.min(Math.max(1, k[c]), idx.length - 1); idx.forEach((p, t) => (t < kk ? prueba : entreno).push(p)); });
+  return { entreno: entreno.sort((a, b) => a - b), prueba: prueba.sort((a, b) => a - b) };
+}
+
+function ejecutar(){
+  const jo = +$("objetivo").value, T = S.cols[jo], pos = $("positiva").value;
+  const feats = [...$("vars").querySelectorAll("input:checked")].map(x => +x.value);
+  const n1 = $("nombre1").value.trim() || "clase 1", n0 = $("nombre0").value.trim() || "clase 0";
+  const prop = +$("prueba").value, eta = +$("eta").value, maxEp = Math.round(+$("epocas").value), semilla = Math.round(+$("semilla").value);
+  if (!feats.length) throw new Error("Marca al menos una variable de entrada.");
+  if (!(eta > 0)) throw new Error("La tasa de aprendizaje tiene que ser mayor que cero.");
+  if (!(maxEp >= 1 && maxEp <= 5000)) throw new Error("Las épocas máximas deben estar entre 1 y 5.000.");
+  const filas = []; for (let i = 0; i < S.n; i++) if (!falta(T.raw[i]) && !(T.esNum && Number.isNaN(T.nums[i]))) filas.push(i);
+  const yTodo = Int8Array.from(filas, i => clave(T, i) === pos ? 1 : 0);
+  const n1Total = yTodo.reduce((a, b) => a + b, 0), n0Total = yTodo.length - n1Total;
+  if (n1Total < 2 || n0Total < 2) throw new Error(`Cada clase necesita al menos 2 registros y hay ${ent(n1Total)} de «${n1}» y ${ent(n0Total)} de «${n0}».`);
+  const igualColab = S.demo && T.nombre === "class" && prop === 0.2 && semilla === 42 && filas.length === COLAB.pliegue.length;
+  const part = igualColab ? { entreno: COLAB.entreno.slice(), prueba: COLAB.prueba.slice() } : particion(yTodo, prop, mulberry32(semilla));
+  const semillaSk = semillaBarajado(semilla);
+  const fe = part.entreno.map(p => filas[p]), fp_ = part.prueba.map(p => filas[p]);
+  const yE = Int8Array.from(part.entreno, p => yTodo[p]), yP = Int8Array.from(part.prueba, p => yTodo[p]);
+  const spec = ajustarPrep(feats, fe), d = spec.length;
+  const XE = transformar(spec, fe), XP = transformar(spec, fp_);
+  const mod = entrenar(XE, yE, fe.length, d, eta, maxEp, semillaSk);
+  const zE = puntajes(XE, fe.length, d, mod.w, mod.b), zP = puntajes(XP, fp_.length, d, mod.w, mod.b);
+  const yhP = Int8Array.from(zP, z => z >= 0 ? 1 : 0), yhE = Int8Array.from(zE, z => z >= 0 ? 1 : 0);
+  const m = evaluar(yP, yhP), mE = evaluar(yE, yhE);
+  const mayor = yE.reduce((a, b) => a + b, 0) > yE.length / 2 ? 1 : 0;
+  const base = evaluar(yP, new Int8Array(yP.length).fill(mayor));
+  // validación cruzada estratificada
+  const K = Math.min(5, n1Total, n0Total);
+  let cv = null;
+  if (K >= 2){
+    const pliegue = new Int8Array(yTodo.length);
+    if (igualColab) for (let p = 0; p < yTodo.length; p++) pliegue[p] = +COLAB.pliegue[p];
+    else { const rngCv = mulberry32(semilla + 7); for (const c of [0, 1]){ const idx = []; for (let p = 0; p < yTodo.length; p++) if (yTodo[p] === c) idx.push(p); barajar(idx, rngCv).forEach((p, t) => pliegue[p] = t % K); } }
+    cv = [];
+    for (let k = 0; k < K; k++){
+      const tr = [], va = []; for (let p = 0; p < yTodo.length; p++) (pliegue[p] === k ? va : tr).push(p);
+      const ftr = tr.map(p => filas[p]), fva = va.map(p => filas[p]);
+      const sp = ajustarPrep(feats, ftr), dd = sp.length;
+      const Xa = transformar(sp, ftr), Xb = transformar(sp, fva);
+      const ya = Int8Array.from(tr, p => yTodo[p]), yb = Int8Array.from(va, p => yTodo[p]);
+      const mk = entrenar(Xa, ya, ftr.length, dd, eta, maxEp, semillaSk);
+      const zb = puntajes(Xb, fva.length, dd, mk.w, mk.b);
+      cv.push(Object.assign(evaluar(yb, Int8Array.from(zb, z => z >= 0 ? 1 : 0)), { epocas: mk.errores.length }));
+    }
+  }
+  const absE = Array.from(zE, Math.abs).sort((a, b) => a - b);
+  return { igualColab, jo, T, pos, feats, n1, n0, prop, eta, maxEp, semilla, filas, yTodo, n1Total, n0Total, descartadas: S.n - filas.length,
+    fe, fp: fp_, yE, yP, spec, d, mod, zE, zP, yhP, m, mE, mayor, base, K, cv, absE, perc: 5 };
+}
+
+$("entrenar").addEventListener("click", () => {
+  const b = $("entrenar"); b.disabled = true; $("estado").textContent = "Entrenando…"; mostrarError("msg-config", "");
+  setTimeout(() => {
+    try {
+      R = ejecutar();
+      $("perc").value = 5;
+      $("resultados").hidden = false;
+      pintarResultados();
+      $("estado").textContent = `Listo: ${pct(R.m.acc)} de accuracy en la prueba.`;
+      $("r-resumen").scrollIntoView({ block: "start" });
+    } catch (e){ mostrarError("msg-config", e.message); $("estado").textContent = ""; console.error(e); }
+    b.disabled = false;
+  }, 30);
+});
+
+/* ---------- resultados ---------- */
+function pintarResultados(){
+  pintarResumen(); pintarDiccionario(); pintarReparto(); pintarEntreno(); pintarModelo(); pintarMatriz(); pintarMetricas(); pintarCV();
+  pintarDuda(); prepararCaso(); pintarGerencia(); pintarCodigo(); pintarGraficas();
+}
+function pintarGraficas(){ if (!R) return; $("g-errores").innerHTML = graficaErrores(); $("g-pesos").innerHTML = graficaPesos(); $("g-z").innerHTML = graficaZ(); }
+
+function selloColab(){
+  return R.igualColab ? `<div class="sello"><span class="marca-ok" aria-hidden="true">✓</span><div><b>Igual que el Colab.</b> Misma partición (train_test_split con random_state = 42), mismo escalado y mismo entrenamiento de scikit-learn: estas cifras coinciden con las del cuaderno.</div></div>` : "";
+}
+function pintarResumen(){
+  const m = R.m;
+  $("g-resumen").textContent = `Se entrenó con ${ent(R.fe.length)} registros y se evaluó con ${ent(R.fp.length)} que nunca vio. Clasificó bien ${ent(m.vp + m.vn)} de ${ent(m.n)}.`;
+  const c = (v, t) => `<div class="tarjeta dato"><div class="cifra">${pct(v)}</div><div class="rot">${t}</div></div>`;
+  $("c-resumen").innerHTML = `<div class="resumen-cifras">${c(m.acc, "Accuracy")}${c(m.prec, "Precision")}${c(m.rec, "Recall")}${c(m.f1, "F1-score")}</div>
+    <div class="resumen-linea"><span>VN <b>${ent(m.vn)}</b></span><span>FP <b>${ent(m.fp)}</b></span><span>FN <b>${ent(m.fn)}</b></span><span>VP <b>${ent(m.vp)}</b></span><span>Épocas: <b>${ent(R.mod.errores.length)}</b></span>${R.cv ? `<span>Validación cruzada: accuracy entre <b>${pct(resumenCV("acc").min)}</b> y <b>${pct(resumenCV("acc").max)}</b></span>` : ""}</div>
+    ${selloColab()}`;
+}
+function rolDe(j){
+  if (j === R.jo) return "Objetivo (y)";
+  if (R.feats.includes(j)) return "Entrada (X)";
+  return "Excluida";
+}
+function pintarDiccionario(){
+  const filas = S.cols.map((c, j) => {
+    const tipo = c.esNum ? (c.entera ? "Numérica entera" : "Numérica continua") : "Texto (categórica)";
+    let valores;
+    if (j === R.jo) valores = `${esc(R.n1)} = ${esc(c.esNum ? R.pos.replace(".", ",") : R.pos)}; el resto, ${esc(R.n0)}`;
+    else if (c.esNum) valores = `${fmt(c.min)} a ${fmt(c.max)}`;
+    else valores = esc(c.niveles.slice(0, 3).map(x => x[0]).join(", ") + (c.unicos > 3 ? ` y ${c.unicos - 3} más` : ""));
+    const desc = S.desc[c.nombre] || "";
+    return `<tr><td><b>${esc(c.nombre)}</b></td><td>${tipo}</td><td>${rolDe(j)}</td><td>${valores}</td><td class="num">${c.esNum ? fmt(c.media) : "—"}</td><td class="num">${ent(c.faltan)}</td><td contenteditable="true" data-col="${esc(c.nombre)}">${esc(desc)}</td></tr>`;
+  });
+  $("t-dicc").innerHTML = `<thead><tr><th>Variable</th><th>Tipo</th><th>Rol</th><th>Valores</th><th class="num">Media</th><th class="num">Vacíos</th><th>Descripción</th></tr></thead><tbody>${filas.join("")}</tbody>`;
+  $("t-dicc").querySelectorAll("td[contenteditable]").forEach(td => td.addEventListener("input", () => { S.desc[td.dataset.col] = td.textContent.trim(); }));
+}
+function pintarReparto(){
+  const e1 = R.yE.reduce((a, b) => a + b, 0), p1 = R.yP.reduce((a, b) => a + b, 0);
+  const desc = R.descartadas ? ` Se dejaron por fuera ${cu(R.descartadas, "fila", "filas")} sin valor en la columna objetivo.` : "";
+  $("g-reparto").textContent = `Se apartó el ${pct(R.prop, 0)} de los datos para la prueba, con la misma proporción de clases en ambos grupos (partición estratificada). El modelo nunca ve la prueba mientras aprende.${R.igualColab ? " Es exactamente la misma partición del Colab." : ""}${desc}`;
+  const barra = (n1, n) => {
+    const a = n - n1;
+    return `<div style="display:flex;height:14px;gap:2px;margin:8px 0 6px"><span title="${esc(R.n0)}: ${ent(a)}" style="flex:${a};background:var(--c0);border-radius:4px 0 0 4px"></span><span title="${esc(R.n1)}: ${ent(n1)}" style="flex:${n1};background:var(--c1);border-radius:0 4px 4px 0"></span></div>`;
+  };
+  const bloque = (titulo, n, n1) => `<div class="dato"><div class="cifra">${ent(n)}</div><div class="rot">${titulo}</div>${barra(n1, n)}<div style="font-size:.88rem;color:var(--tinta-2)">${ent(n - n1)} ${esc(R.n0)} y ${ent(n1)} ${esc(R.n1)}</div></div>`;
+  $("c-reparto").innerHTML = `<div class="leyenda"><span><i style="background:var(--c0)"></i>${esc(R.n0)} (0)</span><span><i style="background:var(--c1)"></i>${esc(R.n1)} (1)</span></div><div class="rejilla r3">${bloque("registros usados", R.filas.length, R.n1Total)}${bloque("para entrenar", R.fe.length, e1)}${bloque("para la prueba", R.fp.length, p1)}</div>`;
+}
+function pintarEntreno(){
+  const E = R.mod.errores.length, ult = R.mod.errores[E - 1];
+  const estado = { convergio: "Separó todo", estancado: "Dejó de mejorar", maximo: "Llegó al máximo" }[R.mod.motivo];
+  $("c-entreno-datos").innerHTML = `
+    <div class="tarjeta dato"><div class="cifra">${ent(E)}</div><div class="rot">${E === 1 ? "época" : "épocas"} de entrenamiento</div></div>
+    <div class="tarjeta dato"><div class="cifra">${ent(R.mod.errores[0])} → ${ent(ult)}</div><div class="rot">errores en la primera y en la última época</div></div>
+    <div class="tarjeta dato"><div class="cifra" style="font-size:1.7rem">${estado}</div><div class="rot">accuracy en entrenamiento: ${pct(R.mE.acc)}</div></div>`;
+  const criterio = `con el mismo criterio de scikit-learn: 5 épocas seguidas sin que la pérdida bajara lo suficiente (tol = 0,001)`;
+  const colab = R.igualColab ? ` Son las mismas ${ent(E)} épocas del Colab.` : "";
+  let t;
+  if (R.mod.motivo === "convergio") t = `Hubo épocas sin ningún error: encontró una frontera que separa perfectamente los ${ent(R.fe.length)} registros de entrenamiento. Se detuvo en la época ${ent(E)}, ${criterio}.${colab}`;
+  else if (R.mod.motivo === "estancado") t = `Se detuvo en la época ${ent(E)}, ${criterio}. Nunca tuvo una época sin errores: las clases no se separan del todo con una línea recta, que es el límite del perceptrón simple. Aun así, casi todos quedan del lado correcto.${colab}`;
+  else t = `Se acabaron las ${ent(R.maxEp)} épocas permitidas antes de que se cumpliera el criterio de parada. Puedes subir el máximo en los ajustes.`;
+  $("n-entreno").innerHTML = `<div class="nota">${esc(t)}</div>`;
+}
+function pintarModelo(){
+  const ord = R.spec.map((f, k) => ({ f, w: R.mod.w[k] }));
+  $("g-modelo").innerHTML = `Esto es todo lo que aprendió: un peso por variable y un sesgo. Si <span class="regla">z ≥ 0</span> dice «${esc(R.n1)}»; si no, «${esc(R.n0)}». Las variables van estandarizadas (x').`;
+  const term = (w, nombre, primero) => {
+    const s = w < 0 ? "−" : (primero ? "" : "+");
+    return `<span class="t">${s} <b>${fmt(Math.abs(w), 3)}</b>·${esc(corto(nombre, 28))}'</span>`;
+  };
+  const partes = ord.map((o, k) => term(o.w, o.f.nombre, k === 0));
+  partes.push(`<span class="t">${R.mod.b < 0 ? "−" : "+"} <b>${fmt(Math.abs(R.mod.b), 3)}</b></span>`);
+  $("ecuacion").innerHTML = `<span class="t">z =</span>${partes.join("")}`;
+  $("ley-pesos").innerHTML = `<span><i style="background:var(--c1)"></i>peso positivo, empuja hacia «${esc(R.n1)}»</span><span><i style="background:var(--c0)"></i>peso negativo, empuja hacia «${esc(R.n0)}»</span>`;
+  const nums = R.spec.filter(f => f.tipo === "num");
+  $("t-escala").innerHTML = nums.length ? `<thead><tr><th>Variable</th><th class="num">Media</th><th class="num">Desviación</th><th class="num">Mediana (para vacíos)</th></tr></thead><tbody>${nums.map(f => `<tr><td>${esc(f.nombre)}</td><td class="num">${fmt(f.media, 4)}</td><td class="num">${fmt(f.desv, 4)}</td><td class="num">${fmt(f.med, 4)}</td></tr>`).join("")}</tbody>` : "<tbody><tr><td>No hay variables numéricas. Las de texto entran como columnas 0/1.</td></tr></tbody>";
+}
+function pintarMatriz(){
+  const m = R.m;
+  $("g-matriz").innerHTML = `Compara lo que realmente era cada uno de los ${ent(m.n)} registros de prueba con lo que dijo el modelo. Acertó ${ent(m.vp + m.vn)} y falló ${ent(m.fp + m.fn)}.`;
+  const celda = (cls, v, tipo, sig) => `<div class="celda ${cls}"><div class="cifra">${ent(v)}</div><div class="tipo">${tipo}</div><div class="sig">${sig}</div></div>`;
+  $("matriz").innerHTML = `
+    <div></div><div class="eje col">El modelo dijo «${esc(R.n0)}»</div><div class="eje col">El modelo dijo «${esc(R.n1)}»</div>
+    <div class="eje">Era «${esc(R.n0)}»</div>
+    ${celda("bien", m.vn, "VN, verdadero negativo", `«${esc(R.n0)}» reconocido bien`)}
+    ${celda("mal", m.fp, "FP, falso positivo", `Falsa alarma: era «${esc(R.n0)}» y lo marcó como «${esc(R.n1)}»`)}
+    <div class="eje">Era «${esc(R.n1)}»</div>
+    ${celda("mal", m.fn, "FN, falso negativo", `Se le pasó: era «${esc(R.n1)}» y dijo «${esc(R.n0)}»`)}
+    ${celda("bien", m.vp, "VP, verdadero positivo", `«${esc(R.n1)}» detectado`)}`;
+}
+function pintarMetricas(){
+  const m = R.m;
+  const tarjeta = (nombre, v, form, preg) => `<div class="tarjeta metrica"><h3>${nombre}</h3><div class="cifra">${pct(v)}</div><div class="form">${form}</div><p>${preg}</p></div>`;
+  $("metricas").innerHTML =
+    tarjeta("Accuracy", m.acc, `(VP + VN) / total = ${ent(m.vp + m.vn)} / ${ent(m.n)}`, "De todos los registros, ¿cuántos clasificó bien?") +
+    tarjeta("Precision", m.prec, `VP / (VP + FP) = ${ent(m.vp)} / ${ent(m.vp + m.fp)}`, `De lo que marcó como «${esc(R.n1)}», ¿cuánto lo era?`) +
+    tarjeta("Recall", m.rec, `VP / (VP + FN) = ${ent(m.vp)} / ${ent(m.vp + m.fn)}`, `De los «${esc(R.n1)}» reales, ¿cuántos detectó?`) +
+    tarjeta("F1-score", m.f1, `2·P·R / (P + R)`, "Equilibrio entre precision y recall.");
+  const nm = R.mayor ? R.n1 : R.n0, b = R.base;
+  let t = `Línea base: un modelo que siempre dijera «${esc(nm)}» tendría ${pct(b.acc)} de accuracy y ${pct(b.rec)} de recall. `;
+  const dif = m.acc - b.acc;
+  t += dif > 0.02 ? `El perceptrón lo supera por ${fmt(dif * 100)} puntos, así que sí aprendió algo útil.` : `El perceptrón casi no lo supera (${fmt(dif * 100)} puntos): con estas variables no está aprendiendo mucho.`;
+  if (b.acc >= 0.8) t += " Ojo: las clases están desbalanceadas y en ese caso el accuracy engaña; miren sobre todo el recall y la precision.";
+  if (m.vp + m.fp === 0) t += ` El modelo no marcó ningún registro como «${esc(R.n1)}», por eso la precision sale en 0.`;
+  $("n-base").innerHTML = t;
+}
+function resumenCV(clave){ const v = R.cv.map(x => x[clave]); return { media: v.reduce((a, b) => a + b, 0) / v.length, min: Math.min(...v), max: Math.max(...v) }; }
+function pintarCV(){
+  if (!R.cv){ $("g-cv").textContent = "No hay suficientes registros de cada clase para repetir la prueba con varias particiones."; $("t-cv").innerHTML = ""; $("n-cv").innerHTML = ""; return; }
+  $("g-cv").textContent = `Se repitió todo el proceso ${R.K} veces, cada vez con una parte distinta de los datos como prueba (validación cruzada estratificada de ${R.K} pliegues). La estandarización se vuelve a aprender en cada vuelta, solo con su entrenamiento.`;
+  const met = [["acc", "Accuracy"], ["prec", "Precision"], ["rec", "Recall"], ["f1", "F1"]];
+  const cab = `<thead><tr><th>Pliegue</th>${met.map(m => `<th class="num">${m[1]}</th>`).join("")}<th class="num">Épocas</th></tr></thead>`;
+  const filas = R.cv.map((x, k) => `<tr><td>${k + 1}</td>${met.map(m => `<td class="num">${pct(x[m[0]])}</td>`).join("")}<td class="num">${ent(x.epocas)}</td></tr>`).join("");
+  const res = ["media", "min", "max"].map(t => `<tr><td><b>${{ media: "Promedio", min: "Mínimo", max: "Máximo" }[t]}</b></td>${met.map(m => `<td class="num"><b>${pct(resumenCV(m[0])[t])}</b></td>`).join("")}<td></td></tr>`).join("");
+  $("t-cv").innerHTML = cab + `<tbody>${filas}${res}</tbody>`;
+  const a = resumenCV("acc"), r = resumenCV("rec");
+  const rango = a.max - a.min;
+  const t = `El accuracy estuvo entre ${pct(a.min)} y ${pct(a.max)} y el recall entre ${pct(r.min)} y ${pct(r.max)}. ` + (rango < 0.05 ? "Las cifras cambian poco de una partición a otra: el resultado no depende de la suerte." : "Las cifras cambian bastante de una partición a otra: el resultado de una sola prueba hay que tomarlo con cuidado.");
+  $("n-cv").innerHTML = `<div class="nota">${t}</div>`;
+}
+function datosDuda(){
+  const thr = cuantil(R.absE, R.perc / 100);
+  let enZona = 0, errEn = 0, errTot = 0;
+  for (let i = 0; i < R.zP.length; i++){
+    const err = R.yhP[i] !== R.yP[i]; if (err) errTot++;
+    if (Math.abs(R.zP[i]) < thr){ enZona++; if (err) errEn++; }
+  }
+  return { thr, enZona, errEn, errTot };
+}
+function pintarDuda(){
+  $("o-perc").textContent = R.perc;
+  const d = datosDuda();
+  $("duda-datos").innerHTML = `Umbral: <b>|z| &lt; ${fmt(d.thr, 3)}</b><br><b>${ent(d.enZona)}</b> de ${ent(R.zP.length)} registros de prueba irían a revisión manual (${pct(d.enZona / R.zP.length, 1)}).<br>Ahí caen <b>${ent(d.errEn)}</b> de los ${ent(d.errTot)} errores del modelo.`;
+  $("ley-z").innerHTML = `<span><i style="background:var(--c0)"></i>era «${esc(R.n0)}»</span><span><i style="background:var(--c1)"></i>era «${esc(R.n1)}»</span><span><i class="anillo"></i>error del modelo</span><span><i style="background:var(--hundido);border:1px solid var(--linea)"></i>zona de duda</span>`;
+}
+$("perc").addEventListener("input", () => { if (!R) return; R.perc = +$("perc").value; pintarDuda(); $("g-z").innerHTML = graficaZ(); pintarGerencia(); });
+
+/* ---------- gráficas ---------- */
+const ancho = id => Math.max(320, Math.min(860, ($(id).clientWidth || 640)));
+function ticks(max){ if (max <= 4) return [0, max].concat(max > 1 ? [Math.round(max / 2)] : []).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b); const paso = Math.pow(10, Math.floor(Math.log10(max))); const p = max / paso > 5 ? paso * 2 : max / paso > 2 ? paso : paso / 2; const t = []; for (let v = 0; v <= max + 1e-9; v += p) t.push(Math.round(v)); return t; }
+function graficaErrores(){
+  const er = R.mod.errores, E = er.length, W = ancho("g-errores"), H = 230, m = { l: 44, r: 18, t: 14, b: 36 };
+  const maxY = Math.max(1, ...er), iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = k => m.l + (E === 1 ? iw / 2 : (k - 1) / (E - 1) * iw), y = v => m.t + (1 - v / maxY) * ih;
+  let s = `<svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="Errores por época: de ${er[0]} en la primera a ${er[E - 1]} en la última">`;
+  for (const t of ticks(maxY)){ s += `<line class="rejilla-l" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${ent(t)}</text>`; }
+  const xt = E <= 12 ? Array.from({ length: E }, (_, i) => i + 1) : [1, Math.round(E / 4), Math.round(E / 2), Math.round(3 * E / 4), E].filter((v, i, a) => a.indexOf(v) === i);
+  for (const k of xt) s += `<text x="${x(k)}" y="${H - m.b + 18}" text-anchor="middle">${ent(k)}</text>`;
+  s += `<text x="${m.l + iw / 2}" y="${H - 2}" text-anchor="middle">época</text>`;
+  s += `<line class="cruz" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}"/>`;
+  s += `<path d="${er.map((v, i) => `${i ? "L" : "M"}${x(i + 1).toFixed(1)},${y(v).toFixed(1)}`).join("")}" fill="none" stroke="var(--grabado)" stroke-width="2" stroke-linejoin="round"/>`;
+  if (E <= 40) er.forEach((v, i) => { s += `<circle cx="${x(i + 1)}" cy="${y(v)}" r="4.5" fill="var(--grabado)" stroke="var(--lamina)" stroke-width="2"/>`; });
+  const paso = E === 1 ? iw : iw / (E - 1);
+  er.forEach((v, i) => { s += `<rect x="${x(i + 1) - paso / 2}" y="${m.t}" width="${paso}" height="${ih}" fill="transparent" data-cx="${x(i + 1)}" data-tip="Época ${ent(i + 1)}: ${cu(v, "error", "errores")}"/>`; });
+  return s + "</svg>";
+}
+function graficaPesos(){
+  const filas = R.spec.map((f, k) => ({ nombre: f.nombre, w: R.mod.w[k] })).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
+  const max = 14, vis = filas.slice(0, max), W = ancho("g-pesos");
+  const lab = Math.min(170, W * 0.32), m = { l: lab + 10, r: 70, t: 10, b: 10 }, fila = 30, H = m.t + m.b + vis.length * fila;
+  const mx = Math.max(...vis.map(o => Math.abs(o.w)), 1e-9), iw = W - m.l - m.r;
+  const hayNeg = vis.some(o => o.w < 0), hayPos = vis.some(o => o.w > 0);
+  const x0 = hayNeg && hayPos ? m.l + iw / 2 : hayNeg ? m.l + iw : m.l;
+  const esc_ = hayNeg && hayPos ? iw / 2 / mx : iw / mx;
+  let s = `<svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pesos del modelo por variable">`;
+  s += `<line class="eje-l" x1="${x0}" x2="${x0}" y1="${m.t - 4}" y2="${H - m.b + 4}"/>`;
+  vis.forEach((o, i) => {
+    const yc = m.t + i * fila + fila / 2, xe = x0 + o.w * esc_, x1 = Math.min(x0, xe), wd = Math.max(2, Math.abs(xe - x0));
+    const col = o.w >= 0 ? "var(--c1)" : "var(--c0)";
+    s += `<text class="tinta" x="${lab}" y="${yc + 4}" text-anchor="end">${esc(corto(o.nombre, Math.floor(lab / 7)))}</text>`;
+    s += `<rect x="${x1}" y="${yc - 8}" width="${wd}" height="16" rx="3" fill="${col}"/>`;
+    const dentro = wd > 70;
+    const tx = dentro ? (o.w >= 0 ? xe - 6 : xe + 6) : (o.w >= 0 ? xe + 6 : xe - 6);
+    const anc = (o.w >= 0) === dentro ? "end" : "start";
+    s += `<text x="${tx}" y="${yc + 4}" text-anchor="${anc}" ${dentro ? 'fill="var(--sobre-grabado)" style="fill:#fff"' : 'class="tinta"'}>${fmt(o.w, 2)}</text>`;
+    s += `<rect x="0" y="${yc - fila / 2}" width="${W}" height="${fila}" fill="transparent" data-tip="${esc(o.nombre)}: peso ${fmt(o.w, 4)}. ${o.w >= 0 ? `Valores altos empujan hacia «${esc(R.n1)}»` : `Valores altos empujan hacia «${esc(R.n0)}»`}"/>`;
+  });
+  s += "</svg>";
+  if (filas.length > max) s += `<small style="color:var(--tinta-2)">Se muestran las ${max} más influyentes de ${filas.length}.</small>`;
+  return s;
+}
+function graficaZ(){
+  const W = ancho("g-z"), H = 200, m = { l: 12, r: 12, t: 26, b: 34 };
+  const n = R.zP.length, d = datosDuda();
+  let idx = Array.from({ length: n }, (_, i) => i);
+  const LIM = 700; let nota = "";
+  if (n > LIM){ idx = barajar(idx, mulberry32(3)).slice(0, LIM); nota = `<small style="color:var(--tinta-2)">Se muestran ${ent(LIM)} de ${ent(n)} registros de prueba, elegidos al azar.</small>`; }
+  const ord = Array.from(R.zP).sort((a, b) => a - b);
+  let lo = Math.min(cuantil(ord, 0.01), -d.thr * 1.4, -0.5), hi = Math.max(cuantil(ord, 0.99), d.thr * 1.4, 0.5);
+  const iw = W - m.l - m.r, x = v => m.l + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * iw;
+  const filaY = c => c === 0 ? m.t + 38 : m.t + 112;
+  let s = `<svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="Puntaje z de cada registro de prueba">`;
+  s += `<rect x="${x(-d.thr)}" y="${m.t - 6}" width="${Math.max(1, x(d.thr) - x(-d.thr))}" height="${H - m.t - m.b + 12}" fill="var(--hundido)"/>`;
+  s += `<line x1="${x(0)}" x2="${x(0)}" y1="${m.t - 10}" y2="${H - m.b + 6}" stroke="var(--tinta)" stroke-width="1.5"/>`;
+  s += `<text x="${x(0)}" y="${m.t - 14}" text-anchor="middle" class="tinta">z = 0, la frontera</text>`;
+  s += `<text x="${m.l}" y="${filaY(0) - 24}">era «${esc(corto(R.n0, 30))}»</text><text x="${m.l}" y="${filaY(1) - 24}">era «${esc(corto(R.n1, 30))}»</text>`;
+  s += `<text x="${m.l}" y="${H - 8}">← dice «${esc(corto(R.n0, 22))}»</text><text x="${W - m.r}" y="${H - 8}" text-anchor="end">dice «${esc(corto(R.n1, 22))}» →</text>`;
+  const rng = mulberry32(9);
+  const errores = [];
+  for (const i of idx){
+    const c = R.yP[i], z = R.zP[i], err = R.yhP[i] !== c, cx = x(z), cy = filaY(c) + (rng() - 0.5) * 30;
+    const col = c ? "var(--c1)" : "var(--c0)";
+    const tip = `Era «${esc(c ? R.n1 : R.n0)}» y el modelo dijo «${esc(R.yhP[i] ? R.n1 : R.n0)}». z = ${fmt(z, 3)}${Math.abs(z) < d.thr ? ", en la zona de duda" : ""}`;
+    const pt = err ? `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="var(--lamina)" stroke="${col}" stroke-width="3" data-tip="${tip}"/>` : `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="${col}" stroke="var(--lamina)" stroke-width="1.5" data-tip="${tip}"/>`;
+    err ? errores.push(pt) : (s += pt);
+  }
+  s += errores.join("");
+  return s + "</svg>" + nota;
+}
+
+/* tooltip */
+const tip = $("tip");
+let cruzActiva = null;
+function moverTip(e){
+  const t = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (cruzActiva && (!t || !t.dataset.cx)){ cruzActiva.style.visibility = "hidden"; cruzActiva = null; }
+  if (!t){ tip.style.display = "none"; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let lx = e.clientX + 14, ly = e.clientY - h - 12;
+  if (lx + w > innerWidth - 8) lx = e.clientX - w - 14;
+  if (ly < 8) ly = e.clientY + 18;
+  tip.style.left = Math.max(8, lx) + "px"; tip.style.top = ly + "px";
+  if (t.dataset.cx){ const svg = t.closest("svg"), c = svg.querySelector(".cruz"); if (c){ c.setAttribute("x1", t.dataset.cx); c.setAttribute("x2", t.dataset.cx); c.style.visibility = "visible"; cruzActiva = c; } }
+}
+document.addEventListener("pointermove", moverTip);
+document.addEventListener("pointerdown", moverTip);
+document.addEventListener("scroll", () => { tip.style.display = "none"; }, { passive: true });
+
+/* ---------- probar un caso ---------- */
+let caso = {};
+function prepararCaso(){
+  const filas = R.fe;
+  $("entradas").innerHTML = R.feats.map(j => {
+    const c = S.cols[j];
+    if (c.esNum){
+      const f = R.spec.find(s => s.j === j);
+      return `<label>${esc(c.nombre)}<input type="number" step="any" data-j="${j}" value="${+f.med.toPrecision(6)}"></label>`;
+    }
+    const lv = R.spec.filter(s => s.j === j).map(s => s.val);
+    const moda = (() => { const cnt = new Map(); for (const i of filas){ const v = catVal(c, i); cnt.set(v, (cnt.get(v) || 0) + 1); } return [...cnt.entries()].sort((a, b) => b[1] - a[1])[0][0]; })();
+    return `<label>${esc(c.nombre)}<select data-j="${j}">${lv.map(v => `<option${v === moda ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></label>`;
+  }).join("");
+  $("entradas").querySelectorAll("input,select").forEach(el => el.addEventListener("input", () => { $("real").textContent = ""; calcularCaso(); }));
+  $("real").textContent = "Valores de partida: la mediana de cada variable numérica y la categoría más común.";
+  calcularCaso();
+}
+function leerCaso(){ const v = {}; $("entradas").querySelectorAll("[data-j]").forEach(el => { const j = +el.dataset.j; v[j] = el.tagName === "SELECT" ? el.value : (el.value === "" ? NaN : Number(el.value)); }); return v; }
+function calcularCaso(){
+  const v = leerCaso(); let z = R.mod.b; const aportes = [];
+  R.spec.forEach((f, k) => { const xs = valorX(f, v[f.j]); const a = R.mod.w[k] * xs; z += a; if (f.tipo === "num" || xs === 1) aportes.push({ f, xs, w: R.mod.w[k], a, cruda: v[f.j] }); });
+  const c = z >= 0 ? 1 : 0, e = $("estampa");
+  e.textContent = (c ? R.n1 : R.n0).toUpperCase(); e.className = "estampa c" + c;
+  $("zval").innerHTML = `z = ${fmt(z, 3)} ${z >= 0 ? "≥" : "&lt;"} 0`;
+  aportes.sort((a, b) => Math.abs(b.a) - Math.abs(a.a));
+  $("t-aportes").innerHTML = `<thead><tr><th>Variable</th><th class="num">Valor</th><th class="num">x'</th><th class="num">Peso</th><th class="num">Aporte</th></tr></thead><tbody>${aportes.map(o => `<tr><td>${esc(corto(o.f.nombre, 26))}</td><td class="num">${o.f.tipo === "num" ? (Number.isNaN(o.cruda) ? "vacío" : fmt(o.cruda, 3)) : "sí"}</td><td class="num">${fmt(o.xs, 3)}</td><td class="num">${fmt(o.w, 3)}</td><td class="num">${fmt(o.a, 3)}</td></tr>`).join("")}<tr><td>sesgo b</td><td></td><td></td><td></td><td class="num">${fmt(R.mod.b, 3)}</td></tr><tr><td><b>z, la suma</b></td><td></td><td></td><td></td><td class="num"><b>${fmt(z, 3)}</b></td></tr></tbody>`;
+}
+$("azar").addEventListener("click", () => {
+  if (!R) return;
+  const r = Math.floor(Math.random() * R.fp.length), i = R.fp[r];
+  $("entradas").querySelectorAll("[data-j]").forEach(el => { const c = S.cols[+el.dataset.j]; el.value = c.esNum ? (Number.isNaN(c.nums[i]) ? "" : c.nums[i]) : catVal(c, i); });
+  calcularCaso();
+  const real = R.yP[r] ? R.n1 : R.n0, ok = R.yhP[r] === R.yP[r];
+  $("real").textContent = `Registro de prueba n.º ${ent(i + 1)} del archivo. En realidad era «${real}»: el modelo ${ok ? "acertó" : "se equivocó"}.`;
+});
+$("medianas").addEventListener("click", () => { if (R) prepararCaso(); });
+
+/* ---------- gerencia ---------- */
+function textoGerencia(){
+  const m = R.m, P = m.vp + m.fn, N = m.vn + m.fp, d = datosDuda(), n1 = R.n1, n0 = R.n0;
+  const nm = R.mayor ? n1 : n0, b = R.base;
+  const cvA = R.cv ? resumenCV("acc") : null, cvR = R.cv ? resumenCV("rec") : null;
+  const nivel = v => v >= 0.95 ? "alto" : v >= 0.85 ? "bueno" : v >= 0.7 ? "regular" : "bajo";
+  const q = [];
+  q.push({ t: "1. ¿Qué tan confiable es el modelo?",
+    ev: `De los ${ent(m.n)} registros de prueba clasificó bien ${ent(m.vp + m.vn)} y mal ${ent(m.fp + m.fn)} (${cu(m.fp, "falsa alarma", "falsas alarmas")} y ${ent(m.fn)} «${n1}» que pasaron como «${n0}»). Accuracy: ${pct(m.acc)}.`,
+    in: `Acierta cerca de ${Math.round(m.acc * 100)} de cada 100. Un modelo que siempre dijera «${nm}» acertaría ${pct(b.acc)}, así que el perceptrón ${m.acc - b.acc > 0.02 ? "sí aprendió algo útil" : "casi no aporta frente a no usar modelo"}.`,
+    co: m.acc >= 0.95 ? "Confiable como primer filtro, pero el accuracy no dice qué tipo de error comete: hay que mirar recall y precision." : m.acc >= 0.8 ? "Aceptable, pero falla con frecuencia; no debería decidir solo." : "No es suficiente. Probablemente las clases no se separan con una línea recta, que es el límite del perceptrón simple." });
+  q.push({ t: `2. ¿Cuántos «${n1}» detecta?`,
+    ev: `De ${ent(P)} «${n1}» reales detectó ${ent(m.vp)} y dejó pasar ${ent(m.fn)}. Recall: ${pct(m.rec)}.`,
+    in: `El recall dice qué proporción de los «${n1}» atrapa. Con esta cifra, de cada 1.000 «${n1}» pasarían unos ${ent(Math.round((1 - m.rec) * 1000))} sin ser detectados.`,
+    co: m.rec >= 0.99 ? "Detección muy alta, aunque una sola prueba no garantiza el 100 %." : `Detección ${nivel(m.rec)}${m.rec < 0.95 ? ": no puede ser el único control" : ", pero no del 100 %: conviene un control adicional"}.` });
+  q.push({ t: "3. ¿Qué tan creíbles son sus alertas?",
+    ev: m.vp + m.fp ? `Dio ${ent(m.vp + m.fp)} alertas: ${ent(m.vp)} correctas y ${cu(m.fp, "falsa alarma", "falsas alarmas")}. Precision: ${pct(m.prec)}.` : `No dio ninguna alerta: nunca marcó un registro como «${n1}».`,
+    in: m.vp + m.fp ? `De cada 100 alertas, unas ${Math.round(m.prec * 100)} son «${n1}» de verdad y ${100 - Math.round(m.prec * 100)} son falsas alarmas, que cuestan una revisión adicional.` : "Un modelo que nunca alerta no sirve para detectar nada.",
+    co: m.prec >= 0.95 ? "Alertas muy confiables; aun así una alerta es una señal para revisar, no una prueba." : m.prec >= 0.8 ? "Alertas en general confiables, con una parte de falsas alarmas que hay que absorber." : "Demasiadas falsas alarmas: generaría trabajo y molestias innecesarias." });
+  q.push({ t: "4. ¿Qué error conviene priorizar?",
+    ev: `${cu(m.fn, "falso negativo", "falsos negativos")} (${pct(P ? m.fn / P : 0)} de los «${n1}») y ${cu(m.fp, "falso positivo", "falsos positivos")} (${pct(N ? m.fp / N : 0)} de los «${n0}»).`,
+    in: `Los dos errores no suelen costar lo mismo: un falso negativo es un «${n1}» que pasa sin control; un falso positivo es una revisión de más. Con la zona de duda (percentil ${R.perc}), ${ent(d.enZona)} de ${ent(m.n)} registros irían a revisión manual y ahí caen ${ent(d.errEn)} de los ${ent(d.errTot)} errores.`,
+    co: `Si dejar pasar un «${n1}» es lo más grave, prioricen el recall y usen la zona de duda para revisar a mano los casos cercanos a la frontera.` });
+  const lim = ["no entrega probabilidades, solo un puntaje z", "solo traza fronteras rectas", "las cifras dependen de estos datos y de esta partición"];
+  q.push({ t: "5. ¿Lo usamos?",
+    ev: `Accuracy ${pct(m.acc)}, precision ${pct(m.prec)}, recall ${pct(m.rec)} y F1 ${pct(m.f1)}.` + (cvA ? ` En ${R.K} particiones distintas el accuracy estuvo entre ${pct(cvA.min)} y ${pct(cvA.max)} y el recall entre ${pct(cvR.min)} y ${pct(cvR.max)}.` : ""),
+    in: `Las métricas son de nivel ${nivel(Math.min(m.prec, m.rec, m.acc))} y el modelo es simple y explicable: se ve qué peso tiene cada variable. Límites: ${lim.join("; ")}.`,
+    co: Math.min(m.acc, m.prec, m.rec) >= 0.9 ? "Sí, como apoyo a la decisión y no como reemplazo, y validándolo con datos nuevos antes de usarlo en serio." : Math.min(m.acc, m.prec, m.rec) >= 0.75 ? "Con cautela: sirve como apoyo, pero vale la pena probar más variables o un modelo no lineal." : "No todavía: el perceptrón simple no alcanza con estos datos. Habría que probar otras variables o un modelo que trace fronteras curvas." });
+  return q;
+}
+function pintarGerencia(){
+  $("gerencia").innerHTML = textoGerencia().map(p => `<article class="tarjeta preg"><h3>${esc(p.t)}</h3><dl><dt>Evidencia</dt><dd>${esc(p.ev)}</dd><dt>Interpretación</dt><dd>${esc(p.in)}</dd><dt>Conclusión</dt><dd>${esc(p.co)}</dd></dl></article>`).join("");
+}
+
+/* ---------- código python ---------- */
+function pyStr(s){ return JSON.stringify(String(s)); }
+function pintarCodigo(){
+  $("g-codigo").textContent = R.igualColab
+    ? "El mismo proceso con scikit-learn, listo para pegar en una celda. Con esta base y estos ajustes da exactamente las mismas cifras que esta página."
+    : "El mismo proceso con scikit-learn, listo para pegar en una celda. El entrenamiento es el mismo, pero scikit-learn parte los datos con su propio generador aleatorio, así que las cifras pueden variar un poco frente a esta página.";
+  const num = R.feats.filter(j => S.cols[j].esNum).map(j => S.cols[j].nombre), cat = R.feats.filter(j => !S.cols[j].esNum).map(j => S.cols[j].nombre);
+  const T = R.T, sepPy = S.sep === null ? 'r"\\s+"' : pyStr(S.sep);
+  const lect = [`sep=${sepPy}`];
+  if (!S.encabezado) lect.push("header=None", `names=[${S.nombres.map(pyStr).join(", ")}]`);
+  if (S.comaDecimal) lect.push('decimal=","');
+  lect.push(`na_values=["?", "NA", "n/a", "-"]`);
+  const posPy = T.esNum ? String(Number(R.pos)) : pyStr(R.pos);
+  const lineas = [
+    "import pandas as pd",
+    "from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate",
+    "from sklearn.pipeline import make_pipeline",
+    "from sklearn.impute import SimpleImputer",
+    "from sklearn.preprocessing import StandardScaler" + (cat.length ? ", OneHotEncoder" : ""),
+    cat.length ? "from sklearn.compose import ColumnTransformer" : null,
+    "from sklearn.linear_model import Perceptron",
+    "from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score",
+    "",
+    `df = pd.read_csv(${pyStr(S.archivo)}, ${lect.join(", ")})`,
+    `df = df.dropna(subset=[${pyStr(T.nombre)}])`,
+    "",
+    `# 1 = ${R.n1}, 0 = ${R.n0}`,
+    `y = (df[${pyStr(T.nombre)}] == ${posPy}).astype(int)`,
+    `X = df[[${[...num, ...cat].map(pyStr).join(", ")}]]`,
+    "",
+    `X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=${R.prop}, stratify=y, random_state=${R.semilla})`,
+    "",
+  ];
+  const perc = `Perceptron(eta0=${R.eta}, max_iter=${R.maxEp}, tol=1e-3, random_state=${R.semilla})`;
+  if (cat.length){
+    lineas.push(
+      "prep = ColumnTransformer([",
+      `    ("num", make_pipeline(SimpleImputer(strategy="median"), StandardScaler()), [${num.map(pyStr).join(", ")}]),`,
+      `    ("cat", make_pipeline(SimpleImputer(strategy="constant", fill_value="(vacío)"), OneHotEncoder(handle_unknown="ignore")), [${cat.map(pyStr).join(", ")}]),`,
+      "])",
+      `modelo = make_pipeline(prep, ${perc})`);
+  } else lineas.push(`modelo = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), ${perc})`);
+  lineas.push(
+    "modelo.fit(X_train, y_train)",
+    "y_pred = modelo.predict(X_test)",
+    "",
+    "vn, fp, fn, vp = confusion_matrix(y_test, y_pred, labels=[0, 1]).ravel()",
+    'print(f"VN={vn}  FP={fp}  FN={fn}  VP={vp}")',
+    'print(f"Accuracy : {accuracy_score(y_test, y_pred):.2%}")',
+    'print(f"Precision: {precision_score(y_test, y_pred, zero_division=0):.2%}")',
+    'print(f"Recall   : {recall_score(y_test, y_pred):.2%}")',
+    'print(f"F1-score : {f1_score(y_test, y_pred):.2%}")',
+    "",
+    "# ¿Fue suerte? Validación cruzada estratificada",
+    `cv = cross_validate(modelo, X, y, cv=StratifiedKFold(${R.K >= 2 ? R.K : 5}, shuffle=True, random_state=${R.semilla}),`,
+    '                    scoring=["accuracy", "precision", "recall", "f1"])',
+    'for m in ["accuracy", "precision", "recall", "f1"]:',
+    '    v = cv[f"test_{m}"]',
+    '    print(f"{m:9s} media {v.mean():.2%}  min {v.min():.2%}  max {v.max():.2%}")');
+  $("codigo").textContent = lineas.filter(l => l !== null).join("\n");
+}
+
+/* ---------- reporte y exportes ---------- */
+function reporte(){
+  const m = R.m, L = [];
+  const tabla = (cab, filas) => [`| ${cab.join(" | ")} |`, `| ${cab.map(() => "---").join(" | ")} |`, ...filas.map(f => `| ${f.join(" | ")} |`)].join("\n");
+  const limpia = s => String(s).replace(/\|/g, "/").replace(/\n/g, " ");
+  L.push(`# Perceptrón Simple: ${S.archivo}`, "", `Columna objetivo: **${R.T.nombre}**. Clase 1 = ${R.n1} (valor ${R.pos}); clase 0 = ${R.n0}.`, "");
+  L.push("## Diccionario de datos", "", tabla(["Variable", "Tipo", "Rol", "Media", "Vacíos", "Descripción"], S.cols.map((c, j) => [limpia(c.nombre), c.esNum ? "numérica" : "texto", rolDe(j), c.esNum ? fmt(c.media) : "—", ent(c.faltan), limpia(S.desc[c.nombre] || "")])), "");
+  L.push("## Partición", "", `Registros usados: ${ent(R.filas.length)}. Entrenamiento: ${ent(R.fe.length)}. Prueba: ${ent(R.fp.length)} (${pct(R.prop, 0)}, estratificada, semilla ${R.semilla}).`, "");
+  L.push("## Entrenamiento", "", `η = ${fmt(R.eta, 4)}. Épocas: ${ent(R.mod.errores.length)}. Errores por época: ${R.mod.errores.join(", ")}. Estado: ${{ convergio: "separó todo el entrenamiento y se detuvo con el criterio de scikit-learn", estancado: "se detuvo con el criterio de scikit-learn (5 épocas sin mejorar la pérdida)", maximo: "llegó al máximo de épocas" }[R.mod.motivo]}.`, "");
+  L.push("## Modelo", "", "z = " + R.spec.map((f, k) => `${fmt(R.mod.w[k], 4)}·${f.nombre}'`).join(" + ") + ` + ${fmt(R.mod.b, 4)}`, "", `Si z ≥ 0 → ${R.n1}; si no → ${R.n0}. Las variables numéricas van estandarizadas con la media y la desviación del entrenamiento.`, "");
+  L.push("## Matriz de confusión", "", tabla(["", `Predijo ${R.n0}`, `Predijo ${R.n1}`], [[`Era ${R.n0}`, `VN = ${m.vn}`, `FP = ${m.fp}`], [`Era ${R.n1}`, `FN = ${m.fn}`, `VP = ${m.vp}`]]), "");
+  L.push("## Métricas", "", tabla(["Métrica", "Valor", "Cálculo"], [["Accuracy", pct(m.acc), `${m.vp + m.vn} / ${m.n}`], ["Precision", pct(m.prec), `${m.vp} / ${m.vp + m.fp}`], ["Recall", pct(m.rec), `${m.vp} / ${m.vp + m.fn}`], ["F1-score", pct(m.f1), "2·P·R / (P + R)"]]), "", `Línea base (siempre «${R.mayor ? R.n1 : R.n0}»): accuracy ${pct(R.base.acc)}, recall ${pct(R.base.rec)}.`, "");
+  if (R.cv) L.push("## Validación cruzada", "", tabla(["Pliegue", "Accuracy", "Precision", "Recall", "F1"], R.cv.map((x, k) => [k + 1, pct(x.acc), pct(x.prec), pct(x.rec), pct(x.f1)]).concat([["Promedio", ...["acc", "prec", "rec", "f1"].map(k => pct(resumenCV(k).media))]])), "");
+  const d = datosDuda();
+  L.push("## Zona de duda", "", `Umbral |z| < ${fmt(d.thr, 3)} (percentil ${R.perc} de |z| en entrenamiento): ${d.enZona} de ${m.n} registros de prueba a revisión manual; ahí caen ${d.errEn} de los ${d.errTot} errores.`, "");
+  L.push("## Lectura para la gerencia", "");
+  textoGerencia().forEach(p => L.push(`### ${p.t}`, "", `- **Evidencia:** ${p.ev}`, `- **Interpretación:** ${p.in}`, `- **Conclusión:** ${p.co}`, ""));
+  return L.join("\n");
+}
+function csvPred(){
+  const q = s => /[",\n;]/.test(s) ? `"${String(s).replace(/"/g, '""')}"` : s;
+  const thr = datosDuda().thr;
+  const cab = [...S.nombres, "real", "predicho", "z", "zona_de_duda"].map(q).join(",");
+  const filas = R.fp.map((i, r) => [...S.nombres.map((_, j) => q(S.filas[i][j] ?? "")), R.yP[r], R.yhP[r], R.zP[r].toFixed(6), Math.abs(R.zP[r]) < thr ? 1 : 0].join(","));
+  return [cab, ...filas].join("\n");
+}
+let descargas = null;
+async function guardar(nombre, datos){
+  const est = $("estado-exp");
+  try { await descargas.save({ filename: nombre, data: datos }); est.textContent = `Guardado: ${nombre}`; }
+  catch (e){ est.textContent = e && e.code === "declined" ? "Descarga cancelada." : "No se pudo descargar aquí. Usa «Copiar reporte»."; }
+}
+const base = () => S.archivo.replace(/\.[^.]+$/, "");
+$("d-pred").addEventListener("click", () => R && guardar(`predicciones_${base()}.csv`, csvPred()));
+$("d-rep").addEventListener("click", () => R && guardar(`reporte_perceptron_${base()}.md`, reporte()));
+async function copiar(texto, est){
+  try { await navigator.clipboard.writeText(texto); $(est).textContent = "Copiado."; }
+  catch (e){ $(est).textContent = "No se pudo copiar automáticamente. Selecciona el texto y cópialo a mano."; }
+}
+$("c-rep").addEventListener("click", () => R && copiar(reporte(), "estado-exp"));
+$("copiar-codigo").addEventListener("click", () => copiar($("codigo").textContent, "estado-codigo"));
+(async () => {
+  try {
+    if (window.claude && typeof window.claude.use === "function"){
+      descargas = await window.claude.use("downloads");
+      if (descargas){ $("d-pred").hidden = false; $("d-rep").hidden = false; }
+    }
+  } catch (e){ descargas = null; }
+})();
+
+/* ---------- tema y tamaño ---------- */
+const raiz = document.documentElement;
+function oscuro(){ return raiz.dataset.tema ? raiz.dataset.tema === "uv" : matchMedia("(prefers-color-scheme: dark)").matches; }
+function etiquetaTema(){ $("tema").textContent = oscuro() ? "Luz de día" : "Luz UV"; $("tema").setAttribute("aria-pressed", String(oscuro())); }
+try { const t = localStorage.getItem("perceptron-tema"); if (t) raiz.dataset.tema = t; } catch (e){}
+etiquetaTema();
+$("tema").addEventListener("click", () => { raiz.dataset.tema = oscuro() ? "dia" : "uv"; try { localStorage.setItem("perceptron-tema", raiz.dataset.tema); } catch (e){} etiquetaTema(); });
+let reloj = null, anchoPrevio = innerWidth;
+addEventListener("resize", () => { if (innerWidth === anchoPrevio) return; anchoPrevio = innerWidth; clearTimeout(reloj); reloj = setTimeout(pintarGraficas, 150); });
+</script>
+</body>
+</html>

@@ -306,6 +306,11 @@ body.expo .plano{max-height:372px;width:auto;margin:0 auto}
 body.expo #tira{max-height:282px;width:auto;margin:0 auto}
 body.expo #anatomia{max-height:330px;width:auto;margin:0 auto}
 body.expo .lect{display:none}
+.lab-marco{display:block;width:100%;border:1px solid var(--linea);border-radius:6px;background:var(--papel)}
+body.expo .lab-marco{flex:1;min-height:0}
+body:not(.expo) .lab-marco{height:640px}
+.lab-pie{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.74em;color:var(--tinta-2);line-height:1.35}
+.lab-pie a{font-weight:600}
 
 /* ---------- Modo lectura: todo en una página ---------- */
 body:not(.expo){padding-bottom:60px}
@@ -918,6 +923,20 @@ body:not(.expo) #b-rotulo{flex:1}
       <li>Documentación de scikit-learn: <a href="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Perceptron.html">sklearn.linear_model.Perceptron</a>.</li>
     </ul>
     <p class="nota">Ejercicio académico. Los resultados no acreditan un sistema de verificación monetaria para uso real.</p>
+  </div>
+</section>
+
+<!-- ============ EXTRA: laboratorio ============ -->
+<section class="lamina" data-parte="extra">
+  <header class="cabeza"><span class="num">Extra</span><h2>Laboratorio del Perceptrón Simple</h2></header>
+  <div class="cuerpo" style="gap:8px">
+    <p style="font-size:.92em">Le das cualquier base de datos y aplica todo el proceso. Con nuestra base de billetes da exactamente los mismos resultados del Colab.</p>
+    <iframe class="lab-marco" id="lab-marco" src="Laboratorio_Perceptron_Simple.html" title="Laboratorio del Perceptrón Simple" loading="lazy"></iframe>
+    <p class="lab-pie">
+      <a href="Laboratorio_Perceptron_Simple.html" target="_blank" rel="noopener">Abrir el laboratorio en pantalla completa</a>
+      <span>Si no carga, abre el archivo Laboratorio_Perceptron_Simple.html, que va en la misma carpeta.</span>
+      <span>Para volver a la presentación, haz clic fuera del marco o usa los botones de abajo.</span>
+    </p>
   </div>
 </section>
 
@@ -2157,6 +2176,33 @@ function alVer(elems, cb) {
   ].map(t => `<li class="f">${t}</li>`).join("");
 })();
 
+/* ============ EXTRA: laboratorio ============ */
+(function () {
+  const marco = $("#lab-marco"), raiz = document.documentElement;
+  /* el laboratorio usa data-tema = "uv" o "dia"; si el navegador no deja tocar el marco (archivo local), sigue con su propio tema */
+  function tema() {
+    const oscuro = raiz.dataset.theme ? raiz.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    /* el laboratorio lee este valor al abrir: así carga con el tema de la presentación */
+    try { localStorage.setItem("perceptron-tema", oscuro ? "uv" : "dia"); } catch (e) { /* sin almacenamiento */ }
+    try {
+      const doc = marco.contentDocument; if (!doc || !doc.documentElement) throw 0;
+      doc.documentElement.dataset.tema = oscuro ? "uv" : "dia";
+      const b = doc.getElementById("tema");
+      if (b) { b.textContent = oscuro ? "Luz de día" : "Luz UV"; b.setAttribute("aria-pressed", String(oscuro)); }
+      return true;
+    } catch (e) { return false; /* abierto como archivo local: no se puede tocar el marco */ }
+  }
+  /* si no se puede tocar el marco, se recarga para que lea el tema nuevo; si la lámina está a la vista, espera a que se salga de ella */
+  const lamina = marco.closest(".lamina");
+  let pendiente = false;
+  const recargar = () => { pendiente = false; marco.src = marco.getAttribute("src"); };
+  const visible = () => lamina.classList.contains("activa") || !document.body.classList.contains("expo");
+  marco.addEventListener("load", tema);
+  tema();
+  new MutationObserver(() => { if (!tema()) { if (visible()) pendiente = true; else recargar(); } }).observe(raiz, { attributes: true, attributeFilter: ["data-theme"] });
+  new MutationObserver(() => { if (pendiente && !visible()) recargar(); }).observe(lamina, { attributes: true, attributeFilter: ["class"] });
+})();
+
 /* ============ REPASO ============ */
 (function () {
   const T = [
@@ -2181,7 +2227,7 @@ function alVer(elems, cb) {
 (function () {
   const cuerpo = document.body, raiz = document.documentElement;
   const L = $$(".lamina"), N = L.length;
-  const PARTES = [["inicio", "Inicio"], ["problema", "El problema"], ["neurona", "Qué es un perceptrón"], ["decide", "Cómo decide"], ["aprende", "Cómo aprende"], ["limites", "Ventajas y límites"], ["colab", "El Colab paso a paso"], ["resultados", "Resultados"], ["gerencia", "Preguntas de la gerencia"], ["cierre", "Conclusiones"], ["repaso", "Repaso y referencias"]];
+  const PARTES = [["inicio", "Inicio"], ["problema", "El problema"], ["neurona", "Qué es un perceptrón"], ["decide", "Cómo decide"], ["aprende", "Cómo aprende"], ["limites", "Ventajas y límites"], ["colab", "El Colab paso a paso"], ["resultados", "Resultados"], ["gerencia", "Preguntas de la gerencia"], ["cierre", "Conclusiones"], ["repaso", "Repaso y referencias"], ["extra", "Extra: laboratorio"]];
   const primera = id => L.findIndex(l => l.dataset.parte === id);
   const expo = () => cuerpo.classList.contains("expo");
   let actual = 0;
